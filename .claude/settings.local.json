@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --app --eslint --no-src-dir --import-alias \"@/*\" --use-npm --turbopack --yes)"
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --app --eslint --no-src-dir --import-alias \"@/*\" --use-npm --turbopack --yes)",
+      "Bash(npm install *)",
+      "Bash(npx --yes shadcn@latest init --base-color neutral --yes)",
+      "Bash(npx --yes shadcn@latest init --help)",
+      "Bash(npx --yes shadcn@latest init --defaults --yes)",
+      "Bash(npx --yes shadcn@latest add input textarea card label dialog sonner tabs badge --yes)",
+      "Bash(npm run *)",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs -r kill -9)",
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(xargs kill *)"
     ]
   }
 }
