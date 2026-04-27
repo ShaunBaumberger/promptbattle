@@ -9,6 +9,11 @@ import type { Tournament } from "@/lib/types/database";
 
 export const metadata = { title: "Admin · Prompt Battle" };
 
+// Tournament list must reflect real-time DB state — without this, Next.js
+// caches the snapshot at build time and shows ghost rows for tournaments
+// that have since been deleted.
+export const dynamic = "force-dynamic";
+
 const STATUS_LABELS: Record<Tournament["status"], string> = {
   setup: "In Vorbereitung",
   live: "Läuft",
