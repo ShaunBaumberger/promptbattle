@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { Volume2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import type { PlayerCount, TournamentStatus } from "@/lib/types/database";
 import { BracketView } from "./bracket-view";
+import { ChampionView } from "./champion-view";
 import { MatchStage } from "./match-stage";
+import { useStageAudio } from "./use-stage-audio";
 
 interface Props {
   tournamentId: string;
@@ -32,6 +36,18 @@ export function Stage({
   );
   const [participantCount, setParticipantCount] = useState(initialParticipantCount);
   const [joinUrl, setJoinUrl] = useState<string>("");
+  const audio = useStageAudio();
+
+  // Champion fanfare exactly once when the tournament first transitions to
+  // `finished` (and the audio context is already unlocked).
+  const championFiredRef = useRef(false);
+  useEffect(() => {
+    if (status === "finished" && !championFiredRef.current) {
+      championFiredRef.current = true;
+      audio.play("champion");
+    }
+    if (status !== "finished") championFiredRef.current = false;
+  }, [status, audio]);
 
   useEffect(() => {
     setJoinUrl(`${window.location.origin}/?code=${tournamentCode}`);
@@ -86,37 +102,73 @@ export function Stage({
   }, [tournamentId]);
 
   if (status === "setup") {
-    return <SetupView
-      tournamentName={tournamentName}
-      tournamentCode={tournamentCode}
-      joinUrl={joinUrl}
-      participantCount={participantCount}
-      playerCount={playerCount}
-    />;
+    return (
+      <>
+        <SetupView
+          tournamentName={tournamentName}
+          tournamentCode={tournamentCode}
+          joinUrl={joinUrl}
+          participantCount={participantCount}
+          playerCount={playerCount}
+        />
+        {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
+      </>
+    );
   }
 
   // Match view wins over the "finished" headline so the audience sees the
   // reveal animation (winner crown + vote bars) on the final match. Once the
   // admin clears current_match_id, the finished view takes over.
   if (currentMatchId) {
-    return <MatchStage matchId={currentMatchId} tournamentId={tournamentId} />;
+    return (
+      <>
+        <MatchStage
+          matchId={currentMatchId}
+          tournamentId={tournamentId}
+          play={audio.play}
+        />
+        {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
+      </>
+    );
   }
 
   if (status === "finished") {
     return (
-      <main className="bg-background flex flex-1 items-center justify-center p-12 text-center">
-        <h1 className="text-6xl font-bold tracking-tight">{tournamentName} – Vorbei!</h1>
-      </main>
+      <>
+        <ChampionView tournamentId={tournamentId} tournamentName={tournamentName} />
+        {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
+      </>
     );
   }
 
   return (
-    <main className="bg-background flex flex-1 flex-col gap-8 p-12">
-      <header className="text-center">
-        <h1 className="text-5xl font-bold tracking-tight">{tournamentName}</h1>
-      </header>
-      <BracketView tournamentId={tournamentId} playerCount={playerCount} />
-    </main>
+    <>
+      <main className="bg-background flex flex-1 flex-col gap-8 p-12">
+        <header className="text-center">
+          <h1 className="text-5xl font-bold tracking-tight">{tournamentName}</h1>
+        </header>
+        <BracketView tournamentId={tournamentId} playerCount={playerCount} />
+      </main>
+      {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
+    </>
+  );
+}
+
+/** Floating button shown while the audio context hasn't been unlocked yet. */
+function AudioEnableGate({ onEnable }: { onEnable: () => void }) {
+  return (
+    <div className="fixed right-4 bottom-4 z-50">
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onEnable}
+        className="gap-2 shadow-lg"
+      >
+        <Volume2 className="size-4" />
+        Audio aktivieren
+      </Button>
+    </div>
   );
 }
 

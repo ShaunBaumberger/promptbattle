@@ -19,6 +19,7 @@ import {
   replayMatchAction,
   setMatchWinnerAction,
   setSkipGenerationAction,
+  clearCurrentMatchAction,
   type MatchActionState,
 } from "./match-actions";
 import {
@@ -154,6 +155,12 @@ export function MatchControl({
     initial,
   );
 
+  const boundClearMatch = clearCurrentMatchAction.bind(null, tournamentId);
+  const [clearState, clearAction, clearPending] = useActionState(
+    boundClearMatch,
+    initial,
+  );
+
   useEffect(() => {
     if (startState.error) toast.error(startState.error);
     if (startState.ok) toast.success("Match gestartet.");
@@ -166,6 +173,10 @@ export function MatchControl({
     if (replayState.error) toast.error(replayState.error);
     if (replayState.ok) toast.success("Match neu gestartet.");
   }, [replayState]);
+  useEffect(() => {
+    if (clearState.error) toast.error(clearState.error);
+    if (clearState.ok) toast.success("Bracket angezeigt.");
+  }, [clearState]);
 
   // Auto-fire generation when the match enters the locked state. Server-side
   // atomic guard ensures only one trigger wins if multiple clients fan out.
@@ -378,12 +389,19 @@ export function MatchControl({
               </div>
             )}
           {match.status === "done" && match.winner_id && (
-            <p className="text-sm">
-              Sieger:{" "}
-              <span className="font-semibold">
-                {nameById.get(match.winner_id) ?? "?"}
-              </span>
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm">
+                Sieger:{" "}
+                <span className="font-semibold">
+                  {nameById.get(match.winner_id) ?? "?"}
+                </span>
+              </p>
+              <form action={clearAction}>
+                <Button type="submit" variant="outline" size="sm" disabled={clearPending}>
+                  {clearPending ? "Wechselt…" : "Zurück zum Bracket"}
+                </Button>
+              </form>
+            </div>
           )}
           {playerCount === 2 && match.status !== "live" && (
             <form action={replayAction}>

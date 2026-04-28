@@ -110,6 +110,48 @@ export async function startNextMatchAction(
 }
 
 /**
+ * Clear the tournament's `current_match_id` pointer so the stage falls back
+ * to the bracket view between matches. Allowed only when the current match
+ * is `done` — would be destructive mid-match.
+ */
+export async function clearCurrentMatchAction(
+  tournamentId: string,
+  _prev: MatchActionState,
+  _formData: FormData,
+): Promise<MatchActionState> {
+  const supabase = createServiceRoleClient();
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("id, current_match_id")
+    .eq("id", tournamentId)
+    .maybeSingle();
+
+  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament.current_match_id) return { ok: true };
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("status")
+    .eq("id", tournament.current_match_id)
+    .maybeSingle();
+
+  if (match && match.status !== "done") {
+    return { error: "Aktuelles Match ist noch nicht abgeschlossen." };
+  }
+
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ current_match_id: null })
+    .eq("id", tournamentId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
+}
+
+/**
  * Test-mode toggle: skip Gemini image generation. Allowed only on 2-player
  * tournaments so a real event can't accidentally turn this on.
  */

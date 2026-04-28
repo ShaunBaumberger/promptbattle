@@ -5,9 +5,12 @@ import { createClient } from "@/lib/supabase/client";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
 
+import type { Cue } from "@/lib/stage-audio";
+
 interface Props {
   matchId: string;
   tournamentId: string;
+  play?: (cue: Cue) => void;
 }
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
@@ -20,7 +23,7 @@ const STATUS_LABEL: Record<MatchStatus, string> = {
   done: "Abgeschlossen",
 };
 
-export function MatchStage({ matchId, tournamentId }: Props) {
+export function MatchStage({ matchId, tournamentId, play }: Props) {
   const [match, setMatch] = useState<Match | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [remaining, setRemaining] = useState(0);
@@ -69,6 +72,40 @@ export function MatchStage({ matchId, tournamentId }: Props) {
     const id = setInterval(tick, 200);
     return () => clearInterval(id);
   }, [match?.end_time]);
+
+  // ---- Audio cues -----------------------------------------------------
+  // Fire each cue at most once per logical event. Status-based cues are
+  // keyed by start_time so a kill-switch / replay re-fires them. The 10s
+  // tick keys on start_time too.
+  const firedCuesRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!play || !match) return;
+    const fireOnce = (key: string, cue: Cue) => {
+      if (firedCuesRef.current.has(key)) return;
+      firedCuesRef.current.add(key);
+      play(cue);
+    };
+    const startKey = match.start_time ?? match.id;
+    if (match.status === "live") {
+      fireOnce(`start:${startKey}`, "matchStart");
+    }
+    if (match.status === "locked") {
+      fireOnce(`lock:${startKey}`, "lockTimeUp");
+    }
+    if (match.status === "voting") {
+      fireOnce(`voting:${match.id}`, "votingStart");
+    }
+  }, [match, play]);
+
+  // 10-second warning beep — single pop right when the timer crosses 10.
+  useEffect(() => {
+    if (!play || !match || match.status !== "live") return;
+    if (remaining > 10 || remaining <= 0) return;
+    const key = `tick10:${match.start_time ?? match.id}`;
+    if (firedCuesRef.current.has(key)) return;
+    firedCuesRef.current.add(key);
+    play("tenSecondTick");
+  }, [match, remaining, play]);
 
   if (!match) {
     return (
@@ -123,6 +160,15 @@ export function MatchStage({ matchId, tournamentId }: Props) {
     };
   }, [match.id, match.status, match.winner_id, showBars]);
   const winnerRevealed = revealPhase >= 3 && winnerName != null;
+
+  // Triumph cue when the winner is officially revealed.
+  useEffect(() => {
+    if (!play || !winnerRevealed || !match) return;
+    const key = `winner:${match.id}:${match.winner_id}`;
+    if (firedCuesRef.current.has(key)) return;
+    firedCuesRef.current.add(key);
+    play("winnerReveal");
+  }, [winnerRevealed, match, play]);
 
   return (
     <main className="bg-background flex flex-1 flex-col gap-6 p-8">
@@ -367,7 +413,7 @@ function RevealColumn({
         <img
           src={resultUrl}
           alt={`Ergebnis von ${name}`}
-          className={`bg-muted w-auto rounded-md object-contain transition-all duration-500 ${
+          className={`bg-muted w-auto rounded-md object-contain transition-all duration-700 animate-in fade-in zoom-in-95 fill-mode-both ${
             showWinnerStyle
               ? "max-h-[55vh] border-2 border-amber-400 shadow-[0_0_60px_rgba(251,191,36,0.4)] ring-4 ring-amber-400"
               : "max-h-[45vh] border"
