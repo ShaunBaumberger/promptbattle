@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { Participant, Task, Tournament } from "@/lib/types/database";
 import { TaskManager } from "./task-manager";
@@ -10,6 +10,7 @@ import { StartBracketForm } from "./start-bracket-form";
 import { MatchControl } from "./match-control";
 import { TournamentSettings } from "./tournament-settings";
 import { DeleteTournamentDialog } from "./delete-tournament-dialog";
+import { copyTournamentAction } from "./actions";
 import type { PlayerCount, Round } from "@/lib/types/database";
 
 // Image generation can take ~15-25s; allow headroom for the server action.
@@ -132,6 +133,20 @@ export default async function TournamentAdminPage({
           />
         </section>
       )}
+
+      <section className="space-y-3 rounded-md border p-4">
+        <h2 className="text-base font-semibold">Tournament duplizieren</h2>
+        <p className="text-muted-foreground text-sm">
+          Erstellt ein neues Tournament mit demselben Setup (Modus, Rundenzeit,
+          Tasks). Bilder werden kopiert. Neuer Beitritts-Code wird automatisch
+          generiert.
+        </p>
+        <form action={copyTournamentAction.bind(null, tournament.id)}>
+          <Button type="submit" variant="outline" size="sm">
+            Tournament kopieren
+          </Button>
+        </form>
+      </section>
 
       <section className="border-destructive/50 space-y-3 rounded-md border p-4">
         <h2 className="text-base font-semibold">Gefahrenzone</h2>

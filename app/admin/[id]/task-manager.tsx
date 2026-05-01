@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ImageUp, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,12 @@ interface Props {
 }
 
 export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
-  const rounds = getRoundsForPlayerCount(playerCount);
+  // Memoised so the array reference is stable across renders — the form-reset
+  // effect depends on it and would otherwise fire on every render.
+  const rounds = useMemo(
+    () => getRoundsForPlayerCount(playerCount),
+    [playerCount],
+  );
   const boundCreate = createTaskAction.bind(null, tournamentId);
   const [state, formAction, pending] = useActionState(boundCreate, initial);
   const formRef = useRef<HTMLFormElement>(null);
@@ -56,7 +61,13 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
     firstIncompleteRound(rounds, tasks),
   );
 
+  // Reset only when the action's state object actually changes (new submit
+  // result), not on every render. Without this guard, file picks would clear
+  // themselves the next render because rounds/tasks references can churn.
+  const lastSeenStateRef = useRef(state);
   useEffect(() => {
+    if (state === lastSeenStateRef.current) return;
+    lastSeenStateRef.current = state;
     if (!pending && !state.error && formRef.current) {
       formRef.current.reset();
       setRound(firstIncompleteRound(rounds, tasks));

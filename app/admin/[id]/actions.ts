@@ -6,6 +6,7 @@ import { nanoid } from "nanoid";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { shuffle } from "@/lib/bracket";
 import { getRoundsForPlayerCount } from "@/lib/rounds";
+import { generateJoinCode } from "@/lib/join-code";
 import type { PlayerCount, Round } from "@/lib/types/database";
 
 const VALID_ROUNDS: readonly Round[] = ["R32", "R16", "QF", "SF", "FINAL"] as const;
@@ -163,6 +164,119 @@ export async function updatePlayerCountAction(
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };
+}
+
+/**
+ * Duplicate an existing tournament. Creates a fresh tournament row (new id +
+ * code, status='setup') with the same name (suffixed with " (Kopie)"),
+ * player count, round time, test-mode flag, and skip-generation flag, then
+ * deep-copies all tasks. Image task files are re-uploaded to a new storage
+ * path so deleting the original later doesn't yank the new tournament's images.
+ *
+ * After success, redirects to the new tournament's admin page.
+ */
+export async function copyTournamentAction(sourceId: string) {
+  const supabase = createServiceRoleClient();
+
+  const { data: source } = await supabase
+    .from("tournaments")
+    .select("*")
+    .eq("id", sourceId)
+    .maybeSingle();
+  if (!source) return;
+
+  // Generate a unique join code (retry on the off-chance of a collision).
+  let code = generateJoinCode();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: existing } = await supabase
+      .from("tournaments")
+      .select("id")
+      .eq("code", code)
+      .maybeSingle();
+    if (!existing) break;
+    code = generateJoinCode();
+  }
+
+  const { data: created, error: createErr } = await supabase
+    .from("tournaments")
+    .insert({
+      code,
+      name: appendCopySuffix(source.name as string),
+      player_count: source.player_count,
+      round_time_seconds: source.round_time_seconds,
+      is_test_mode: source.is_test_mode,
+      skip_image_generation: source.skip_image_generation,
+      // Defaults: status='setup', current_match_id=null
+    })
+    .select("id")
+    .single();
+  if (createErr || !created) return;
+
+  // Deep-copy tasks. Image binaries get re-uploaded to a new storage path so
+  // the new tournament owns its assets independently.
+  const { data: sourceTasks } = await supabase
+    .from("tasks")
+    .select("round, internal_label, reference_image_url, text_prompt")
+    .eq("tournament_id", sourceId);
+
+  const newTaskRows: Array<{
+    tournament_id: string;
+    round: Round;
+    internal_label: string | null;
+    reference_image_url: string | null;
+    text_prompt: string | null;
+  }> = [];
+
+  for (const t of sourceTasks ?? []) {
+    let referenceImageUrl: string | null = null;
+
+    if (t.reference_image_url) {
+      const sourcePath = extractStoragePath(t.reference_image_url);
+      if (sourcePath) {
+        const { data: blob } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .download(sourcePath);
+        if (blob) {
+          const ext = sourcePath.split(".").pop() || "png";
+          const contentType = blob.type || "image/png";
+          const newPath = `tournaments/${created.id}/tasks/${nanoid()}.${ext}`;
+          const buffer = Buffer.from(await blob.arrayBuffer());
+          const { error: uploadErr } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(newPath, buffer, { contentType, upsert: false });
+          if (!uploadErr) {
+            const { data: pub } = supabase.storage
+              .from(STORAGE_BUCKET)
+              .getPublicUrl(newPath);
+            referenceImageUrl = pub.publicUrl;
+          }
+        }
+      }
+    }
+
+    newTaskRows.push({
+      tournament_id: created.id,
+      round: t.round as Round,
+      internal_label: (t.internal_label as string | null) ?? null,
+      reference_image_url: referenceImageUrl,
+      text_prompt: (t.text_prompt as string | null) ?? null,
+    });
+  }
+
+  if (newTaskRows.length) {
+    await supabase.from("tasks").insert(newTaskRows);
+  }
+
+  redirect(`/admin/${created.id}`);
+}
+
+function appendCopySuffix(name: string): string {
+  // "Foo" → "Foo (Kopie)"; "Foo (Kopie)" → "Foo (Kopie 2)"; "Foo (Kopie 2)" → "Foo (Kopie 3)"
+  const m = name.match(/^(.*) \(Kopie(?: (\d+))?\)$/);
+  if (!m) return `${name} (Kopie)`;
+  const base = m[1];
+  const n = m[2] ? Number.parseInt(m[2], 10) + 1 : 2;
+  return `${base} (Kopie ${n})`;
 }
 
 export async function deleteTournamentAction(tournamentId: string) {
