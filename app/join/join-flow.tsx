@@ -39,28 +39,26 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
   if (checking) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
-        <p className="text-muted-foreground text-sm">Lade…</p>
+        <p className="text-white/40 text-sm">Lade…</p>
       </main>
     );
   }
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1 text-center">
-          <p className="text-muted-foreground text-sm uppercase tracking-wide">
-            Beitritt zum Tournament
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight">{tournamentName}</h1>
-          <p className="text-muted-foreground text-xs">
-            Code: <span className="font-mono">{tournamentCode}</span>
-          </p>
+      <div className="w-full max-w-sm space-y-10 duration-500 animate-in fade-in slide-in-from-bottom-4">
+        <div className="space-y-2 text-center">
+          <h1 className="text-white text-4xl font-semibold tracking-tight">
+            {tournamentName}
+          </h1>
         </div>
 
-        <form action={formAction} className="flex flex-col gap-4">
+        <form action={formAction} className="flex flex-col gap-5">
           <input type="hidden" name="code" value={tournamentCode} />
           <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Dein Name</Label>
+            <Label htmlFor="name" className="text-white/70 text-sm font-medium">
+              Dein Name (für alle Spieler sichtbar)
+            </Label>
             <Input
               id="name"
               name="name"
@@ -71,15 +69,23 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
               autoCorrect="off"
               autoCapitalize="words"
               spellCheck={false}
+              className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 h-14 rounded-2xl border-white/10 px-4 text-lg backdrop-blur"
             />
           </div>
           {state.status === "error" && (
-            <p className="text-destructive text-sm" role="alert">
+            <p
+              className="text-rose-400 text-sm font-medium"
+              role="alert"
+            >
               {state.error}
             </p>
           )}
-          <Button type="submit" disabled={pending || state.status === "ok"}>
-            {pending || state.status === "ok" ? "Beitreten…" : "Beitreten"}
+          <Button
+            type="submit"
+            disabled={pending || state.status === "ok"}
+            className="bg-white text-black hover:bg-white/90 active:scale-[0.98] h-14 rounded-2xl text-base font-semibold transition-transform"
+          >
+            {pending || state.status === "ok" ? "Trete bei…" : "Beitreten"}
           </Button>
         </form>
       </div>

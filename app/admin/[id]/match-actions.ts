@@ -152,8 +152,8 @@ export async function clearCurrentMatchAction(
 }
 
 /**
- * Test-mode toggle: skip Gemini image generation. Allowed only on 2-player
- * tournaments so a real event can't accidentally turn this on.
+ * Test-mode toggle: skip Gemini image generation. Allowed only in dedicated
+ * test-mode tournaments so a real event can't accidentally turn this on.
  */
 export async function setSkipGenerationAction(
   tournamentId: string,
@@ -162,12 +162,12 @@ export async function setSkipGenerationAction(
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("player_count")
+    .select("is_test_mode")
     .eq("id", tournamentId)
     .maybeSingle();
   if (!tournament) return { error: "Tournament nicht gefunden." };
-  if (tournament.player_count !== 2) {
-    return { error: "Nur im 2-Spieler-Test-Modus verfügbar." };
+  if (!tournament.is_test_mode) {
+    return { error: "Nur im Test-Modus verfügbar." };
   }
   const { error } = await supabase
     .from("tournaments")
@@ -204,13 +204,13 @@ export async function replayMatchAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, status, player_count, round_time_seconds")
+    .select("id, status, is_test_mode, round_time_seconds")
     .eq("id", match.tournament_id)
     .maybeSingle();
 
   if (!tournament) return { error: "Tournament nicht gefunden." };
-  if (tournament.player_count !== 2) {
-    return { error: "Match-Wiederholung ist nur im 2-Spieler-Test-Modus erlaubt." };
+  if (!tournament.is_test_mode) {
+    return { error: "Match-Wiederholung ist nur im Test-Modus erlaubt." };
   }
   if (tournament.status !== "live") {
     return { error: "Tournament läuft nicht." };
@@ -306,7 +306,7 @@ export async function setMatchWinnerAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, player_count")
+    .select("id, player_count, is_test_mode")
     .eq("id", match.tournament_id)
     .maybeSingle();
 
@@ -351,9 +351,9 @@ export async function setMatchWinnerAction(
     if (advanceErr) {
       return { error: `Bracket-Vorschub fehlgeschlagen: ${advanceErr.message}` };
     }
-  } else if (playerCount !== 2) {
+  } else if (!tournament.is_test_mode) {
     // Final match of a real tournament: mark tournament finished.
-    // 2-player test mode skips this so the admin can replay the same match.
+    // Test mode skips this so the admin can replay the same match.
     const { error: tErr } = await supabase
       .from("tournaments")
       .update({ status: "finished" })

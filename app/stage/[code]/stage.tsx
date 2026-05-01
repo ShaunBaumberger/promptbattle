@@ -143,9 +143,14 @@ export function Stage({
 
   return (
     <>
-      <main className="bg-background flex flex-1 flex-col gap-8 p-12">
-        <header className="text-center">
-          <h1 className="text-5xl font-bold tracking-tight">{tournamentName}</h1>
+      <main className="flex flex-1 flex-col gap-10 p-12">
+        <header className="space-y-2 text-center">
+          <p className="text-white/40 text-base uppercase tracking-[0.4em]">
+            Prompt Battle
+          </p>
+          <h1 className="text-white text-6xl font-semibold tracking-tight">
+            {tournamentName}
+          </h1>
         </header>
         <BracketView tournamentId={tournamentId} playerCount={playerCount} />
       </main>
@@ -186,40 +191,44 @@ function SetupView({
   playerCount: PlayerCount;
 }) {
   return (
-    <main className="bg-background flex flex-1 flex-col items-center justify-center gap-12 p-12">
-      <header className="space-y-2 text-center">
-        <p className="text-muted-foreground text-xl uppercase tracking-widest">
+    <main className="flex flex-1 flex-col items-center justify-center gap-14 p-12">
+      <header className="space-y-3 text-center duration-700 animate-in fade-in slide-in-from-top-2">
+        <p className="text-white/50 text-xl uppercase tracking-[0.4em]">
           Prompt Battle
         </p>
-        <h1 className="text-7xl font-bold tracking-tight">{tournamentName}</h1>
+        <h1 className="text-white text-8xl font-semibold tracking-tight">
+          {tournamentName}
+        </h1>
       </header>
 
-      <div className="flex flex-col items-center gap-6">
-        <div className="rounded-2xl bg-white p-8 shadow-2xl">
+      <div className="flex flex-col items-center gap-7 duration-700 animate-in fade-in zoom-in-95">
+        <div className="rounded-3xl border border-white/10 bg-white p-7 shadow-[0_0_80px_rgba(56,189,248,0.25)]">
           {joinUrl ? (
             <QRCodeSVG value={joinUrl} size={360} level="M" marginSize={0} />
           ) : (
-            <div className="bg-muted h-[360px] w-[360px] animate-pulse rounded" />
+            <div className="bg-muted h-[360px] w-[360px] animate-pulse rounded-2xl" />
           )}
         </div>
-        <div className="space-y-1 text-center">
-          <p className="text-2xl">
+        <div className="space-y-2 text-center">
+          <p className="text-white/70 text-2xl">
             Scanne den Code oder gehe auf{" "}
-            <span className="font-mono font-semibold">
+            <span className="text-white font-mono font-semibold">
               {joinUrl.replace(/^https?:\/\//, "") || "…"}
             </span>
           </p>
-          <p className="text-4xl font-bold tracking-widest">
-            Code: <span className="font-mono">{tournamentCode}</span>
+          <p className="text-white text-5xl font-semibold tracking-[0.2em]">
+            <span className="font-mono">{tournamentCode}</span>
           </p>
         </div>
       </div>
 
-      <div className="text-center">
-        <p className="text-6xl font-bold">{participantCount}</p>
-        <p className="text-muted-foreground text-2xl">
-          {participantCount === 1 ? "Person beigetreten" : "Personen beigetreten"} –{" "}
-          {playerCount} Spieler werden ausgewählt
+      <div className="rounded-3xl border border-white/10 bg-white/5 px-10 py-6 text-center backdrop-blur duration-700 animate-in fade-in slide-in-from-bottom-2">
+        <p className="text-white text-7xl font-semibold tabular-nums">
+          {participantCount}
+        </p>
+        <p className="text-white/60 mt-1 text-xl">
+          {participantCount === 1 ? "Person beigetreten" : "Personen beigetreten"}{" "}
+          · {playerCount} Spieler werden ausgewählt
         </p>
       </div>
     </main>

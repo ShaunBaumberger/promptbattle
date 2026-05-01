@@ -280,15 +280,37 @@ export function Lobby({
   const message = renderMessage(status, participant, eliminated);
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
-      <div className="space-y-1">
-        <p className="text-muted-foreground text-xs uppercase tracking-wide">{tournamentName}</p>
-        <h1 className="text-3xl font-bold tracking-tight">Hallo, {participant.name}!</h1>
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
+      <div className="space-y-2">
+        <p className="text-white/40 text-xs uppercase tracking-[0.3em]">
+          {tournamentName}
+        </p>
+        <h1 className="text-white text-3xl font-semibold tracking-tight">
+          Hallo, {participant.name}
+        </h1>
       </div>
-      <Badge variant="secondary" className="text-sm">
-        {message.badge}
-      </Badge>
-      <p className="text-muted-foreground max-w-md text-base">{message.text}</p>
+
+      <div className="space-y-3">
+        <span className="text-6xl" role="img" aria-hidden>
+          {message.icon}
+        </span>
+        <p className="text-white text-2xl font-semibold tracking-tight">
+          {message.badge}
+        </p>
+      </div>
+
+      <p className="text-white/60 max-w-sm text-base leading-relaxed">
+        {message.text}
+      </p>
+
+      {message.pulse && (
+        <div className="flex items-center gap-2">
+          <span className="bg-sky-400 inline-block h-2 w-2 animate-pulse rounded-full" />
+          <span className="text-white/50 text-xs uppercase tracking-widest">
+            Bleib in der App
+          </span>
+        </div>
+      )}
     </main>
   );
 }
@@ -297,34 +319,44 @@ function renderMessage(
   status: TournamentStatus,
   participant: Participant,
   eliminated: boolean,
-) {
+): { icon: string; badge: string; text: string; pulse: boolean } {
   if (status === "finished") {
     return {
+      icon: "🏁",
       badge: "Tournament beendet",
       text: "Vielen Dank fürs Mitmachen!",
+      pulse: false,
     };
   }
   if (status === "setup") {
     return {
+      icon: "⏳",
       badge: "Warteraum",
       text: "Das Tournament startet gleich. Bleib in der App — du wirst entweder selber spielen oder gleich für die besten Bilder abstimmen.",
+      pulse: true,
     };
   }
   if (eliminated) {
     return {
+      icon: "🫡",
       badge: "Du bist ausgeschieden",
-      text: "Bleib in der App — du kannst weiter für die anderen Matches abstimmen.",
+      text: "Du kannst weiter für die anderen Matches abstimmen.",
+      pulse: true,
     };
   }
   if (participant.is_player) {
     return {
+      icon: "🎮",
       badge: "Du bist Spieler",
       text: "Warte auf dein nächstes Match. Bei den anderen Matches kannst du zwischendurch abstimmen.",
+      pulse: true,
     };
   }
   return {
+    icon: "👀",
     badge: "Du bist Zuschauer",
-    text: "Bleib in der App — bei jedem Match kannst du für das beste Bild abstimmen.",
+    text: "Bei jedem Match kannst du für das beste Bild abstimmen.",
+    pulse: true,
   };
 }
 

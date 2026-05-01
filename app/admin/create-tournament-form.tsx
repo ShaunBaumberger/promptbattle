@@ -19,20 +19,25 @@ export function CreateTournamentForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="player_count">Spieleranzahl</Label>
+        <Label htmlFor="mode">Modus</Label>
         <select
-          id="player_count"
-          name="player_count"
+          id="mode"
+          name="mode"
           required
           defaultValue="8"
           className="border-input bg-background h-9 rounded-md border px-3 text-sm"
         >
-          <option value="2">2 Spieler (nur Finale) – Test-Modus</option>
+          <option value="2">2 Spieler (nur Finale)</option>
           <option value="4">4 Spieler (Halbfinale → Finale)</option>
           <option value="8">8 Spieler (Viertelfinale → Finale)</option>
           <option value="16">16 Spieler (Achtelfinale → Finale)</option>
           <option value="32">32 Spieler (Sechzehntelfinale → Finale)</option>
+          <option value="test">Test-Modus (Debug · 2 Spieler)</option>
         </select>
+        <p className="text-muted-foreground text-xs">
+          Test-Modus: Match-Wiederholung, Bildgenerierung-Skip, kein
+          automatisches Tournament-Ende.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match } from "@/lib/types/database";
 import { castVoteAction } from "@/app/admin/[id]/voting-actions";
@@ -33,19 +32,26 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
   };
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4">
+    <main className="flex flex-1 flex-col gap-5 p-4 duration-500 animate-in fade-in slide-in-from-bottom-2">
       <header className="flex items-center justify-between">
-        <Badge variant="secondary">{ROUND_LABELS[match.round]}</Badge>
-        <Badge variant="default">Voting läuft</Badge>
+        <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
+          {ROUND_LABELS[match.round]}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-sky-300 backdrop-blur">
+          <span className="bg-sky-400 inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
+          Voting läuft
+        </span>
       </header>
 
-      <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">Wer hat besser geprompt?</h1>
-        <p className="text-muted-foreground text-sm">
+      <div className="space-y-1.5 text-center">
+        <h1 className="text-white text-3xl font-semibold tracking-tight">
+          Wer hat besser geprompt?
+        </h1>
+        <p className="text-white/60 text-sm">
           Tippe auf das Bild, das deiner Meinung nach gewinnen soll.
         </p>
         {match.task_text && (
-          <p className="text-muted-foreground pt-1 text-xs">
+          <p className="text-white/40 pt-2 text-xs">
             Aufgabe: „{match.task_text}"
           </p>
         )}
@@ -69,7 +75,7 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
       </div>
 
       {voted && (
-        <p className="text-muted-foreground text-center text-sm">
+        <p className="text-white/50 text-center text-sm">
           Du kannst deine Stimme bis zum Voting-Ende ändern.
         </p>
       )}
@@ -95,18 +101,22 @@ function VoteCard({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex flex-col gap-2 overflow-hidden rounded-md border-2 p-2 text-left transition-all ${
+      className={`group flex flex-col gap-3 overflow-hidden rounded-3xl border p-3 text-left backdrop-blur transition-all active:scale-[0.985] ${
         selected
-          ? "border-foreground bg-foreground/5 ring-foreground ring-2"
-          : "border-border bg-card hover:border-foreground/40"
+          ? "border-sky-400 bg-sky-400/10 ring-2 ring-sky-400 ring-offset-2 ring-offset-background shadow-[0_0_40px_rgba(56,189,248,0.25)]"
+          : "border-white/10 bg-white/5 hover:bg-white/10"
       } ${disabled ? "opacity-60" : ""}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-base font-semibold">{name}</span>
-        {selected && <Badge variant="default">Deine Wahl</Badge>}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-white text-lg font-semibold">{name}</span>
+        {selected && (
+          <span className="rounded-full bg-sky-400 px-2.5 py-0.5 text-xs font-semibold text-black">
+            Deine Wahl
+          </span>
+        )}
       </div>
       {resultUrl ? (
-        <div className="bg-muted relative aspect-square w-full overflow-hidden rounded-md">
+        <div className="bg-white/5 relative aspect-square w-full overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={resultUrl}
@@ -115,7 +125,7 @@ function VoteCard({
           />
         </div>
       ) : (
-        <div className="bg-muted text-muted-foreground flex aspect-square w-full items-center justify-center rounded-md text-sm italic">
+        <div className="bg-white/5 text-white/40 flex aspect-square w-full items-center justify-center rounded-2xl text-sm italic">
           Keine Bildgenerierung
         </div>
       )}

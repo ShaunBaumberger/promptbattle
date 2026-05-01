@@ -36,6 +36,7 @@ interface Props {
   roundTimeSeconds: number;
   playerCount: PlayerCount;
   initialSkipGeneration: boolean;
+  isTestMode: boolean;
 }
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
@@ -54,8 +55,9 @@ export function MatchControl({
   tournamentId,
   initialCurrentMatchId,
   roundTimeSeconds,
-  playerCount,
+  playerCount: _playerCount,
   initialSkipGeneration,
+  isTestMode,
 }: Props) {
   const [skipGeneration, setSkipGeneration] = useState(initialSkipGeneration);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(
@@ -279,7 +281,7 @@ export function MatchControl({
         </p>
       </div>
 
-      {playerCount === 2 && (
+      {isTestMode && (
         <label className="bg-muted/40 flex cursor-pointer items-start gap-2 rounded-md border border-dashed p-3 text-sm">
           <input
             type="checkbox"
@@ -403,7 +405,7 @@ export function MatchControl({
               </form>
             </div>
           )}
-          {playerCount === 2 && match.status !== "live" && (
+          {isTestMode && match.status !== "live" && (
             <form action={replayAction}>
               <Button type="submit" size="sm" variant="outline" disabled={replayPending}>
                 {replayPending ? "Wird neu gestartet…" : "Match neu starten (Test)"}

@@ -11,12 +11,23 @@ export async function createTournamentAction(
   formData: FormData,
 ): Promise<CreateTournamentState> {
   const name = String(formData.get("name") ?? "").trim();
-  const playerCount = Number(formData.get("player_count"));
+  const rawMode = String(formData.get("mode") ?? "");
   const roundTime = Number(formData.get("round_time_seconds")) || 60;
 
   if (!name) return { error: "Bitte einen Namen für das Tournament angeben." };
-  if (![2, 4, 8, 16, 32].includes(playerCount)) {
-    return { error: "Spieleranzahl muss 2, 4, 8, 16 oder 32 sein." };
+
+  // `mode` is either "test" (debug session, 2 players, skip default ON)
+  // or a numeric string for the real bracket size.
+  let isTestMode = false;
+  let playerCount: number;
+  if (rawMode === "test") {
+    isTestMode = true;
+    playerCount = 2;
+  } else {
+    playerCount = Number(rawMode);
+    if (![2, 4, 8, 16, 32].includes(playerCount)) {
+      return { error: "Bitte einen gültigen Modus auswählen." };
+    }
   }
 
   const supabase = createServiceRoleClient();
@@ -39,9 +50,9 @@ export async function createTournamentAction(
       name,
       player_count: playerCount,
       round_time_seconds: roundTime,
-      // Test-mode default: 2-player tournaments skip Gemini by default so test
-      // sessions don't burn through API budget. Real tournaments (4+) generate.
-      skip_image_generation: playerCount === 2,
+      is_test_mode: isTestMode,
+      // Skip Gemini by default only in test mode — real tournaments generate.
+      skip_image_generation: isTestMode,
     })
     .select("id")
     .single();

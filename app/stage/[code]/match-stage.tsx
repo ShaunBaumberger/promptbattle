@@ -171,38 +171,38 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
   }, [winnerRevealed, match, play]);
 
   return (
-    <main className="bg-background flex flex-1 flex-col gap-6 p-8">
+    <main className="flex flex-1 flex-col gap-6 p-8">
       <header className="flex items-center justify-between">
-        <p className="text-muted-foreground text-2xl uppercase tracking-widest">
+        <p className="text-white/50 text-2xl uppercase tracking-[0.3em]">
           {ROUND_LABELS[match.round]} – Match {match.bracket_position + 1}
         </p>
         {live ? (
           <p
-            className={`font-mono text-7xl font-bold ${
-              showSeconds <= 10 ? "text-destructive" : "text-foreground"
+            className={`tabular-nums text-7xl font-semibold tracking-tight transition-colors ${
+              showSeconds <= 10 ? "text-rose-400" : "text-white"
             }`}
           >
             {showSeconds}s
           </p>
         ) : match.status === "voting" ? (
-          <div className="flex items-center gap-3">
-            <span className="bg-foreground inline-block h-3 w-3 animate-pulse rounded-full" />
-            <p className="text-foreground text-3xl font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-3 rounded-full border border-sky-400/40 bg-sky-400/10 px-5 py-2 backdrop-blur">
+            <span className="bg-sky-400 inline-block h-3 w-3 animate-pulse rounded-full" />
+            <p className="text-sky-100 text-2xl font-semibold uppercase tracking-widest">
               Voting läuft
             </p>
           </div>
         ) : !winnerName && match.status !== "done" ? (
-          <p className="text-foreground text-2xl">{STATUS_LABEL[match.status]}</p>
+          <p className="text-white/70 text-2xl">{STATUS_LABEL[match.status]}</p>
         ) : null}
       </header>
 
       {winnerRevealed && (
-        <div className="flex flex-col items-center gap-1 pb-2 text-center duration-500 animate-in fade-in slide-in-from-bottom-2">
-          <span className="text-muted-foreground text-sm uppercase tracking-[0.3em]">
+        <div className="flex flex-col items-center gap-2 pb-2 text-center duration-700 animate-in fade-in slide-in-from-bottom-2">
+          <span className="text-amber-400/80 text-base uppercase tracking-[0.4em]">
             {match.round === "FINAL" ? "Champion" : "Gewinner:in"}
           </span>
-          <p className="text-foreground flex items-center justify-center gap-3 text-5xl font-bold tracking-tight">
-            <span className="text-5xl">🏆</span>
+          <p className="text-white flex items-center justify-center gap-4 text-6xl font-semibold tracking-tight drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+            <span className="text-6xl">🏆</span>
             {winnerName}
           </p>
         </div>
@@ -262,11 +262,11 @@ function TaskDisplay({
   if (match.task_text) {
     return (
       <>
-        <p className="text-muted-foreground text-base uppercase tracking-widest">
+        <p className="text-white/50 text-base uppercase tracking-[0.3em]">
           Generiere ein Bild von …
         </p>
-        <div className="bg-muted/40 flex w-full flex-col items-center justify-center overflow-hidden rounded-md border p-6">
-          <p className="text-foreground w-full text-center text-3xl font-semibold leading-snug break-words [overflow-wrap:anywhere]">
+        <div className="bg-white/5 flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 p-7 backdrop-blur">
+          <p className="text-white w-full text-center text-3xl font-semibold leading-snug break-words [overflow-wrap:anywhere]">
             {match.task_text}
           </p>
         </div>
@@ -276,21 +276,21 @@ function TaskDisplay({
   if (match.task_reference_url) {
     return (
       <>
-        <p className="text-muted-foreground text-base uppercase tracking-widest">
+        <p className="text-white/50 text-base uppercase tracking-[0.3em]">
           {variant === "live" ? "Referenzbild" : "Referenz"}
         </p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={match.task_reference_url}
           alt="Referenzbild"
-          className={`bg-muted ${maxH} w-auto rounded-md border object-contain`}
+          className={`bg-white/5 ${maxH} w-auto rounded-2xl border border-white/10 object-contain shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]`}
         />
       </>
     );
   }
   return (
     <div
-      className={`bg-muted ${maxH === "max-h-[60vh]" ? "h-[60vh]" : "h-[55vh]"} w-full animate-pulse rounded-md`}
+      className={`bg-white/5 ${maxH === "max-h-[60vh]" ? "h-[60vh]" : "h-[55vh]"} w-full animate-pulse rounded-2xl border border-white/10`}
     />
   );
 }
@@ -399,10 +399,10 @@ function RevealColumn({
       } ${showLoserStyle ? "opacity-40 grayscale-[40%]" : ""}`}
     >
       <div className="flex items-center gap-3">
-        {showWinnerStyle && <span className="text-4xl">🏆</span>}
+        {showWinnerStyle && <span className="text-5xl">🏆</span>}
         <h2
-          className={`text-3xl font-bold tracking-tight ${
-            showWinnerStyle ? "text-foreground" : ""
+          className={`text-4xl font-semibold tracking-tight ${
+            showWinnerStyle ? "text-white" : "text-white/80"
           }`}
         >
           {name}
@@ -413,15 +413,15 @@ function RevealColumn({
         <img
           src={resultUrl}
           alt={`Ergebnis von ${name}`}
-          className={`bg-muted w-auto rounded-md object-contain transition-all duration-700 animate-in fade-in zoom-in-95 fill-mode-both ${
+          className={`bg-white/5 w-auto rounded-2xl object-contain transition-all duration-700 animate-in fade-in zoom-in-95 fill-mode-both ${
             showWinnerStyle
-              ? "max-h-[55vh] border-2 border-amber-400 shadow-[0_0_60px_rgba(251,191,36,0.4)] ring-4 ring-amber-400"
-              : "max-h-[45vh] border"
+              ? "max-h-[55vh] border-2 border-amber-400 shadow-[0_0_80px_rgba(251,191,36,0.5)] ring-4 ring-amber-400"
+              : "max-h-[45vh] border border-white/10 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]"
           }`}
         />
       ) : (
         <div
-          className={`bg-muted text-muted-foreground flex w-full items-center justify-center rounded-md border text-base italic transition-all duration-500 ${
+          className={`bg-white/5 text-white/40 flex w-full items-center justify-center rounded-2xl border border-white/10 text-base italic backdrop-blur transition-all duration-500 ${
             showWinnerStyle ? "h-[45vh]" : "h-[35vh]"
           }`}
         >
@@ -430,21 +430,21 @@ function RevealColumn({
       )}
       {showBar && (
         <div
-          className={`flex w-full items-end gap-3 ${
+          className={`flex w-full items-end gap-4 ${
             side === "left" ? "justify-start" : "justify-end"
           }`}
         >
-          <div className="bg-muted/40 relative h-24 w-16 overflow-hidden rounded-md border">
+          <div className="bg-white/10 relative h-24 w-16 overflow-hidden rounded-xl border border-white/10 backdrop-blur">
             <div
               className={`absolute right-0 bottom-0 left-0 transition-[height,background-color] duration-[1500ms] ease-out ${
-                showWinnerStyle ? "bg-amber-400" : "bg-muted-foreground/60"
+                showWinnerStyle ? "bg-amber-400" : "bg-white/40"
               }`}
               style={{ height: `${heightPct}%` }}
             />
           </div>
           <p
-            className={`font-mono text-3xl font-bold transition-colors duration-500 ${
-              showWinnerStyle ? "text-foreground" : "text-muted-foreground"
+            className={`tabular-nums text-4xl font-semibold transition-colors duration-500 ${
+              showWinnerStyle ? "text-white" : "text-white/50"
             }`}
           >
             <AnimatedNumber value={shownVotes} duration={1500} />
@@ -466,14 +466,14 @@ function PlayerColumn({
 }) {
   return (
     <div
-      className={`flex flex-col gap-3 ${
+      className={`flex flex-col gap-4 ${
         side === "left" ? "items-start text-left" : "items-end text-right"
       }`}
     >
-      <h2 className="text-4xl font-bold tracking-tight">{name}</h2>
-      <div className="bg-muted/40 min-h-[20vh] w-full rounded-md border p-4">
-        <p className="text-foreground whitespace-pre-wrap break-words text-xl leading-snug">
-          {prompt || <span className="text-muted-foreground italic">…</span>}
+      <h2 className="text-white text-5xl font-semibold tracking-tight">{name}</h2>
+      <div className="bg-white/5 min-h-[20vh] w-full rounded-2xl border border-white/10 p-5 backdrop-blur">
+        <p className="text-white whitespace-pre-wrap break-words text-2xl leading-snug">
+          {prompt || <span className="text-white/30 italic">…</span>}
         </p>
       </div>
     </div>

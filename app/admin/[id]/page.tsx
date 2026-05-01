@@ -128,6 +128,7 @@ export default async function TournamentAdminPage({
             roundTimeSeconds={tournament.round_time_seconds}
             playerCount={tournament.player_count as PlayerCount}
             initialSkipGeneration={tournament.skip_image_generation === true}
+            isTestMode={tournament.is_test_mode === true}
           />
         </section>
       )}

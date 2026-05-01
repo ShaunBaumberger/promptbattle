@@ -112,19 +112,19 @@ export function BracketView({ tournamentId, playerCount }: Props) {
   if (!loaded) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-muted-foreground text-2xl">Bracket wird geladen…</p>
+        <p className="text-white/40 text-2xl">Bracket wird geladen…</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-1 items-stretch justify-center gap-0 px-4">
+    <div className="flex flex-1 items-stretch justify-center gap-0 px-4 duration-500 animate-in fade-in">
       {rounds.map((spec, ri) => {
         const list = matchesByRound.get(spec.round) ?? [];
         return (
           <Fragment key={spec.round}>
             <div className="flex min-w-[180px] flex-1 flex-col">
-              <h3 className="text-muted-foreground py-3 text-center text-base font-medium uppercase tracking-[0.2em]">
+              <h3 className="text-white/50 py-3 text-center text-base font-medium uppercase tracking-[0.3em]">
                 {spec.label}
               </h3>
               <div className="flex flex-1 flex-col justify-around gap-3 py-2">
@@ -173,7 +173,7 @@ function ConnectorSVG({ fromCount }: { fromCount: number }) {
     >
       <path
         d={segments.join(" ")}
-        className="stroke-border"
+        className="stroke-white/15"
         strokeWidth="2"
         vectorEffect="non-scaling-stroke"
       />
@@ -190,7 +190,7 @@ function MatchCard({
 }) {
   if (!match) {
     return (
-      <div className="bg-muted/20 flex flex-col gap-1 rounded-md border border-dashed p-2">
+      <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-2.5">
         <Slot label="—" state="empty" />
         <Slot label="—" state="empty" />
       </div>
@@ -207,10 +207,10 @@ function MatchCard({
 
   return (
     <div
-      className={`bg-card flex flex-col gap-1 rounded-md border p-2 transition-shadow ${
+      className={`flex flex-col gap-1.5 rounded-xl border p-2.5 backdrop-blur transition-all ${
         isLive
-          ? "ring-foreground border-foreground shadow-lg ring-2"
-          : "border-border"
+          ? "border-sky-400/60 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.3)] ring-2 ring-sky-400/40"
+          : "border-white/10 bg-white/5"
       }`}
     >
       <Slot
@@ -234,14 +234,14 @@ function Slot({
 }) {
   const cls =
     state === "winner"
-      ? "text-foreground font-bold"
+      ? "text-white font-semibold"
       : state === "loser"
-        ? "text-muted-foreground/50 line-through"
+        ? "text-white/40 line-through"
         : state === "empty"
-          ? "text-muted-foreground/60"
-          : "text-foreground";
+          ? "text-white/40"
+          : "text-white/85";
   return (
-    <div className={`flex items-center gap-1 truncate text-base ${cls}`}>
+    <div className={`flex items-center gap-1.5 truncate text-base ${cls}`}>
       {state === "winner" && <span className="text-base">🏆</span>}
       <span className="truncate">{label}</span>
     </div>

@@ -21,8 +21,10 @@ export interface Tournament {
   round_time_seconds: number;
   status: TournamentStatus;
   current_match_id: string | null;
-  /** Test-mode: skip Gemini image generation (only meaningful when player_count=2). */
+  /** Test-mode: skip Gemini image generation. Only effective in test mode. */
   skip_image_generation: boolean;
+  /** True for the dedicated debug-tournament mode (always 2 players, exposes test controls). */
+  is_test_mode: boolean;
   created_at: string;
 }
 

@@ -107,7 +107,7 @@ export async function endVotingAction(
   // Bracket advance / tournament finish.
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("player_count")
+    .select("player_count, is_test_mode")
     .eq("id", match.tournament_id)
     .maybeSingle();
   if (!tournament) return { error: "Tournament nicht gefunden." };
@@ -126,9 +126,9 @@ export async function endVotingAction(
     if (advanceErr) {
       return { error: `Bracket-Vorschub fehlgeschlagen: ${advanceErr.message}` };
     }
-  } else if (playerCount !== 2) {
+  } else if (!tournament.is_test_mode) {
     // Final match of a real tournament: mark tournament finished.
-    // 2-player test mode skips this so the admin can replay the same match.
+    // Test mode skips this so the admin can replay the same match.
     const { error: tErr } = await supabase
       .from("tournaments")
       .update({ status: "finished" })

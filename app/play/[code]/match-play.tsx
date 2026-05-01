@@ -174,13 +174,15 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 flex flex-col gap-2 overflow-hidden bg-background p-3"
+      className="fixed inset-0 flex flex-col gap-3 overflow-hidden bg-background p-4"
     >
       <header className="flex shrink-0 items-center justify-between">
-        <Badge variant="secondary">{ROUND_LABELS[match.round]}</Badge>
+        <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
+          {ROUND_LABELS[match.round]}
+        </span>
         <p
-          className={`font-mono text-2xl font-bold ${
-            showSeconds <= 10 ? "text-destructive" : "text-foreground"
+          className={`tabular-nums text-3xl font-semibold tracking-tight transition-colors ${
+            showSeconds <= 10 ? "text-rose-400" : "text-white"
           }`}
           aria-live="polite"
         >
@@ -189,11 +191,11 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
       </header>
 
       {match.task_text ? (
-        <div className="bg-muted/40 flex shrink-0 flex-col gap-1 rounded-md border p-3">
-          <p className="text-muted-foreground text-xs uppercase tracking-widest">
+        <div className="bg-white/5 flex shrink-0 flex-col gap-1.5 rounded-2xl border border-white/10 p-4 backdrop-blur">
+          <p className="text-white/40 text-xs uppercase tracking-widest">
             Generiere ein Bild von:
           </p>
-          <p className="text-foreground text-base font-medium leading-snug break-words [overflow-wrap:anywhere]">
+          <p className="text-white text-lg font-medium leading-snug break-words [overflow-wrap:anywhere]">
             {match.task_text}
           </p>
         </div>
@@ -202,7 +204,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
           type="button"
           onClick={openExpanded}
           disabled={!match.task_reference_url}
-          className="bg-muted relative flex h-[40%] min-h-0 shrink items-center justify-center overflow-hidden rounded-md border"
+          className="bg-white/5 relative flex h-[40%] min-h-0 shrink items-center justify-center overflow-hidden rounded-2xl border border-white/10 backdrop-blur"
           aria-label="Referenzbild vergrößern"
         >
           {match.task_reference_url ? (
@@ -213,12 +215,12 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
                 alt="Referenzbild"
                 className="max-h-full max-w-full object-contain"
               />
-              <span className="bg-foreground/70 text-background pointer-events-none absolute bottom-1 right-1 rounded px-2 py-0.5 text-xs font-medium">
+              <span className="bg-black/70 text-white/90 pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/10 px-3 py-1 text-[11px] font-medium backdrop-blur">
                 Tippen zum Vergrößern
               </span>
             </>
           ) : (
-            <div className="bg-muted h-full w-full animate-pulse" />
+            <div className="bg-white/5 h-full w-full animate-pulse" />
           )}
         </button>
       )}
@@ -230,7 +232,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Beschreibe das Bild so präzise wie möglich…"
         disabled={locked}
-        className="mt-auto h-24 shrink-0 resize-none overflow-y-auto text-base [field-sizing:fixed]"
+        className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 mt-auto h-24 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
       />
 
       {expanded && match.task_reference_url && (
@@ -266,15 +268,17 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
 
 function GeneratingView({ round }: { round: Match["round"] }) {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
-      <Badge variant="secondary">{ROUND_LABELS[round]}</Badge>
-      <div className="flex flex-col items-center gap-3">
-        <div className="border-foreground/20 border-t-foreground h-12 w-12 animate-spin rounded-full border-4" />
-        <p className="text-foreground text-xl font-semibold">
-          Bilder werden generiert…
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
+      <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
+        {ROUND_LABELS[round]}
+      </span>
+      <div className="flex flex-col items-center gap-5">
+        <div className="border-white/15 border-t-sky-400 h-14 w-14 animate-spin rounded-full border-4" />
+        <p className="text-white text-2xl font-semibold tracking-tight">
+          Bilder werden generiert
         </p>
-        <p className="text-muted-foreground text-sm">
-          Schau auf die Bühne, gleich gibt&apos;s das Reveal.
+        <p className="text-white/50 max-w-xs text-sm leading-relaxed">
+          Schau auf die Bühne — gleich gibt&apos;s das Reveal.
         </p>
       </div>
     </main>
@@ -295,32 +299,40 @@ function ResultView({
   didWin: boolean | null;
 }) {
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4">
+    <main className="flex flex-1 flex-col gap-4 p-4 duration-500 animate-in fade-in">
       <header className="flex items-center justify-between">
-        <Badge variant="secondary">{ROUND_LABELS[round]}</Badge>
-        <p className="text-muted-foreground text-sm">vs. {opponentName}</p>
+        <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
+          {ROUND_LABELS[round]}
+        </span>
+        <p className="text-white/50 text-sm">vs. {opponentName}</p>
       </header>
+
       {didWin === true && (
-        <div className="rounded-md border-2 border-green-500/60 bg-green-500/10 p-3 text-center">
-          <p className="text-2xl font-bold">🏆 Gewonnen!</p>
-          <p className="text-muted-foreground mt-1 text-sm">
+        <div className="rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-center backdrop-blur duration-700 animate-in zoom-in-95">
+          <p className="text-white text-3xl font-semibold tracking-tight">
+            🏆 Gewonnen
+          </p>
+          <p className="text-white/60 mt-1 text-sm">
             Du bist eine Runde weiter. Bleib in der App.
           </p>
         </div>
       )}
       {didWin === false && (
-        <div className="border-destructive/40 bg-destructive/10 rounded-md border-2 p-3 text-center">
-          <p className="text-2xl font-bold">Knapp daneben.</p>
-          <p className="text-muted-foreground mt-1 text-sm">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-center backdrop-blur duration-500 animate-in fade-in">
+          <p className="text-white text-3xl font-semibold tracking-tight">
+            Knapp daneben.
+          </p>
+          <p className="text-white/60 mt-1 text-sm">
             Du bist raus. Schau das Finale auf der Bühne.
           </p>
         </div>
       )}
-      <p className="text-muted-foreground text-xs uppercase tracking-widest">
+
+      <p className="text-white/40 text-xs uppercase tracking-widest">
         Dein Ergebnis
       </p>
       {resultUrl ? (
-        <div className="bg-muted relative aspect-square w-full overflow-hidden rounded-md border">
+        <div className="bg-white/5 relative aspect-square w-full overflow-hidden rounded-2xl border border-white/10 backdrop-blur">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={resultUrl}
@@ -329,20 +341,22 @@ function ResultView({
           />
         </div>
       ) : (
-        <div className="bg-muted text-muted-foreground flex aspect-square w-full items-center justify-center rounded-md border text-sm italic">
+        <div className="bg-white/5 text-white/40 flex aspect-square w-full items-center justify-center rounded-2xl border border-white/10 text-sm italic backdrop-blur">
           Bildgenerierung fehlgeschlagen
         </div>
       )}
-      <div className="bg-muted/40 rounded-md border p-3">
-        <p className="text-muted-foreground text-xs uppercase tracking-wide">
+
+      <div className="bg-white/5 rounded-2xl border border-white/10 p-4 backdrop-blur">
+        <p className="text-white/40 text-xs uppercase tracking-widest">
           Dein Prompt
         </p>
-        <p className="text-foreground mt-1 whitespace-pre-wrap break-words text-base">
-          {prompt || <span className="text-muted-foreground italic">(leer)</span>}
+        <p className="text-white mt-1.5 whitespace-pre-wrap break-words text-base leading-relaxed">
+          {prompt || <span className="text-white/40 italic">(leer)</span>}
         </p>
       </div>
+
       {didWin === null && (
-        <p className="text-muted-foreground text-center text-sm">
+        <p className="text-white/50 text-center text-sm">
           Das Voting läuft auf der Bühne.
         </p>
       )}

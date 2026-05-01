@@ -16,7 +16,7 @@ interface Props {
 }
 
 const PLAYER_COUNT_OPTIONS: Array<{ value: PlayerCount; label: string }> = [
-  { value: 2, label: "2 Spieler – Test-Modus" },
+  { value: 2, label: "2 Spieler" },
   { value: 4, label: "4 Spieler" },
   { value: 8, label: "8 Spieler" },
   { value: 16, label: "16 Spieler" },

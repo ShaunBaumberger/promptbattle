@@ -154,14 +154,11 @@ export async function updatePlayerCountAction(
       error: "Spieleranzahl kann nur vor dem Tournament-Start geändert werden.",
     };
   }
-  // Also auto-toggle the test-mode default so 2-player skips generation by
-  // default and 4+ doesn't, matching the create-tournament behaviour.
+  // Just update player_count — skip_image_generation is now driven by the
+  // separate is_test_mode flag (which is set at creation), not by size.
   const { error } = await supabase
     .from("tournaments")
-    .update({
-      player_count: newPlayerCount,
-      skip_image_generation: newPlayerCount === 2,
-    })
+    .update({ player_count: newPlayerCount })
     .eq("id", tournamentId);
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/admin/${tournamentId}`);
