@@ -14,9 +14,23 @@ import {
   deleteTaskAction,
   type TaskActionState,
 } from "./actions";
-import type { PlayerCount, Task } from "@/lib/types/database";
+import type { PlayerCount, Round, Task } from "@/lib/types/database";
 import { taskKind } from "@/lib/types/database";
 import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
+
+/**
+ * Pick the first round that still has missing tasks. Falls back to the last
+ * round so the form remains valid even when every round is full (admin can
+ * intentionally add an extra task to a round if they want).
+ */
+function firstIncompleteRound(rounds: RoundSpec[], tasks: Task[]): Round {
+  const counts = new Map<Round, number>();
+  for (const t of tasks) counts.set(t.round, (counts.get(t.round) ?? 0) + 1);
+  for (const spec of rounds) {
+    if ((counts.get(spec.round) ?? 0) < spec.matches) return spec.round;
+  }
+  return rounds[rounds.length - 1].round;
+}
 
 const initial: TaskActionState = {};
 
@@ -35,17 +49,24 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
   const [kind, setKind] = useState<"image" | "text">("image");
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Selected round for the form. Controlled so we can re-target it after each
+  // successful add — defaults to (and snaps back to) the first round that
+  // still needs tasks.
+  const [round, setRound] = useState<Round>(() =>
+    firstIncompleteRound(rounds, tasks),
+  );
 
   useEffect(() => {
     if (!pending && !state.error && formRef.current) {
       formRef.current.reset();
+      setRound(firstIncompleteRound(rounds, tasks));
       setPickedFile(null);
       setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
       });
     }
-  }, [state, pending]);
+  }, [state, pending, rounds, tasks]);
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
@@ -94,7 +115,8 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                 id="round"
                 name="round"
                 required
-                defaultValue={rounds[0].round}
+                value={round}
+                onChange={(e) => setRound(e.target.value as Round)}
                 className="border-input bg-background h-9 rounded-md border px-3 text-sm"
               >
                 {rounds.map((r) => (
