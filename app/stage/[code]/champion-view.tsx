@@ -95,7 +95,7 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={championImage}
-          alt={`Sieger-Bild von ${championName}`}
+          alt={`Sieger:innen-Bild von ${championName}`}
           className="z-10 max-h-[40vh] w-auto rounded-lg border-4 border-amber-400 object-contain shadow-[0_0_80px_rgba(251,191,36,0.5)] delay-500 duration-1000 animate-in fade-in zoom-in-95 fill-mode-both"
         />
       ) : null}

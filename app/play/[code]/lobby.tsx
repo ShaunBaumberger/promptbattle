@@ -347,14 +347,14 @@ function renderMessage(
   if (participant.is_player) {
     return {
       icon: "🎮",
-      badge: "Du bist Spieler",
+      badge: "Du bist Spieler:in",
       text: "Warte auf dein nächstes Match. Bei den anderen Matches kannst du zwischendurch abstimmen.",
       pulse: true,
     };
   }
   return {
     icon: "👀",
-    badge: "Du bist Zuschauer",
+    badge: "Du bist Zuschauer:in",
     text: "Bei jedem Match kannst du für das beste Bild abstimmen.",
     pulse: true,
   };

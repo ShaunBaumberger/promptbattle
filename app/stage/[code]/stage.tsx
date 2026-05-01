@@ -228,7 +228,7 @@ function SetupView({
         </p>
         <p className="text-white/60 mt-1 text-xl">
           {participantCount === 1 ? "Person beigetreten" : "Personen beigetreten"}{" "}
-          · {playerCount} Spieler werden ausgewählt
+          · {playerCount} Spieler:innen werden ausgewählt
         </p>
       </div>
     </main>

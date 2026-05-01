@@ -57,7 +57,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
           <input type="hidden" name="code" value={tournamentCode} />
           <div className="flex flex-col gap-2">
             <Label htmlFor="name" className="text-white/70 text-sm font-medium">
-              Dein Name (für alle Spieler sichtbar)
+              Dein Name (für alle Spieler:innen sichtbar)
             </Label>
             <Input
               id="name"
