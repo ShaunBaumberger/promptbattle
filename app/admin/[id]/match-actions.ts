@@ -28,9 +28,9 @@ export async function startNextMatchAction(
     .eq("id", tournamentId)
     .maybeSingle();
 
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
   if (tournament.status !== "live") {
-    return { error: "Tournament läuft nicht." };
+    return { error: "Turnier läuft nicht." };
   }
 
   // Block if another match is currently in flight.
@@ -103,7 +103,7 @@ export async function startNextMatchAction(
     .update({ current_match_id: next.id })
     .eq("id", tournamentId);
 
-  if (tErr) return { error: `Tournament-Update fehlgeschlagen: ${tErr.message}` };
+  if (tErr) return { error: `Turnier-Update fehlgeschlagen: ${tErr.message}` };
 
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };
@@ -127,7 +127,7 @@ export async function clearCurrentMatchAction(
     .eq("id", tournamentId)
     .maybeSingle();
 
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
   if (!tournament.current_match_id) return { ok: true };
 
   const { data: match } = await supabase
@@ -165,7 +165,7 @@ export async function setSkipGenerationAction(
     .select("is_test_mode")
     .eq("id", tournamentId)
     .maybeSingle();
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
   if (!tournament.is_test_mode) {
     return { error: "Nur im Test-Modus verfügbar." };
   }
@@ -208,12 +208,12 @@ export async function replayMatchAction(
     .eq("id", match.tournament_id)
     .maybeSingle();
 
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
   if (!tournament.is_test_mode) {
     return { error: "Match-Wiederholung ist nur im Test-Modus erlaubt." };
   }
   if (tournament.status !== "live") {
-    return { error: "Tournament läuft nicht." };
+    return { error: "Turnier läuft nicht." };
   }
   if (!match.player_a_id || !match.player_b_id) {
     return { error: "Spieler fehlen für dieses Match." };
@@ -271,7 +271,7 @@ export async function replayMatchAction(
     .update({ current_match_id: matchId })
     .eq("id", tournament.id);
 
-  if (tErr) return { error: `Tournament-Update fehlgeschlagen: ${tErr.message}` };
+  if (tErr) return { error: `Turnier-Update fehlgeschlagen: ${tErr.message}` };
 
   revalidatePath(`/admin/${tournament.id}`);
   return { ok: true };
@@ -310,7 +310,7 @@ export async function setMatchWinnerAction(
     .eq("id", match.tournament_id)
     .maybeSingle();
 
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
 
   // Capture current vote tally so the stage's reveal animation has data even
   // when the admin overrides voting manually (e.g. on a tie or shortcut).
@@ -358,7 +358,7 @@ export async function setMatchWinnerAction(
       .from("tournaments")
       .update({ status: "finished" })
       .eq("id", tournament.id);
-    if (tErr) return { error: `Tournament-Abschluss fehlgeschlagen: ${tErr.message}` };
+    if (tErr) return { error: `Turnier-Abschluss fehlgeschlagen: ${tErr.message}` };
   }
 
   revalidatePath(`/admin/${match.tournament_id}`);
@@ -407,7 +407,7 @@ export async function restartLiveMatchAction(
     .eq("id", match.tournament_id)
     .maybeSingle();
 
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
 
   const startTime = new Date();
   const endTime = new Date(startTime.getTime() + tournament.round_time_seconds * 1000);

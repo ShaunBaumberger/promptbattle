@@ -44,7 +44,7 @@ export default async function Home({
           <p className="text-white/60 max-w-sm text-base">
             Der Code{" "}
             <span className="text-white font-mono">{trimmed}</span>{" "}
-            gehört zu keinem aktiven Tournament.
+            gehört zu keinem aktiven Turnier.
           </p>
         </main>
       </DarkShell>
@@ -56,7 +56,7 @@ export default async function Home({
       <DarkShell>
         <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
           <h1 className="text-white text-2xl font-semibold tracking-tight">
-            Tournament beendet
+            Turnier beendet
           </h1>
           <p className="text-white/60 max-w-sm text-base">
             {tournament.name} ist bereits vorbei.

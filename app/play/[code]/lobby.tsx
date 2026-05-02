@@ -323,7 +323,7 @@ function renderMessage(
   if (status === "finished") {
     return {
       icon: "🏁",
-      badge: "Tournament beendet",
+      badge: "Turnier beendet",
       text: "Vielen Dank fürs Mitmachen!",
       pulse: false,
     };
@@ -332,7 +332,7 @@ function renderMessage(
     return {
       icon: "⏳",
       badge: "Warteraum",
-      text: "Das Tournament startet gleich. Bleib in der App — du wirst entweder selber spielen oder gleich für die besten Bilder abstimmen.",
+      text: "Das Turnier startet gleich. Bleib in der App — du wirst entweder selber spielen oder gleich für die besten Bilder abstimmen.",
       pulse: true,
     };
   }

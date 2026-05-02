@@ -135,15 +135,15 @@ export default async function TournamentAdminPage({
       )}
 
       <section className="space-y-3 rounded-md border p-4">
-        <h2 className="text-base font-semibold">Tournament duplizieren</h2>
+        <h2 className="text-base font-semibold">Turnier duplizieren</h2>
         <p className="text-muted-foreground text-sm">
-          Erstellt ein neues Tournament mit demselben Setup (Modus, Rundenzeit,
+          Erstellt ein neues Turnier mit demselben Setup (Modus, Rundenzeit,
           Tasks). Bilder werden kopiert. Neuer Beitritts-Code wird automatisch
           generiert.
         </p>
         <form action={copyTournamentAction.bind(null, tournament.id)}>
           <Button type="submit" variant="outline" size="sm">
-            Tournament kopieren
+            Turnier kopieren
           </Button>
         </form>
       </section>
@@ -151,7 +151,7 @@ export default async function TournamentAdminPage({
       <section className="border-destructive/50 space-y-3 rounded-md border p-4">
         <h2 className="text-base font-semibold">Gefahrenzone</h2>
         <p className="text-muted-foreground text-sm">
-          Löscht das Tournament unwiderruflich – inklusive aller Tasks, Bilder, Teilnehmer und
+          Löscht das Turnier unwiderruflich – inklusive aller Tasks, Bilder, Teilnehmer:innen und
           Matches.
         </p>
         <DeleteTournamentDialog

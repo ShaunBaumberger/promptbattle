@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getRoundsForPlayerCount } from "@/lib/rounds";
+import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
 import type { Match, Participant, PlayerCount, Round } from "@/lib/types/database";
 
 interface Props {
@@ -97,7 +97,10 @@ export function BracketView({ tournamentId, playerCount }: Props) {
     return m;
   }, [participants]);
 
-  const rounds = getRoundsForPlayerCount(playerCount);
+  const rounds = useMemo(
+    () => getRoundsForPlayerCount(playerCount),
+    [playerCount],
+  );
   const matchesByRound = useMemo(() => {
     const m = new Map<Round, Match[]>();
     for (const match of matches) {
@@ -117,53 +120,185 @@ export function BracketView({ tournamentId, playerCount }: Props) {
     );
   }
 
+  // 2-Player Sonderfall: nur das Finale, keine Halves nötig.
+  if (rounds.length === 1) {
+    const finalSpec = rounds[0];
+    const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
+    return (
+      <div className="flex flex-1 items-center justify-center duration-500 animate-in fade-in">
+        <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+      </div>
+    );
+  }
+
+  const earlierRounds = rounds.slice(0, -1);
+  const finalSpec = rounds[rounds.length - 1];
+  const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
+
   return (
     <div className="flex flex-1 items-stretch justify-center gap-0 px-4 duration-500 animate-in fade-in">
-      {rounds.map((spec, ri) => {
-        const list = matchesByRound.get(spec.round) ?? [];
-        return (
-          <Fragment key={spec.round}>
-            <div className="flex min-w-[180px] flex-1 flex-col">
-              <h3 className="text-white/50 py-3 text-center text-base font-medium uppercase tracking-[0.3em]">
-                {spec.label}
-              </h3>
-              <div className="flex flex-1 flex-col justify-around gap-3 py-2">
-                {Array.from({ length: spec.matches }).map((_, i) => (
-                  <MatchCard key={i} match={list[i]} nameById={nameById} />
-                ))}
-              </div>
-            </div>
-            {ri < rounds.length - 1 && (
-              <div className="flex flex-col">
-                {/* Spacer to align connectors with match area, not header */}
-                <div className="invisible py-3 text-base">.</div>
-                <div className="flex-1 py-2">
-                  <ConnectorSVG fromCount={spec.matches} />
-                </div>
-              </div>
-            )}
-          </Fragment>
-        );
-      })}
+      <HalfBracket
+        rounds={earlierRounds}
+        matchesByRound={matchesByRound}
+        nameById={nameById}
+        side="left"
+      />
+      <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+      <HalfBracket
+        rounds={earlierRounds}
+        matchesByRound={matchesByRound}
+        nameById={nameById}
+        side="right"
+      />
     </div>
   );
 }
 
-function ConnectorSVG({ fromCount }: { fromCount: number }) {
-  if (fromCount < 2) return null;
-  const pairs = fromCount / 2;
+/**
+ * Renders one side of the bracket — outermost round is on the outside, the
+ * round closest to the final is right next to the center. Connectors flow
+ * inward toward the center.
+ */
+function HalfBracket({
+  rounds,
+  matchesByRound,
+  nameById,
+  side,
+}: {
+  rounds: RoundSpec[];
+  matchesByRound: Map<Round, Match[]>;
+  nameById: Map<string, string>;
+  side: "left" | "right";
+}) {
+  // Left side: outermost first (leftmost), innermost last (rightmost, near center).
+  // Right side: innermost first (leftmost, near center), outermost last (rightmost).
+  const ordered = side === "left" ? rounds : [...rounds].reverse();
+
+  return (
+    <>
+      {ordered.map((spec, idx) => {
+        const allMatches = matchesByRound.get(spec.round) ?? [];
+        const halfMatches = sliceForSide(allMatches, spec.matches, side);
+        const halfCount = spec.matches / 2;
+
+        // For the last round entry on either side (innermost, closest to
+        // center), the connector runs from this round into the FINAL match.
+        const isInnermost = idx === ordered.length - 1;
+        const connectorFromCount = isInnermost ? halfCount : halfCount;
+
+        const column = (
+          <div key={`col-${spec.round}`} className="flex min-w-[180px] flex-1 flex-col">
+            <h3 className="text-white/50 py-3 text-center text-base font-medium uppercase tracking-[0.3em]">
+              {spec.label}
+            </h3>
+            <div className="flex flex-1 flex-col justify-around gap-3 py-2">
+              {Array.from({ length: halfCount }).map((_, i) => (
+                <MatchCard key={i} match={halfMatches[i]} nameById={nameById} />
+              ))}
+            </div>
+          </div>
+        );
+        const connector = (
+          <div key={`conn-${spec.round}-${side}`} className="flex flex-col">
+            {/* Spacer mirrors the round column's header so connectors align with match area */}
+            <div className="invisible py-3 text-base">.</div>
+            <div className="flex-1 py-2">
+              <ConnectorSVG fromCount={connectorFromCount} side={side} />
+            </div>
+          </div>
+        );
+
+        // LEFT: column → connector. RIGHT: connector → column (mirrored).
+        return (
+          <Fragment key={spec.round}>
+            {side === "left" ? (
+              <>
+                {column}
+                {connector}
+              </>
+            ) : (
+              <>
+                {connector}
+                {column}
+              </>
+            )}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+/** Take the half of matches that belong to this side of the bracket. */
+function sliceForSide(matches: Match[], total: number, side: "left" | "right"): Match[] {
+  const half = total / 2;
+  if (side === "left") return matches.slice(0, half);
+  return matches.slice(half);
+}
+
+/**
+ * Center column with the trophy and the FINAL match card.
+ * Vertically centered so connectors meeting at y=50% land on the card.
+ */
+function CenterColumn({
+  match,
+  label,
+  nameById,
+}: {
+  match: Match | undefined;
+  label: string;
+  nameById: Map<string, string>;
+}) {
+  return (
+    <div className="flex min-w-[220px] flex-1 flex-col">
+      {/* Header spacer to align with the round labels in the half-brackets */}
+      <div className="invisible py-3 text-base">.</div>
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-3 py-2">
+        <span className="text-7xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">🏆</span>
+        <MatchCard match={match} nameById={nameById} highlight />
+        <p className="text-amber-300/80 text-sm font-medium uppercase tracking-[0.4em]">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ConnectorSVG({
+  fromCount,
+  side,
+}: {
+  fromCount: number;
+  side: "left" | "right";
+}) {
+  if (fromCount < 1) return null;
   const segments: string[] = [];
-  for (let p = 0; p < pairs; p++) {
-    const a = 2 * p;
-    const b = 2 * p + 1;
-    const yA = ((a + 0.5) / fromCount) * 100;
-    const yB = ((b + 0.5) / fromCount) * 100;
-    const yMid = (yA + yB) / 2;
-    // From source-match A right edge → halfway → down/up to mid → over to next round.
-    segments.push(`M 0 ${yA} H 50 V ${yMid} H 100`);
-    // From source-match B → meet the vertical at midpoint.
-    segments.push(`M 0 ${yB} H 50`);
+
+  // Source matches sit on the OUTSIDE of this side of the bracket; the
+  // destination round sits on the INSIDE (toward center).
+  //   left side : source = x=0, destination = x=100
+  //   right side: source = x=100, destination = x=0
+  const srcX = side === "left" ? 0 : 100;
+  const dstX = side === "left" ? 100 : 0;
+
+  if (fromCount === 1) {
+    // 1 source → 1 destination: straight horizontal line at vertical midpoint.
+    segments.push(`M ${srcX} 50 H ${dstX}`);
+  } else {
+    const pairs = fromCount / 2;
+    for (let p = 0; p < pairs; p++) {
+      const a = 2 * p;
+      const b = 2 * p + 1;
+      const yA = ((a + 0.5) / fromCount) * 100;
+      const yB = ((b + 0.5) / fromCount) * 100;
+      const yMid = (yA + yB) / 2;
+      // Top source: out, in to mid X, down/up to mid Y, then on to destination.
+      segments.push(`M ${srcX} ${yA} H 50 V ${yMid} H ${dstX}`);
+      // Bottom source: out, in to mid X, then up/down to meet the vertical at yMid.
+      segments.push(`M ${srcX} ${yB} H 50 V ${yMid}`);
+    }
   }
+
   return (
     <svg
       viewBox="0 0 100 100"
@@ -173,7 +308,7 @@ function ConnectorSVG({ fromCount }: { fromCount: number }) {
     >
       <path
         d={segments.join(" ")}
-        className="stroke-white/15"
+        className="stroke-white/20"
         strokeWidth="2"
         vectorEffect="non-scaling-stroke"
       />
@@ -184,13 +319,21 @@ function ConnectorSVG({ fromCount }: { fromCount: number }) {
 function MatchCard({
   match,
   nameById,
+  highlight = false,
 }: {
   match: Match | undefined;
   nameById: Map<string, string>;
+  highlight?: boolean;
 }) {
   if (!match) {
     return (
-      <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-2.5">
+      <div
+        className={`flex w-full flex-col gap-1.5 rounded-xl border border-dashed p-2.5 ${
+          highlight
+            ? "border-amber-400/30 bg-amber-400/5"
+            : "border-white/10 bg-white/[0.02]"
+        }`}
+      >
         <Slot label="—" state="empty" />
         <Slot label="—" state="empty" />
       </div>
@@ -207,10 +350,12 @@ function MatchCard({
 
   return (
     <div
-      className={`flex flex-col gap-1.5 rounded-xl border p-2.5 backdrop-blur transition-all ${
+      className={`flex w-full flex-col gap-1.5 rounded-xl border p-2.5 backdrop-blur transition-all ${
         isLive
           ? "border-sky-400/60 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.3)] ring-2 ring-sky-400/40"
-          : "border-white/10 bg-white/5"
+          : highlight
+            ? "border-amber-400/40 bg-amber-400/[0.06] shadow-[0_0_25px_rgba(251,191,36,0.2)]"
+            : "border-white/10 bg-white/5"
       }`}
     >
       <Slot
@@ -236,13 +381,13 @@ function Slot({
     state === "winner"
       ? "text-white font-semibold"
       : state === "loser"
-        ? "text-white/40 line-through"
+        ? "text-white/30 line-through"
         : state === "empty"
-          ? "text-white/40"
+          ? "text-white/30"
           : "text-white/85";
   return (
     <div className={`flex items-center gap-1.5 truncate text-base ${cls}`}>
-      {state === "winner" && <span className="text-base">🏆</span>}
+      {state === "winner" && <span>🏆</span>}
       <span className="truncate">{label}</span>
     </div>
   );

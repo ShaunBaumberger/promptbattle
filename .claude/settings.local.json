@@ -12,7 +12,12 @@
       "Bash(xargs -r kill -9)",
       "Bash(npx tsc *)",
       "Bash(npx next *)",
-      "Bash(xargs kill *)"
+      "Bash(xargs kill *)",
+      "Bash(curl -sI https://promptbattle-orpin.vercel.app/stage/ZUT7PN)",
+      "Bash(curl -s https://promptbattle-orpin.vercel.app/stage/ZUT7PN)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

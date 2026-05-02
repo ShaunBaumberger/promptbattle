@@ -61,7 +61,7 @@ export function StartBracketForm({
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
-    if (state.ok) toast.success("Tournament gestartet!");
+    if (state.ok) toast.success("Turnier gestartet!");
   }, [state]);
 
   const enoughPlayers = participantCount >= playerCount;
@@ -73,7 +73,7 @@ export function StartBracketForm({
   return (
     <div className="space-y-4 rounded-md border p-4">
       <div className="space-y-1">
-        <h2 className="text-base font-semibold">Tournament starten</h2>
+        <h2 className="text-base font-semibold">Turnier starten</h2>
         <p className="text-muted-foreground text-sm">
           Wählt zufällig {playerCount} Spieler aus den Teilnehmern und erstellt den Bracket.
           Nicht ausgewählte Personen werden zu Zuschauern.

@@ -85,7 +85,7 @@ export function TournamentSettings({
           <p className="text-muted-foreground text-xs">
             {playerCountLocked
               ? "Der Bracket läuft bereits — die Spieleranzahl ist gesperrt."
-              : "Kann bis zum Tournament-Start geändert werden."}
+              : "Kann bis zum Turnier-Start geändert werden."}
           </p>
         </div>
 

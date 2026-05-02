@@ -27,13 +27,13 @@ export async function joinTournamentAction(
     .maybeSingle();
 
   if (lookupErr) {
-    return { status: "error", error: "Tournament konnte nicht geladen werden." };
+    return { status: "error", error: "Turnier konnte nicht geladen werden." };
   }
   if (!tournament) {
     return { status: "error", error: "Ungültiger Code." };
   }
   if (tournament.status === "finished") {
-    return { status: "error", error: "Dieses Tournament ist bereits beendet." };
+    return { status: "error", error: "Dieses Turnier ist bereits beendet." };
   }
 
   const { data: participant, error: insertErr } = await supabase

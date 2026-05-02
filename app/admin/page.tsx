@@ -40,7 +40,7 @@ export default async function AdminDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Neues Tournament erstellen</CardTitle>
+          <CardTitle>Neues Turnier erstellen</CardTitle>
         </CardHeader>
         <CardContent>
           <CreateTournamentForm />
@@ -48,9 +48,9 @@ export default async function AdminDashboardPage() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Bestehende Tournaments</h2>
+        <h2 className="text-lg font-semibold">Bestehende Turniere</h2>
         {!tournaments?.length && (
-          <p className="text-muted-foreground text-sm">Noch keine Tournaments vorhanden.</p>
+          <p className="text-muted-foreground text-sm">Noch keine Turniere vorhanden.</p>
         )}
         <div className="grid gap-3">
           {tournaments?.map((t) => (

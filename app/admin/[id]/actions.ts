@@ -148,11 +148,11 @@ export async function updatePlayerCountAction(
     .select("status")
     .eq("id", tournamentId)
     .maybeSingle();
-  if (!tournament) return { ok: false, error: "Tournament nicht gefunden." };
+  if (!tournament) return { ok: false, error: "Turnier nicht gefunden." };
   if (tournament.status !== "setup") {
     return {
       ok: false,
-      error: "Spieleranzahl kann nur vor dem Tournament-Start geändert werden.",
+      error: "Spieleranzahl kann nur vor dem Turnier-Start geändert werden.",
     };
   }
   // Just update player_count — skip_image_generation is now driven by the
@@ -312,9 +312,9 @@ export async function startBracketAction(
     .eq("id", tournamentId)
     .maybeSingle();
 
-  if (tErr || !tournament) return { error: "Tournament nicht gefunden." };
+  if (tErr || !tournament) return { error: "Turnier nicht gefunden." };
   if (tournament.status !== "setup") {
-    return { error: "Tournament wurde bereits gestartet." };
+    return { error: "Turnier wurde bereits gestartet." };
   }
 
   const playerCount = tournament.player_count as PlayerCount;

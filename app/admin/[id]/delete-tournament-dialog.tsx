@@ -28,13 +28,13 @@ export function DeleteTournamentDialog({ tournamentId, tournamentName }: Props) 
       <DialogTrigger
         render={
           <Button variant="destructive" size="sm">
-            Tournament löschen
+            Turnier löschen
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tournament wirklich löschen?</DialogTitle>
+          <DialogTitle>Turnier wirklich löschen?</DialogTitle>
           <DialogDescription>
             <strong className="text-foreground">„{tournamentName}"</strong> wird unwiderruflich
             gelöscht – inklusive aller Tasks, Bilder, Teilnehmer und Matches. Diese Aktion

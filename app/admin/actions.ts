@@ -14,7 +14,7 @@ export async function createTournamentAction(
   const rawMode = String(formData.get("mode") ?? "");
   const roundTime = Number(formData.get("round_time_seconds")) || 60;
 
-  if (!name) return { error: "Bitte einen Namen für das Tournament angeben." };
+  if (!name) return { error: "Bitte einen Namen für das Turnier angeben." };
 
   // `mode` is either "test" (debug session, 2 players, skip default ON)
   // or a numeric string for the real bracket size.
@@ -58,7 +58,7 @@ export async function createTournamentAction(
     .single();
 
   if (error || !data) {
-    return { error: `Tournament konnte nicht erstellt werden: ${error?.message ?? "unbekannter Fehler"}` };
+    return { error: `Turnier konnte nicht erstellt werden: ${error?.message ?? "unbekannter Fehler"}` };
   }
 
   redirect(`/admin/${data.id}`);

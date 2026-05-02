@@ -14,7 +14,7 @@ export function CreateTournamentForm() {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Tournament-Name</Label>
+        <Label htmlFor="name">Turnier-Name</Label>
         <Input id="name" name="name" required placeholder="z. B. Prompt Battle 2026" />
       </div>
 
@@ -36,7 +36,7 @@ export function CreateTournamentForm() {
         </select>
         <p className="text-muted-foreground text-xs">
           Test-Modus: Match-Wiederholung, Bildgenerierung-Skip, kein
-          automatisches Tournament-Ende.
+          automatisches Turnier-Ende.
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export function CreateTournamentForm() {
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Wird erstellt…" : "Tournament erstellen"}
+        {pending ? "Wird erstellt…" : "Turnier erstellen"}
       </Button>
     </form>
   );

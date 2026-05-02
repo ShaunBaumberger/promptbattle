@@ -110,7 +110,7 @@ export async function endVotingAction(
     .select("player_count, is_test_mode")
     .eq("id", match.tournament_id)
     .maybeSingle();
-  if (!tournament) return { error: "Tournament nicht gefunden." };
+  if (!tournament) return { error: "Turnier nicht gefunden." };
 
   const playerCount = tournament.player_count as PlayerCount;
   const next = getNextSlot(match.round as Round, match.bracket_position, playerCount);
@@ -133,7 +133,7 @@ export async function endVotingAction(
       .from("tournaments")
       .update({ status: "finished" })
       .eq("id", match.tournament_id);
-    if (tErr) return { error: `Tournament-Abschluss fehlgeschlagen: ${tErr.message}` };
+    if (tErr) return { error: `Turnier-Abschluss fehlgeschlagen: ${tErr.message}` };
   }
 
   revalidatePath(`/admin/${match.tournament_id}`);
@@ -192,7 +192,7 @@ export async function castVoteAction(
     .maybeSingle();
 
   if (!participant || participant.tournament_id !== match.tournament_id) {
-    return { ok: false, error: "Du bist kein Teilnehmer dieses Tournaments." };
+    return { ok: false, error: "Du bist kein:e Teilnehmer:in dieses Turniers." };
   }
 
   const { error } = await supabase

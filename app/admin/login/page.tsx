@@ -9,7 +9,7 @@ export default function LoginPage() {
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight">Host-Login</h1>
           <p className="text-muted-foreground text-sm">
-            Melde dich an, um das Tournament zu verwalten.
+            Melde dich an, um das Turnier zu verwalten.
           </p>
         </div>
         <LoginForm />
