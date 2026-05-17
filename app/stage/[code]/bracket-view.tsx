@@ -273,16 +273,26 @@ function CenterColumn({
 }) {
   // FINALE label sits at the top of the column with the exact same padding
   // as the round labels in the half-brackets, so all three (e.g.
-  // HALBFINALE | FINALE | HALBFINALE) line up horizontally. The trophy +
-  // match card sit centered in the remaining space below.
+  // HALBFINALE | FINALE | HALBFINALE) line up horizontally.
+  //
+  // The FINAL match card sits at the *exact* vertical centre of the
+  // remaining space — that's the y=50% point where the SF connector
+  // lines meet. The trophy fills the top half above it (aligned to its
+  // bottom edge so it sits right above the card); an empty flex-1 div
+  // balances the bottom half so the card stays centred.
   return (
     <div className="flex min-w-[300px] flex-1 flex-col">
       <h3 className="text-amber-300 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
         {label}
       </h3>
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-3 py-2">
-        <span className="text-9xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">🏆</span>
+      <div className="flex flex-1 flex-col items-center px-3 py-2">
+        <div className="flex flex-1 items-end pb-6">
+          <span className="text-9xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+            🏆
+          </span>
+        </div>
         <MatchCard match={match} nameById={nameById} highlight />
+        <div className="flex-1" />
       </div>
     </div>
   );
