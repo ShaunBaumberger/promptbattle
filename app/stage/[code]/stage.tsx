@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import type { PlayerCount, TournamentStatus } from "@/lib/types/database";
 import { BracketView } from "./bracket-view";
 import { ChampionView } from "./champion-view";
@@ -100,6 +101,28 @@ export function Stage({
       supabase.removeChannel(channel);
     };
   }, [tournamentId]);
+
+  // Safety net: if realtime drops an event, this catches us up on tab
+  // visibility change and every 10s while visible.
+  useStaleStateGuard(async () => {
+    const supabase = createClient();
+    const [tRes, cRes] = await Promise.all([
+      supabase
+        .from("tournaments")
+        .select("status, current_match_id")
+        .eq("id", tournamentId)
+        .maybeSingle(),
+      supabase
+        .from("participants")
+        .select("id", { count: "exact", head: true })
+        .eq("tournament_id", tournamentId),
+    ]);
+    if (tRes.data) {
+      setStatus(tRes.data.status as TournamentStatus);
+      setCurrentMatchId(tRes.data.current_match_id);
+    }
+    if (typeof cRes.count === "number") setParticipantCount(cRes.count);
+  });
 
   if (status === "setup") {
     return (

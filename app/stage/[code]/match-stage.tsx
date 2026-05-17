@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
 
@@ -164,6 +165,18 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
     firedCuesRef.current.add(key);
     play("winnerReveal");
   }, [winnerRevealed, match, play]);
+
+  // Safety net for realtime gaps — keeps the stage in sync if a push
+  // is dropped (e.g., network blip during the match).
+  useStaleStateGuard(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("id", matchId)
+      .maybeSingle();
+    if (data) setMatch(data as Match);
+  });
 
   // Auto-return to the bracket after a non-final match's reveal so the
   // audience sees the updated tree before the next match prep starts.

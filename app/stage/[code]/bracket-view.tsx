@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
 import type { Match, Participant, PlayerCount, Round } from "@/lib/types/database";
 
@@ -90,6 +91,27 @@ export function BracketView({ tournamentId, playerCount }: Props) {
       supabase.removeChannel(channel);
     };
   }, [tournamentId]);
+
+  // Safety net: refetch matches + player names on tab focus and every 10s
+  // in case a realtime push was missed.
+  useStaleStateGuard(async () => {
+    const supabase = createClient();
+    const [mRes, pRes] = await Promise.all([
+      supabase
+        .from("matches")
+        .select("*")
+        .eq("tournament_id", tournamentId)
+        .order("round", { ascending: true })
+        .order("bracket_position", { ascending: true }),
+      supabase
+        .from("participants")
+        .select("*")
+        .eq("tournament_id", tournamentId)
+        .eq("is_player", true),
+    ]);
+    if (mRes.data) setMatches(mRes.data as Match[]);
+    if (pRes.data) setParticipants(pRes.data as Participant[]);
+  });
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -187,11 +209,11 @@ function HalfBracket({
         const connectorFromCount = isInnermost ? halfCount : halfCount;
 
         const column = (
-          <div key={`col-${spec.round}`} className="flex min-w-[180px] flex-1 flex-col">
-            <h3 className="text-white/50 py-3 text-center text-base font-medium uppercase tracking-[0.3em]">
+          <div key={`col-${spec.round}`} className="flex min-w-[260px] flex-1 flex-col">
+            <h3 className="text-white/70 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
               {spec.label}
             </h3>
-            <div className="flex flex-1 flex-col justify-around gap-3 py-2">
+            <div className="flex flex-1 flex-col justify-around gap-4 py-2">
               {Array.from({ length: halfCount }).map((_, i) => (
                 <MatchCard key={i} match={halfMatches[i]} nameById={nameById} />
               ))}
@@ -201,7 +223,7 @@ function HalfBracket({
         const connector = (
           <div key={`conn-${spec.round}-${side}`} className="flex flex-col">
             {/* Spacer mirrors the round column's header so connectors align with match area */}
-            <div className="invisible py-3 text-base">.</div>
+            <div className="invisible py-5 text-3xl">.</div>
             <div className="flex-1 py-2">
               <ConnectorSVG fromCount={connectorFromCount} side={side} />
             </div>
@@ -250,13 +272,13 @@ function CenterColumn({
   nameById: Map<string, string>;
 }) {
   return (
-    <div className="flex min-w-[220px] flex-1 flex-col">
+    <div className="flex min-w-[300px] flex-1 flex-col">
       {/* Header spacer to align with the round labels in the half-brackets */}
-      <div className="invisible py-3 text-base">.</div>
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-5 px-3 py-2">
-        <span className="text-7xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">🏆</span>
+      <div className="invisible py-5 text-3xl">.</div>
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-3 py-2">
+        <span className="text-9xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">🏆</span>
         <MatchCard match={match} nameById={nameById} highlight />
-        <p className="text-amber-300/80 text-sm font-medium uppercase tracking-[0.4em]">
+        <p className="text-amber-300 text-2xl font-semibold uppercase tracking-[0.35em]">
           {label}
         </p>
       </div>
@@ -328,7 +350,7 @@ function MatchCard({
   if (!match) {
     return (
       <div
-        className={`flex w-full flex-col gap-1.5 rounded-xl border border-dashed p-2.5 ${
+        className={`flex w-full flex-col gap-2.5 rounded-xl border border-dashed p-4 ${
           highlight
             ? "border-amber-400/30 bg-amber-400/5"
             : "border-white/10 bg-white/[0.02]"
@@ -350,7 +372,7 @@ function MatchCard({
 
   return (
     <div
-      className={`flex w-full flex-col gap-1.5 rounded-xl border p-2.5 backdrop-blur transition-all ${
+      className={`flex w-full flex-col gap-2.5 rounded-xl border p-4 backdrop-blur transition-all ${
         isLive
           ? "border-sky-400/60 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.3)] ring-2 ring-sky-400/40"
           : highlight
@@ -386,8 +408,8 @@ function Slot({
           ? "text-white/30"
           : "text-white/85";
   return (
-    <div className={`flex items-center gap-1.5 truncate text-base ${cls}`}>
-      {state === "winner" && <span>🏆</span>}
+    <div className={`flex items-center gap-2 truncate text-2xl ${cls}`}>
+      {state === "winner" && <span className="text-2xl">🏆</span>}
       <span className="truncate">{label}</span>
     </div>
   );

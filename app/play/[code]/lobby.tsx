@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { participantStorageKey } from "@/lib/participant-storage";
+import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import { Badge } from "@/components/ui/badge";
 import type {
   Match,
@@ -229,6 +230,35 @@ export function Lobby({
       cancelled = true;
     };
   }, [match, participantId]);
+
+  // Safety net: realtime sometimes misses events (phone sleep, WS drop,
+  // background tab). On visibility-change and every 10s, re-pull the
+  // truth from the DB so the screen converges even if a push was lost.
+  useStaleStateGuard(async () => {
+    if (!participantId) return;
+    const supabase = createClient();
+    const [pRes, tRes, mRes] = await Promise.all([
+      supabase
+        .from("participants")
+        .select("*")
+        .eq("id", participantId)
+        .maybeSingle(),
+      supabase
+        .from("tournaments")
+        .select("status, current_match_id")
+        .eq("id", tournamentId)
+        .maybeSingle(),
+      currentMatchId
+        ? supabase.from("matches").select("*").eq("id", currentMatchId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    if (pRes.data) setParticipant(pRes.data as Participant);
+    if (tRes.data) {
+      setStatus(tRes.data.status as TournamentStatus);
+      setCurrentMatchId(tRes.data.current_match_id);
+    }
+    if (mRes.data) setMatch(mRes.data as Match);
+  });
 
   if (loadError) {
     return <Center>{loadError}</Center>;
