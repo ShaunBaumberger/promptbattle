@@ -45,7 +45,7 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
 
       <div className="space-y-1.5 text-center">
         <h1 className="text-white text-3xl font-semibold tracking-tight">
-          Wer hat besser geprompt?
+          Wer hat besser gepromptet?
         </h1>
         <p className="text-white/60 text-sm">
           Tippe auf das Bild, das deiner Meinung nach gewinnen soll.

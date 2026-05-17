@@ -6,6 +6,7 @@ export type PlayerCount = 2 | 4 | 8 | 16 | 32;
 
 export type MatchStatus =
   | "pending"
+  | "preparing"
   | "live"
   | "locked"
   | "generating"

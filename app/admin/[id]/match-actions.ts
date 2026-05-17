@@ -11,11 +11,15 @@ export type MatchActionState = { error?: string; ok?: boolean };
 const ROUND_PRIORITY: Round[] = ["R32", "R16", "QF", "SF", "FINAL"];
 
 /**
- * Pick the next pending match (earliest round, lowest bracket_position) where
- * both players are assigned, populate task_reference_url, set the timer, and
- * mark it `live`. Sets tournaments.current_match_id to point at it.
+ * Step 1 of the match flow: pick the next pending match (earliest round,
+ * lowest bracket_position) where both players are assigned and move it to
+ * `preparing`. Stage shows the players' positions (left/right) so they can
+ * take their seats; task and timer are NOT revealed yet.
+ *
+ * Once positioned, the admin clicks "Match starten" (startCurrentMatchAction)
+ * which reveals the task on /stage and on the players' phones simultaneously.
  */
-export async function startNextMatchAction(
+export async function prepareNextMatchAction(
   tournamentId: string,
   _prev: MatchActionState,
   _formData: FormData,
@@ -24,16 +28,14 @@ export async function startNextMatchAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, status, round_time_seconds, current_match_id, player_count")
+    .select("id, status, current_match_id, player_count")
     .eq("id", tournamentId)
     .maybeSingle();
 
   if (!tournament) return { error: "Turnier nicht gefunden." };
-  if (tournament.status !== "live") {
-    return { error: "Turnier läuft nicht." };
-  }
+  if (tournament.status !== "live") return { error: "Turnier läuft nicht." };
 
-  // Block if another match is currently in flight.
+  // Block if another match is currently in flight (anything except done).
   if (tournament.current_match_id) {
     const { data: current } = await supabase
       .from("matches")
@@ -67,23 +69,74 @@ export async function startNextMatchAction(
     if (ra !== rb) return ra - rb;
     return a.bracket_position - b.bracket_position;
   });
-
   const next = sorted[0];
-
   if (!next.task_id) return { error: "Match hat keine Task zugewiesen." };
+
+  // Atomic guard: only flip pending → preparing if it's still pending.
+  const { error: matchErr, data: claimed } = await supabase
+    .from("matches")
+    .update({ status: "preparing" })
+    .eq("id", next.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+  if (matchErr) {
+    return { error: `Match-Vorbereitung fehlgeschlagen: ${matchErr.message}` };
+  }
+  if (!claimed) return { error: "Match wurde bereits vorbereitet." };
+
+  const { error: tErr } = await supabase
+    .from("tournaments")
+    .update({ current_match_id: next.id })
+    .eq("id", tournamentId);
+  if (tErr) return { error: `Turnier-Update fehlgeschlagen: ${tErr.message}` };
+
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
+}
+
+/**
+ * Step 2 of the match flow: reveal the task and start the timer. Requires
+ * the match to be in `preparing` state (set by prepareNextMatchAction).
+ * Players' phones flip from the "Mach dich bereit" view to the typing UI
+ * the moment this lands.
+ */
+export async function startCurrentMatchAction(
+  matchId: string,
+  _prev: MatchActionState,
+  _formData: FormData,
+): Promise<MatchActionState> {
+  const supabase = createServiceRoleClient();
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("id, status, task_id, tournament_id")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (!match) return { error: "Match nicht gefunden." };
+  if (match.status !== "preparing") {
+    return { error: "Match wurde noch nicht vorbereitet." };
+  }
+  if (!match.task_id) return { error: "Match hat keine Task zugewiesen." };
+
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("round_time_seconds")
+    .eq("id", match.tournament_id)
+    .maybeSingle();
+  if (!tournament) return { error: "Turnier nicht gefunden." };
 
   const { data: task } = await supabase
     .from("tasks")
     .select("reference_image_url, text_prompt")
-    .eq("id", next.task_id)
+    .eq("id", match.task_id)
     .maybeSingle();
-
   if (!task) return { error: "Task nicht gefunden." };
 
   const startTime = new Date();
   const endTime = new Date(startTime.getTime() + tournament.round_time_seconds * 1000);
 
-  const { error: matchErr } = await supabase
+  const { error } = await supabase
     .from("matches")
     .update({
       status: "live",
@@ -94,18 +147,11 @@ export async function startNextMatchAction(
       prompt_a: "",
       prompt_b: "",
     })
-    .eq("id", next.id);
+    .eq("id", matchId)
+    .eq("status", "preparing");
+  if (error) return { error: `Match-Start fehlgeschlagen: ${error.message}` };
 
-  if (matchErr) return { error: `Match-Start fehlgeschlagen: ${matchErr.message}` };
-
-  const { error: tErr } = await supabase
-    .from("tournaments")
-    .update({ current_match_id: next.id })
-    .eq("id", tournamentId);
-
-  if (tErr) return { error: `Turnier-Update fehlgeschlagen: ${tErr.message}` };
-
-  revalidatePath(`/admin/${tournamentId}`);
+  revalidatePath(`/admin/${match.tournament_id}`);
   return { ok: true };
 }
 

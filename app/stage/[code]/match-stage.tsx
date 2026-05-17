@@ -6,6 +6,7 @@ import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
 
 import type { Cue } from "@/lib/stage-audio";
+import { clearCurrentMatchAction } from "@/app/admin/[id]/match-actions";
 
 interface Props {
   matchId: string;
@@ -15,6 +16,7 @@ interface Props {
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
   pending: "Bereit",
+  preparing: "Bereit machen",
   live: "Battle läuft",
   locked: "Zeit abgelaufen",
   generating: "Bilder werden generiert…",
@@ -163,6 +165,22 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
     play("winnerReveal");
   }, [winnerRevealed, match, play]);
 
+  // Auto-return to the bracket after a non-final match's reveal so the
+  // audience sees the updated tree before the next match prep starts.
+  // Final stays on this view because Stage flips it to ChampionView once
+  // current_match_id is cleared anyway via the tournament-status change.
+  useEffect(() => {
+    if (!winnerRevealed || !match || match.round === "FINAL") return;
+    const key = `autoclear:${match.id}`;
+    if (firedCuesRef.current.has(key)) return;
+    firedCuesRef.current.add(key);
+    // Wait a beat past the winner-reveal animation so the crown lingers.
+    const id = window.setTimeout(() => {
+      clearCurrentMatchAction(tournamentId, {}, new FormData()).catch(() => {});
+    }, 6000);
+    return () => window.clearTimeout(id);
+  }, [winnerRevealed, match, tournamentId]);
+
   // ⚠️ Early return AFTER all hooks above — adding a hook below would break.
   if (!match) {
     return (
@@ -186,7 +204,9 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
     <main className="flex flex-1 flex-col gap-6 p-8">
       <header className="flex items-center justify-between">
         <p className="text-white/50 text-2xl uppercase tracking-[0.3em]">
-          {ROUND_LABELS[match.round]} – Match {match.bracket_position + 1}
+          {match.round === "FINAL"
+            ? ROUND_LABELS[match.round]
+            : `${ROUND_LABELS[match.round]} – Match ${match.bracket_position + 1}`}
         </p>
         {live ? (
           <p
@@ -220,7 +240,9 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
         </div>
       )}
 
-      {reveal ? (
+      {match.status === "preparing" ? (
+        <PreparingView aName={aName} bName={bName} />
+      ) : reveal ? (
         <RevealView
           match={match}
           aName={aName}
@@ -232,6 +254,64 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
         <LiveView match={match} aName={aName} bName={bName} />
       )}
     </main>
+  );
+}
+
+/**
+ * Shown while the admin positions the players on stage. Player names appear
+ * left/right (matching the seats they should take) with empty prompt
+ * placeholders. The center column shows a discreet "Bereit machen" pill —
+ * the task itself stays hidden until the admin clicks "Match starten".
+ */
+function PreparingView({
+  aName,
+  bName,
+}: {
+  aName: string;
+  bName: string;
+}) {
+  return (
+    <div className="grid flex-1 grid-cols-[1fr_auto_1fr] gap-6 duration-500 animate-in fade-in">
+      <PlayerSeat name={aName} side="left" />
+
+      <div className="flex w-[28vw] flex-col items-center justify-center gap-4">
+        <span className="bg-white/10 text-white/80 inline-flex items-center gap-3 rounded-full border border-white/15 px-6 py-3 text-xl font-medium uppercase tracking-[0.3em] backdrop-blur">
+          <span className="bg-amber-400 inline-block h-2.5 w-2.5 animate-pulse rounded-full" />
+          Bereit machen
+        </span>
+        <p className="text-white/40 max-w-xs text-center text-base">
+          Aufgabe erscheint, sobald der Host startet.
+        </p>
+      </div>
+
+      <PlayerSeat name={bName} side="right" />
+    </div>
+  );
+}
+
+function PlayerSeat({
+  name,
+  side,
+}: {
+  name: string;
+  side: "left" | "right";
+}) {
+  return (
+    <div
+      className={`flex flex-col gap-4 ${
+        side === "left" ? "items-start text-left" : "items-end text-right"
+      }`}
+    >
+      <span className="text-white/40 text-base uppercase tracking-[0.3em]">
+        {side === "left" ? "Links" : "Rechts"}
+      </span>
+      <h2 className="text-white text-6xl font-semibold tracking-tight">
+        {name}
+      </h2>
+      <div className="bg-white/5 flex min-h-[20vh] w-full items-center justify-center rounded-2xl border border-dashed border-white/10 p-5 backdrop-blur">
+        <p className="text-white/30 italic">…</p>
+      </div>
+    </div>
   );
 }
 

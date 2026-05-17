@@ -19,6 +19,10 @@ interface Props {
 const FLUSH_INTERVAL_MS = 500;
 
 export function MatchPlay({ match, participantId, opponentName }: Props) {
+  // ⚠️ ALL HOOKS MUST RUN UNCONDITIONALLY ON EVERY RENDER. The
+  // status-based view switches happen AFTER all hooks. Putting any hook
+  // below an early return changes the hook count between renders and
+  // crashes React with "Rendered fewer hooks…".
   const isPlayerA = match.player_a_id === participantId;
   const initialPrompt = isPlayerA ? match.prompt_a : match.prompt_b;
   const ownPrompt = isPlayerA ? match.prompt_a : match.prompt_b;
@@ -27,26 +31,6 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
     match.status === "done" && match.winner_id != null
       ? match.winner_id === participantId
       : null;
-
-  // Non-typing states get their own simpler views.
-  if (
-    match.status === "reveal" ||
-    match.status === "voting" ||
-    match.status === "done"
-  ) {
-    return (
-      <ResultView
-        round={match.round}
-        prompt={ownPrompt}
-        resultUrl={ownResultUrl}
-        opponentName={opponentName}
-        didWin={didWin}
-      />
-    );
-  }
-  if (match.status === "locked" || match.status === "generating") {
-    return <GeneratingView round={match.round} />;
-  }
 
   const [prompt, setPrompt] = useState(initialPrompt ?? "");
   const [remaining, setRemaining] = useState(() => calcRemaining(match.end_time));
@@ -171,6 +155,37 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
 
   const showSeconds = Math.max(0, Math.ceil(remaining));
 
+  // ⚠️ All hooks above this line. Conditional returns below — NEVER add
+  // a new useState/useEffect after these or you'll change the hook count
+  // between renders and crash the page.
+  if (match.status === "preparing") {
+    return (
+      <PreparingPhoneView
+        round={match.round}
+        opponentName={opponentName}
+        side={isPlayerA ? "left" : "right"}
+      />
+    );
+  }
+  if (
+    match.status === "reveal" ||
+    match.status === "voting" ||
+    match.status === "done"
+  ) {
+    return (
+      <ResultView
+        round={match.round}
+        prompt={ownPrompt}
+        resultUrl={ownResultUrl}
+        opponentName={opponentName}
+        didWin={didWin}
+      />
+    );
+  }
+  if (match.status === "locked" || match.status === "generating") {
+    return <GeneratingView round={match.round} />;
+  }
+
   return (
     <div
       ref={containerRef}
@@ -266,6 +281,38 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
   );
 }
 
+function PreparingPhoneView({
+  round,
+  opponentName,
+  side,
+}: {
+  round: Match["round"];
+  opponentName: string;
+  side: "left" | "right";
+}) {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
+      <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
+        {ROUND_LABELS[round]}
+      </span>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-white/60 text-base">Mach dich bereit</p>
+        <p className="text-white text-3xl font-semibold tracking-tight">
+          Du sitzt {side === "left" ? "links" : "rechts"}
+        </p>
+        <p className="text-white/60 mt-2 text-base">
+          vs. <span className="text-white font-medium">{opponentName}</span>
+        </p>
+      </div>
+      <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-6 py-4 backdrop-blur">
+        <p className="text-amber-100 text-sm">
+          Die Aufgabe erscheint, sobald der Host startet.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 function GeneratingView({ round }: { round: Match["round"] }) {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
@@ -312,9 +359,11 @@ function ResultView({
           <p className="text-white text-3xl font-semibold tracking-tight">
             🏆 Gewonnen
           </p>
-          <p className="text-white/60 mt-1 text-sm">
-            Du bist eine Runde weiter. Bleib in der App.
-          </p>
+          {round !== "FINAL" && (
+            <p className="text-white/60 mt-1 text-sm">
+              Du bist eine Runde weiter. Bleib in der App.
+            </p>
+          )}
         </div>
       )}
       {didWin === false && (
@@ -322,9 +371,11 @@ function ResultView({
           <p className="text-white text-3xl font-semibold tracking-tight">
             Knapp daneben.
           </p>
-          <p className="text-white/60 mt-1 text-sm">
-            Du bist raus. Schau das Finale auf der Bühne.
-          </p>
+          {round !== "FINAL" && (
+            <p className="text-white/60 mt-1 text-sm">
+              Du bist raus. Schau das Finale auf der Bühne.
+            </p>
+          )}
         </div>
       )}
 

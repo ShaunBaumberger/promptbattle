@@ -14,7 +14,8 @@ import type {
   Tournament,
 } from "@/lib/types/database";
 import {
-  startNextMatchAction,
+  prepareNextMatchAction,
+  startCurrentMatchAction,
   lockMatchAction,
   replayMatchAction,
   setMatchWinnerAction,
@@ -41,6 +42,7 @@ interface Props {
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
   pending: "Bereit",
+  preparing: "In Vorbereitung",
   live: "Läuft",
   locked: "Zeit abgelaufen",
   generating: "Bilder werden generiert",
@@ -142,8 +144,19 @@ export function MatchControl({
     };
   }, [currentMatchId]);
 
-  const boundStart = startNextMatchAction.bind(null, tournamentId);
-  const [startState, startAction, startPending] = useActionState(boundStart, initial);
+  const boundPrepare = prepareNextMatchAction.bind(null, tournamentId);
+  const [prepareState, prepareAction, preparePending] = useActionState(
+    boundPrepare,
+    initial,
+  );
+
+  const boundStart = match
+    ? startCurrentMatchAction.bind(null, match.id)
+    : null;
+  const [startState, startAction, startPending] = useActionState(
+    boundStart ?? (async () => initial),
+    initial,
+  );
 
   const boundLock = match ? lockMatchAction.bind(null, match.id) : null;
   const [lockState, lockAction, lockPending] = useActionState(
@@ -163,6 +176,10 @@ export function MatchControl({
     initial,
   );
 
+  useEffect(() => {
+    if (prepareState.error) toast.error(prepareState.error);
+    if (prepareState.ok) toast.success("Match vorbereitet.");
+  }, [prepareState]);
   useEffect(() => {
     if (startState.error) toast.error(startState.error);
     if (startState.ok) toast.success("Match gestartet.");
@@ -258,9 +275,6 @@ export function MatchControl({
       </div>
     );
   }
-
-  const matchActive =
-    match && match.status !== "done";
 
   const toggleSkipGeneration = (next: boolean) => {
     setSkipGeneration(next); // optimistic
@@ -417,11 +431,23 @@ export function MatchControl({
         <p className="text-muted-foreground text-sm">Kein Match aktiv.</p>
       )}
 
-      <form action={startAction}>
-        <Button type="submit" disabled={startPending || !!matchActive}>
-          {startPending ? "Wird gestartet…" : "Nächstes Match starten"}
-        </Button>
-      </form>
+      {/* Two-step flow: prepare → start.
+          Prepare button shows when no match is active (or current one is done).
+          Start button shows when the current match is in `preparing`. */}
+      {(!match || match.status === "done") && (
+        <form action={prepareAction}>
+          <Button type="submit" disabled={preparePending}>
+            {preparePending ? "Wird vorbereitet…" : "Match vorbereiten"}
+          </Button>
+        </form>
+      )}
+      {match && match.status === "preparing" && (
+        <form action={startAction}>
+          <Button type="submit" disabled={startPending}>
+            {startPending ? "Wird gestartet…" : "Match starten"}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
