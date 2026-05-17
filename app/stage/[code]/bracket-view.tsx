@@ -271,16 +271,18 @@ function CenterColumn({
   label: string;
   nameById: Map<string, string>;
 }) {
+  // FINALE label sits at the top of the column with the exact same padding
+  // as the round labels in the half-brackets, so all three (e.g.
+  // HALBFINALE | FINALE | HALBFINALE) line up horizontally. The trophy +
+  // match card sit centered in the remaining space below.
   return (
     <div className="flex min-w-[300px] flex-1 flex-col">
-      {/* Header spacer to align with the round labels in the half-brackets */}
-      <div className="invisible py-5 text-3xl">.</div>
+      <h3 className="text-amber-300 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
+        {label}
+      </h3>
       <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-3 py-2">
         <span className="text-9xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">🏆</span>
         <MatchCard match={match} nameById={nameById} highlight />
-        <p className="text-amber-300 text-2xl font-semibold uppercase tracking-[0.35em]">
-          {label}
-        </p>
       </div>
     </div>
   );
