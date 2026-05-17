@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
@@ -24,9 +24,15 @@ const STATUS_LABEL: Record<MatchStatus, string> = {
 };
 
 export function MatchStage({ matchId, tournamentId, play }: Props) {
+  // ⚠️ ALL HOOKS MUST BE CALLED UNCONDITIONALLY ON EVERY RENDER, BEFORE ANY
+  // EARLY RETURN. Adding a hook after the `if (!match) return …` below would
+  // change the hook count between renders and crash the whole stage tree
+  // ("Rendered more hooks than during the previous render").
   const [match, setMatch] = useState<Match | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [remaining, setRemaining] = useState(0);
+  const [revealPhase, setRevealPhase] = useState(0);
+  const firedCuesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const supabase = createClient();
@@ -77,7 +83,6 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
   // Fire each cue at most once per logical event. Status-based cues are
   // keyed by start_time so a kill-switch / replay re-fires them. The 10s
   // tick keys on start_time too.
-  const firedCuesRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!play || !match) return;
     const fireOnce = (key: string, cue: Cue) => {
@@ -107,39 +112,18 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
     play("tenSecondTick");
   }, [match, remaining, play]);
 
-  if (!match) {
-    return (
-      <main className="bg-background flex flex-1 items-center justify-center">
-        <p className="text-muted-foreground text-2xl">Lade Match…</p>
-      </main>
-    );
-  }
-
-  const nameById = new Map(participants.map((p) => [p.id, p.name]));
-  const aName = nameById.get(match.player_a_id ?? "") ?? "?";
-  const bName = nameById.get(match.player_b_id ?? "") ?? "?";
-
-  const showSeconds = Math.max(0, Math.ceil(remaining));
-  const live = match.status === "live";
-  const reveal =
-    match.status === "reveal" ||
-    match.status === "voting" ||
-    match.status === "done";
-  const winnerName =
-    match.status === "done" && match.winner_id
-      ? nameById.get(match.winner_id) ?? null
-      : null;
+  // Derived values used by hooks below. Computed defensively from possibly-
+  // null match so they're safe to call before the early return.
+  const showBars =
+    match?.status === "done" && match.votes_a != null && match.votes_b != null;
 
   // Reveal animation phases (vote bars + winner crown):
   //   0 = bars at 0, no winner styling
   //   1 = both bars rise to min(votes_a, votes_b) — equal tension, no winner yet
   //   2 = the winner's bar continues past min toward its full count
   //   3 = winner is officially revealed (Champion banner + gold frame + dim loser)
-  const showBars =
-    match.status === "done" && match.votes_a != null && match.votes_b != null;
-  const [revealPhase, setRevealPhase] = useState(0);
   useEffect(() => {
-    if (match.status !== "done" || match.winner_id == null) {
+    if (!match || match.status !== "done" || match.winner_id == null) {
       setRevealPhase(0);
       return;
     }
@@ -158,7 +142,16 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [match.id, match.status, match.winner_id, showBars]);
+  }, [match, showBars]);
+
+  const nameById = useMemo(
+    () => new Map(participants.map((p) => [p.id, p.name])),
+    [participants],
+  );
+  const winnerName =
+    match?.status === "done" && match.winner_id
+      ? nameById.get(match.winner_id) ?? null
+      : null;
   const winnerRevealed = revealPhase >= 3 && winnerName != null;
 
   // Triumph cue when the winner is officially revealed.
@@ -169,6 +162,25 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
     firedCuesRef.current.add(key);
     play("winnerReveal");
   }, [winnerRevealed, match, play]);
+
+  // ⚠️ Early return AFTER all hooks above — adding a hook below would break.
+  if (!match) {
+    return (
+      <main className="flex flex-1 items-center justify-center">
+        <p className="text-white/50 text-2xl">Lade Match…</p>
+      </main>
+    );
+  }
+
+  const aName = nameById.get(match.player_a_id ?? "") ?? "?";
+  const bName = nameById.get(match.player_b_id ?? "") ?? "?";
+
+  const showSeconds = Math.max(0, Math.ceil(remaining));
+  const live = match.status === "live";
+  const reveal =
+    match.status === "reveal" ||
+    match.status === "voting" ||
+    match.status === "done";
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
