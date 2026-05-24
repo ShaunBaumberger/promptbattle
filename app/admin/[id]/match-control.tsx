@@ -30,7 +30,10 @@ import {
   playVideoAction,
   clearVideoPlayingAction,
 } from "./voting-actions";
-import { generateMatchImagesAction } from "./generation-actions";
+import {
+  generateMatchImagesAction,
+  generateMatchVideosAction,
+} from "./generation-actions";
 import { RestartMatchDialog } from "./restart-match-dialog";
 
 interface Props {
@@ -209,7 +212,11 @@ export function MatchControl({
     const key = `${match.id}:${match.start_time ?? ""}`;
     if (generationFiredRef.current === key) return;
     generationFiredRef.current = key;
-    generateMatchImagesAction(match.id).catch(() => {});
+    const action =
+      match.task_kind === "video"
+        ? generateMatchVideosAction
+        : generateMatchImagesAction;
+    action(match.id).catch(() => {});
   }, [match]);
 
   const [winnerPending, startWinnerTransition] = useTransition();
@@ -365,15 +372,16 @@ export function MatchControl({
             match.status === "reveal") && (
             <RestartMatchDialog matchId={match.id} />
           )}
-          {/* FINAL match video playback. Buttons appear once both Veo
-              videos have been uploaded (URLs set and not the "pending"
-              sentinel from the in-flight server action). */}
+          {/* Video-task playback. Buttons appear once both Veo videos
+              have been uploaded (URL set and not the "pending" sentinel
+              from the in-flight server action). Gated on task_kind so
+              any round's video task gets the controls. */}
           {match.status === "reveal" &&
-            match.round === "FINAL" &&
+            match.task_kind === "video" &&
             isReadyVideoUrl(match.video_a_url) &&
             isReadyVideoUrl(match.video_b_url) && (
               <div className="space-y-2 rounded-md border border-amber-400/40 bg-amber-400/5 p-3">
-                <p className="text-sm font-semibold">🎬 Finale-Videos abspielen</p>
+                <p className="text-sm font-semibold">🎬 Videos abspielen</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -404,12 +412,12 @@ export function MatchControl({
                 </Button>
               </div>
             )}
-          {match.status === "reveal" &&
-            match.round === "FINAL" &&
+          {(match.status === "generating" || match.status === "reveal") &&
+            match.task_kind === "video" &&
             (!isReadyVideoUrl(match.video_a_url) ||
               !isReadyVideoUrl(match.video_b_url)) && (
               <p className="text-muted-foreground rounded-md border border-dashed p-3 text-xs">
-                🎬 Finale-Videos werden generiert… (60–120s)
+                🎬 Videos werden generiert… (60–120s)
               </p>
             )}
           {match.status === "reveal" && (

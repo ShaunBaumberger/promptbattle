@@ -46,21 +46,32 @@ export interface Participant {
   last_seen_at: string;
 }
 
+export type TaskKind = "image" | "text" | "video";
+
 export interface Task {
   id: string;
   tournament_id: string;
-  /** Set for image-based tasks; null for text tasks. */
+  /** Set for kind='image' tasks. Players see this image and recreate it. */
   reference_image_url: string | null;
-  /** Set for text-based tasks; null for image tasks. */
+  /** Set for kind='text' or kind='video' tasks. The task description. */
   text_prompt: string | null;
+  /** Discriminator. Defines both input shape and generated output type. */
+  kind: TaskKind;
   internal_label: string | null;
   round: Round;
   created_at: string;
 }
 
-export type TaskKind = "image" | "text";
-
-export function taskKind(t: Pick<Task, "reference_image_url" | "text_prompt">): TaskKind {
+/**
+ * Back-compat helper. Prefer `task.kind` directly when you have a full
+ * Task row; this fallback infers from the content fields when only the
+ * partial shape is available (e.g. on a denormalized match row that
+ * doesn't carry the column).
+ */
+export function taskKind(
+  t: Pick<Task, "reference_image_url" | "text_prompt"> & { kind?: TaskKind },
+): TaskKind {
+  if (t.kind) return t.kind;
   return t.text_prompt != null ? "text" : "image";
 }
 
@@ -76,6 +87,9 @@ export interface Match {
   task_reference_url: string | null;
   /** Denormalised text prompt — only populated when match goes live. */
   task_text: string | null;
+  /** Denormalised task kind — populated at match-prep time so clients
+   *  can branch (image vs text vs video) without joining `tasks`. */
+  task_kind: TaskKind | null;
   prompt_a: string;
   prompt_b: string;
   result_a_url: string | null;

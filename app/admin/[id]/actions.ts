@@ -28,10 +28,15 @@ export async function createTaskAction(
   const internalLabel = String(formData.get("internal_label") ?? "").trim() || null;
 
   if (!VALID_ROUNDS.includes(round)) return { error: "Ungültige Runde." };
+  if (kind !== "image" && kind !== "text" && kind !== "video") {
+    return { error: "Ungültiger Aufgabentyp." };
+  }
 
-  if (kind === "text") {
+  // Text and video tasks share the same input shape — a text prompt.
+  // The discriminator is `kind`, which downstream generation branches on.
+  if (kind === "text" || kind === "video") {
     const text = String(formData.get("text_prompt") ?? "").trim();
-    if (!text) return { error: "Bitte einen Text-Prompt eingeben." };
+    if (!text) return { error: "Bitte einen Prompt eingeben." };
     if (text.length > MAX_TEXT_LENGTH) {
       return { error: `Text ist zu lang (max. ${MAX_TEXT_LENGTH} Zeichen).` };
     }
@@ -40,6 +45,7 @@ export async function createTaskAction(
     const { error: insertErr } = await supabase.from("tasks").insert({
       tournament_id: tournamentId,
       text_prompt: text,
+      kind,
       internal_label: internalLabel,
       round,
     });
@@ -75,6 +81,7 @@ export async function createTaskAction(
   const { error: insertErr } = await supabase.from("tasks").insert({
     tournament_id: tournamentId,
     reference_image_url: pub.publicUrl,
+    kind: "image",
     internal_label: internalLabel,
     round,
   });

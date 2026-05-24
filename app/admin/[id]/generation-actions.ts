@@ -30,11 +30,16 @@ export async function generateMatchImagesAction(
   // friendly skipped result when a generation is already in flight or done.
   const { data: existing } = await supabase
     .from("matches")
-    .select("id, status, tournament_id")
+    .select("id, status, task_kind, tournament_id")
     .eq("id", matchId)
     .maybeSingle();
 
   if (!existing) return { ok: false, error: "Match nicht gefunden." };
+  if (existing.task_kind === "video") {
+    // Video tasks are handled by generateMatchVideosAction, which owns its
+    // own locked → reveal lifecycle. Bail so we don't race the claim.
+    return { ok: true, skipped: true };
+  }
   if (existing.status !== "locked") {
     // Already generating, reveal, voting, or done — nothing for us to do.
     return { ok: true, skipped: true };
@@ -126,55 +131,75 @@ async function generateAndUpload(
   }
 }
 
-// ---------- Final-round video generation ----------------------------------
+// ---------- Video-task generation -----------------------------------------
 
 /**
- * Kick off Veo video generation for both players of a FINAL match. Runs in
- * parallel and updates `video_a_url` / `video_b_url` on the match row as
- * each video finishes. Images (Nano Banana) are generated separately by
- * `generateMatchImagesAction` and act as the always-available backup.
+ * Generate Veo videos for both players of a video-task match. Drives the
+ * full locked → generating → reveal lifecycle (no separate image step,
+ * no backup images — that's the agreed contract for kind='video').
  *
- * Atomic guard: only the first caller actually runs the API calls. We claim
- * by setting `video_a_url` to a sentinel placeholder before kicking off —
- * subsequent callers see it set and bail with `{ ok: true, skipped: true }`.
+ * Atomic claim on the status transition: only the first caller actually
+ * runs the API calls. Subsequent fan-outs from other clients bail with
+ * `{ ok: true, skipped: true }`.
  *
- * Empty prompts are skipped (no API call), and per-video failures are
- * isolated: if one fails the other still gets uploaded.
+ * Per-video failures are isolated: if one fails the other still uploads;
+ * the match still advances to `reveal` so the UI doesn't get stuck.
+ *
+ * Vercel caveat: each Veo render takes ~30–90s. Two parallel runs share
+ * the function's 60s budget on Hobby; if either exceeds, the action gets
+ * killed and the sentinel "pending" URL stays on the row. Recovery: admin
+ * can clear video_a_url / video_b_url in Supabase and the client trigger
+ * will re-fire on the next stale-state poll.
  */
-export async function generateFinalVideosAction(
+export async function generateMatchVideosAction(
   matchId: string,
 ): Promise<GenerationResult> {
   const supabase = createServiceRoleClient();
 
-  const { data: match } = await supabase
+  const { data: existing } = await supabase
     .from("matches")
-    .select("id, round, prompt_a, prompt_b, video_a_url, video_b_url, tournament_id")
+    .select("id, status, task_kind, tournament_id")
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { ok: false, error: "Match nicht gefunden." };
-  if (match.round !== "FINAL") {
-    return { ok: false, error: "Videos werden nur im Finale generiert." };
+  if (!existing) return { ok: false, error: "Match nicht gefunden." };
+  if (existing.task_kind !== "video") {
+    return { ok: false, error: "Diese Task ist kein Video." };
   }
-  // Idempotency guard: if either video URL is already set, skip (another
-  // caller is generating or already finished).
-  if (match.video_a_url || match.video_b_url) {
+  if (existing.status !== "locked") {
     return { ok: true, skipped: true };
   }
 
-  const tournamentId = match.tournament_id;
-  const promptA = (match.prompt_a ?? "").trim();
-  const promptB = (match.prompt_b ?? "").trim();
+  const tournamentId = existing.tournament_id;
 
-  // Sentinel claim so concurrent callers bail. Real URL or null replaces it.
+  // Atomic status flip: only one caller succeeds.
+  const { data: claimed, error: claimErr } = await supabase
+    .from("matches")
+    .update({ status: "generating" })
+    .eq("id", matchId)
+    .eq("status", "locked")
+    .select("id, prompt_a, prompt_b")
+    .maybeSingle();
+
+  if (claimErr) {
+    return { ok: false, error: `Status-Update fehlgeschlagen: ${claimErr.message}` };
+  }
+  if (!claimed) return { ok: true, skipped: true };
+
+  revalidatePath(`/admin/${tournamentId}`);
+
+  const promptA = (claimed.prompt_a ?? "").trim();
+  const promptB = (claimed.prompt_b ?? "").trim();
+
+  // Mark URLs as pending so the audience knows generation is in flight
+  // (admin's "Video abspielen" buttons stay hidden until real URLs land).
   await supabase
     .from("matches")
     .update({
       video_a_url: promptA ? "pending" : null,
       video_b_url: promptB ? "pending" : null,
     })
-    .eq("id", matchId)
-    .is("video_a_url", null);
+    .eq("id", matchId);
 
   const [videoA, videoB] = await Promise.all([
     generateAndUploadVideo(promptA, tournamentId, matchId, "a"),
@@ -183,7 +208,11 @@ export async function generateFinalVideosAction(
 
   await supabase
     .from("matches")
-    .update({ video_a_url: videoA, video_b_url: videoB })
+    .update({
+      video_a_url: videoA,
+      video_b_url: videoB,
+      status: "reveal",
+    })
     .eq("id", matchId);
 
   revalidatePath(`/admin/${tournamentId}`);

@@ -51,7 +51,7 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
   const [state, formAction, pending] = useActionState(boundCreate, initial);
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [kind, setKind] = useState<"image" | "text">("image");
+  const [kind, setKind] = useState<"image" | "text" | "video">("image");
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   // Selected round for the form. Controlled so we can re-target it after each
@@ -149,7 +149,7 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
 
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Label>Aufgabentyp</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   variant={kind === "image" ? "default" : "outline"}
@@ -165,6 +165,14 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                   onClick={() => setKind("text")}
                 >
                   Textaufgabe
+                </Button>
+                <Button
+                  type="button"
+                  variant={kind === "video" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setKind("video")}
+                >
+                  Videoaufgabe
                 </Button>
               </div>
             </div>
@@ -230,16 +238,24 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
               </div>
             ) : (
               <div className="flex flex-col gap-2 sm:col-span-2">
-                <Label htmlFor="text_prompt">Text-Aufgabe</Label>
+                <Label htmlFor="text_prompt">
+                  {kind === "video" ? "Video-Aufgabe" : "Text-Aufgabe"}
+                </Label>
                 <Textarea
                   id="text_prompt"
                   name="text_prompt"
                   required
                   rows={3}
-                  placeholder='z. B. „Generiere ein Bild von einem Pelikan auf einem Fahrrad."'
+                  placeholder={
+                    kind === "video"
+                      ? 'z. B. „Ein Pelikan auf einem Fahrrad bei Sonnenuntergang."'
+                      : 'z. B. „Generiere ein Bild von einem Pelikan auf einem Fahrrad."'
+                  }
                 />
                 <p className="text-muted-foreground text-xs">
-                  Spieler sehen die Beschreibung und müssen das Bild dazu prompten.
+                  {kind === "video"
+                    ? "Spieler:innen sehen die Beschreibung und müssen ein Video dazu prompten. Veo 3 generiert ein 8-Sekunden-Clip."
+                    : "Spieler:innen sehen die Beschreibung und müssen das Bild dazu prompten."}
                 </p>
               </div>
             )}
@@ -315,8 +331,8 @@ function TaskCard({ task, tournamentId }: { task: Task; tournamentId: string }) 
         </div>
       ) : (
         <div className="bg-muted/40 flex aspect-square flex-col items-start justify-between gap-2 overflow-hidden rounded-md border p-3">
-          <Badge variant="outline" className="text-xs">
-            Text
+          <Badge variant={kind === "video" ? "default" : "outline"} className="text-xs">
+            {kind === "video" ? "🎬 Video" : "Text"}
           </Badge>
           <p className="text-foreground line-clamp-6 text-sm leading-snug">
             {task.text_prompt}

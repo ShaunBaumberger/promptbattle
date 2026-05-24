@@ -128,7 +128,7 @@ export async function startCurrentMatchAction(
 
   const { data: task } = await supabase
     .from("tasks")
-    .select("reference_image_url, text_prompt")
+    .select("reference_image_url, text_prompt, kind")
     .eq("id", match.task_id)
     .maybeSingle();
   if (!task) return { error: "Task nicht gefunden." };
@@ -147,6 +147,7 @@ export async function startCurrentMatchAction(
       status: "live",
       task_reference_url: task.reference_image_url,
       task_text: task.text_prompt,
+      task_kind: task.kind,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),
       prompt_a: "",
@@ -275,7 +276,7 @@ export async function replayMatchAction(
   // least as often.
   const { data: tasks } = await supabase
     .from("tasks")
-    .select("id, reference_image_url, text_prompt, use_count")
+    .select("id, reference_image_url, text_prompt, kind, use_count")
     .eq("tournament_id", tournament.id)
     .eq("round", match.round);
 
@@ -303,10 +304,13 @@ export async function replayMatchAction(
       task_id: pick.id,
       task_reference_url: pick.reference_image_url,
       task_text: pick.text_prompt,
+      task_kind: pick.kind,
       prompt_a: "",
       prompt_b: "",
       result_a_url: null,
       result_b_url: null,
+      video_a_url: null,
+      video_b_url: null,
       winner_id: null,
       start_time: startTime.toISOString(),
       end_time: endTime.toISOString(),

@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match } from "@/lib/types/database";
 import { lockMatchAction } from "@/app/admin/[id]/match-actions";
-import { generateMatchImagesAction } from "@/app/admin/[id]/generation-actions";
+import {
+  generateMatchImagesAction,
+  generateMatchVideosAction,
+} from "@/app/admin/[id]/generation-actions";
 import { updatePromptAction } from "./prompt-actions";
 
 interface Props {
@@ -135,18 +138,23 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
     if (locked) setExpanded(false);
   }, [locked]);
 
-  // Backup auto-fire of image generation. The server action is atomic
+  // Backup auto-fire of generation. The server actions are atomic
   // (locked → generating) so it's safe if multiple clients race.
   // Key by start_time too, otherwise a replay/kill-switch with the same
-  // match.id wouldn't re-fire generation.
+  // match.id wouldn't re-fire generation. Branches on task_kind so video
+  // tasks go through the Veo pipeline instead of Nano Banana.
   const generationFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (match.status !== "locked") return;
     const key = `${match.id}:${match.start_time ?? ""}`;
     if (generationFiredRef.current === key) return;
     generationFiredRef.current = key;
-    generateMatchImagesAction(match.id).catch(() => {});
-  }, [match.id, match.status, match.start_time]);
+    const action =
+      match.task_kind === "video"
+        ? generateMatchVideosAction
+        : generateMatchImagesAction;
+    action(match.id).catch(() => {});
+  }, [match.id, match.status, match.start_time, match.task_kind]);
 
   const openExpanded = () => {
     // Drop keyboard before showing the full-screen overlay.
@@ -229,7 +237,9 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
       {match.task_text ? (
         <div className="bg-white/5 flex shrink-0 flex-col gap-1.5 rounded-2xl border border-white/10 p-4 backdrop-blur">
           <p className="text-white/40 text-xs uppercase tracking-widest">
-            Generiere ein Bild von:
+            {match.task_kind === "video"
+              ? "Generiere ein Video von:"
+              : "Generiere ein Bild von:"}
           </p>
           <p className="text-white text-lg font-medium leading-snug break-words [overflow-wrap:anywhere]">
             {match.task_text}

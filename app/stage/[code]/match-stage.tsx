@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
-import { generateFinalVideosAction } from "@/app/admin/[id]/generation-actions";
+import { generateMatchVideosAction } from "@/app/admin/[id]/generation-actions";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
 
@@ -195,20 +195,18 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
     if (data) setMatch(data as Match);
   });
 
-  // FINAL match: once images are revealed, kick off Veo video generation
-  // so we have the Show videos ready by the time the admin clicks "play".
-  // The server action is idempotent (sentinel claim on video_a_url) so
-  // multiple clients racing is safe.
+  // Video-task matches own their own locked → reveal pipeline. Stage
+  // fires the action as a backup trigger in case admin / player tabs
+  // weren't open at lock time. The action is atomic so concurrent fires
+  // are safe.
   const videoFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (!match) return;
-    if (match.round !== "FINAL") return;
-    if (match.status !== "reveal") return;
-    // Already generated or generation already in flight.
-    if (match.video_a_url || match.video_b_url) return;
+    if (match.task_kind !== "video") return;
+    if (match.status !== "locked") return;
     if (videoFiredRef.current === match.id) return;
     videoFiredRef.current = match.id;
-    generateFinalVideosAction(match.id).catch(() => {});
+    generateMatchVideosAction(match.id).catch(() => {});
   }, [match]);
 
   // Auto-return to the bracket after a non-final match's reveal so the
@@ -286,18 +284,20 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
         </div>
       )}
 
-      {/* FINAL-round: surface the video-generation status so the audience
-          knows what's coming. Shown only while a video URL is still null
-          or the "pending" in-flight sentinel. */}
-      {match.round === "FINAL" &&
-        (match.status === "reveal" || match.status === "voting") &&
+      {/* Video tasks: surface the generation status so the audience
+          knows what's coming. Shown while a video URL is still null or
+          the "pending" in-flight sentinel — covers both the long
+          generating phase and any post-reveal gap. */}
+      {match.task_kind === "video" &&
+        (match.status === "generating" ||
+          match.status === "locked" ||
+          match.status === "reveal" ||
+          match.status === "voting") &&
         (!match.video_a_url ||
           match.video_a_url === "pending" ||
           !match.video_b_url ||
           match.video_b_url === "pending") && (
-          <FinalVideoStatusBanner
-            startedAt={match.start_time}
-          />
+          <FinalVideoStatusBanner startedAt={match.start_time} />
         )}
 
       {match.status === "preparing" ? (
@@ -314,11 +314,10 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
         <LiveView match={match} aName={aName} bName={bName} />
       )}
 
-      {/* Final-round fullscreen video overlay. Active only when the admin
-          has chosen to play one of the two Veo videos. Sits above
-          everything else so the audience just sees the video + a thin
-          name banner. */}
-      {videoPlaying && match.round === "FINAL" && (
+      {/* Video-task fullscreen overlay. Active only when the admin has
+          chosen to play one of the two Veo videos. Sits above everything
+          else so the audience just sees the video + a thin name banner. */}
+      {videoPlaying && match.task_kind === "video" && (
         <FinalVideoOverlay
           slot={videoPlaying}
           videoUrl={
@@ -508,7 +507,11 @@ function TaskDisplay({
   if (match.task_text) {
     return (
       <>
-        <p className={labelClass}>Generiere ein Bild von …</p>
+        <p className={labelClass}>
+          {match.task_kind === "video"
+            ? "Generiere ein Video von …"
+            : "Generiere ein Bild von …"}
+        </p>
         <div className="bg-white/5 flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 p-8 backdrop-blur">
           <p className={taskTextClass}>{match.task_text}</p>
         </div>
