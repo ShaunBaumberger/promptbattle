@@ -557,18 +557,26 @@ function RevealColumn({
           Keine Bildgenerierung
         </div>
       )}
-      <div
-        className={`bg-white/5 w-full rounded-2xl border border-white/10 p-4 backdrop-blur ${
-          side === "left" ? "text-left" : "text-right"
-        }`}
-      >
-        <p className="text-white/40 text-xs uppercase tracking-[0.25em]">
-          Prompt
-        </p>
-        <p className="text-white mt-1.5 whitespace-pre-wrap break-words text-xl leading-snug [overflow-wrap:anywhere]">
-          {prompt || <span className="text-white/30 italic">(kein Prompt)</span>}
-        </p>
-      </div>
+      {/*
+        Prompts are shown during reveal/voting so the audience can read what
+        each player typed alongside their generated image. Once the vote bars
+        appear (status='done'), we hide the prompt block to give the bars +
+        winner highlight all the available vertical space.
+      */}
+      {!showBar && (
+        <div
+          className={`bg-white/5 w-full rounded-2xl border border-white/10 p-4 backdrop-blur ${
+            side === "left" ? "text-left" : "text-right"
+          }`}
+        >
+          <p className="text-white/40 text-xs uppercase tracking-[0.25em]">
+            Prompt
+          </p>
+          <p className="text-white mt-1.5 whitespace-pre-wrap break-words text-xl leading-snug [overflow-wrap:anywhere]">
+            {prompt || <span className="text-white/30 italic">(kein Prompt)</span>}
+          </p>
+        </div>
+      )}
       {showBar && (
         <div
           className={`flex w-full items-end gap-4 ${
