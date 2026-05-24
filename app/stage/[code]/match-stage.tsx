@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
+import { generateFinalVideosAction } from "@/app/admin/[id]/generation-actions";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
 
@@ -13,6 +14,8 @@ interface Props {
   matchId: string;
   tournamentId: string;
   play?: (cue: Cue) => void;
+  /** Admin signal for FINAL-round fullscreen video playback. */
+  videoPlaying?: "A" | "B" | null;
 }
 
 const STATUS_LABEL: Record<MatchStatus, string> = {
@@ -26,7 +29,7 @@ const STATUS_LABEL: Record<MatchStatus, string> = {
   done: "Abgeschlossen",
 };
 
-export function MatchStage({ matchId, tournamentId, play }: Props) {
+export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props) {
   // ⚠️ ALL HOOKS MUST BE CALLED UNCONDITIONALLY ON EVERY RENDER, BEFORE ANY
   // EARLY RETURN. Adding a hook after the `if (!match) return …` below would
   // change the hook count between renders and crash the whole stage tree
@@ -192,6 +195,22 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
     if (data) setMatch(data as Match);
   });
 
+  // FINAL match: once images are revealed, kick off Veo video generation
+  // so we have the Show videos ready by the time the admin clicks "play".
+  // The server action is idempotent (sentinel claim on video_a_url) so
+  // multiple clients racing is safe.
+  const videoFiredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!match) return;
+    if (match.round !== "FINAL") return;
+    if (match.status !== "reveal") return;
+    // Already generated or generation already in flight.
+    if (match.video_a_url || match.video_b_url) return;
+    if (videoFiredRef.current === match.id) return;
+    videoFiredRef.current = match.id;
+    generateFinalVideosAction(match.id).catch(() => {});
+  }, [match]);
+
   // Auto-return to the bracket after a non-final match's reveal so the
   // audience sees the updated tree before the next match prep starts.
   // Final stays on this view because Stage flips it to ChampionView once
@@ -267,6 +286,20 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
         </div>
       )}
 
+      {/* FINAL-round: surface the video-generation status so the audience
+          knows what's coming. Shown only while a video URL is still null
+          or the "pending" in-flight sentinel. */}
+      {match.round === "FINAL" &&
+        (match.status === "reveal" || match.status === "voting") &&
+        (!match.video_a_url ||
+          match.video_a_url === "pending" ||
+          !match.video_b_url ||
+          match.video_b_url === "pending") && (
+          <FinalVideoStatusBanner
+            startedAt={match.start_time}
+          />
+        )}
+
       {match.status === "preparing" ? (
         <PreparingView aName={aName} bName={bName} />
       ) : reveal ? (
@@ -280,7 +313,91 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
       ) : (
         <LiveView match={match} aName={aName} bName={bName} />
       )}
+
+      {/* Final-round fullscreen video overlay. Active only when the admin
+          has chosen to play one of the two Veo videos. Sits above
+          everything else so the audience just sees the video + a thin
+          name banner. */}
+      {videoPlaying && match.round === "FINAL" && (
+        <FinalVideoOverlay
+          slot={videoPlaying}
+          videoUrl={
+            videoPlaying === "A" ? match.video_a_url : match.video_b_url
+          }
+          playerName={videoPlaying === "A" ? aName : bName}
+        />
+      )}
     </main>
+  );
+}
+
+/**
+ * Pulsing banner shown during the ~60–120s Veo render window so the
+ * audience knows what's happening (and that the screen isn't frozen).
+ * Counts up from mount; reset implicitly when the parent unmounts the
+ * banner (which happens as soon as both video URLs land).
+ */
+function FinalVideoStatusBanner({ startedAt: _startedAt }: { startedAt: string | null }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - t0) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="bg-amber-400/10 border-amber-400/30 mx-auto flex w-fit items-center gap-4 rounded-full border px-6 py-3 backdrop-blur duration-500 animate-in fade-in">
+      <span className="text-2xl">🎬</span>
+      <p className="text-amber-100 text-xl font-medium">
+        Final-Videos werden generiert…
+      </p>
+      <span className="text-amber-200/70 tabular-nums text-base">
+        {elapsed}s
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Fullscreen video player for the FINAL reveal. Black background, video
+ * fits the viewport with object-contain (preserves Veo's 16:9 ratio),
+ * audio on, autoplays once mounted. After the clip ends the last frame
+ * stays visible until the admin returns to the reveal layout.
+ */
+function FinalVideoOverlay({
+  videoUrl,
+  playerName,
+}: {
+  slot: "A" | "B";
+  videoUrl: string | null;
+  playerName: string;
+}) {
+  if (!videoUrl || videoUrl === "pending") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-12 text-center">
+        <p className="text-white/70 text-2xl">
+          Video für {playerName} ist noch nicht bereit.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black duration-300 animate-in fade-in">
+      <div className="flex shrink-0 items-center justify-center py-6">
+        <p className="text-white text-3xl font-semibold tracking-tight">
+          {playerName}
+        </p>
+      </div>
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video
+        src={videoUrl}
+        autoPlay
+        controls={false}
+        playsInline
+        className="min-h-0 w-full flex-1 object-contain"
+      />
+    </div>
   );
 }
 

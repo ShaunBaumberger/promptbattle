@@ -26,6 +26,14 @@ export interface Tournament {
   skip_image_generation: boolean;
   /** True for the dedicated debug-tournament mode (always 2 players, exposes test controls). */
   is_test_mode: boolean;
+  /** Admin-controlled signal: which FINAL-round video the stage should play fullscreen. */
+  current_video_playing: "A" | "B" | null;
+  /**
+   * Per-round timer overrides in seconds. Missing entries fall back to
+   * `round_time_seconds`. Lets the admin dial up later rounds (e.g.
+   * `{ SF: 90, FINAL: 120 }`) without affecting earlier ones.
+   */
+  round_time_overrides: Partial<Record<Round, number>>;
   created_at: string;
 }
 
@@ -72,6 +80,10 @@ export interface Match {
   prompt_b: string;
   result_a_url: string | null;
   result_b_url: string | null;
+  /** Veo-generated video URL for player A; only populated on FINAL matches. */
+  video_a_url: string | null;
+  /** Veo-generated video URL for player B; only populated on FINAL matches. */
+  video_b_url: string | null;
   winner_id: string | null;
   status: MatchStatus;
   start_time: string | null;

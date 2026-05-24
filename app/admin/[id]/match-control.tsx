@@ -27,6 +27,8 @@ import {
   startVotingAction,
   endVotingAction,
   getVoteCountAction,
+  playVideoAction,
+  clearVideoPlayingAction,
 } from "./voting-actions";
 import { generateMatchImagesAction } from "./generation-actions";
 import { RestartMatchDialog } from "./restart-match-dialog";
@@ -266,6 +268,20 @@ export function MatchControl({
     };
   }, [match?.id, match?.status]);
 
+  const [videoPending, startVideoTransition] = useTransition();
+  const playVideo = (slot: "A" | "B") => {
+    startVideoTransition(async () => {
+      const result = await playVideoAction(tournamentId, slot);
+      if (result.error) toast.error(result.error);
+    });
+  };
+  const clearVideo = () => {
+    startVideoTransition(async () => {
+      const result = await clearVideoPlayingAction(tournamentId);
+      if (result.error) toast.error(result.error);
+    });
+  };
+
   const nameById = new Map(participants.map((p) => [p.id, p.name]));
 
   if (!loaded) {
@@ -349,6 +365,53 @@ export function MatchControl({
             match.status === "reveal") && (
             <RestartMatchDialog matchId={match.id} />
           )}
+          {/* FINAL match video playback. Buttons appear once both Veo
+              videos have been uploaded (URLs set and not the "pending"
+              sentinel from the in-flight server action). */}
+          {match.status === "reveal" &&
+            match.round === "FINAL" &&
+            isReadyVideoUrl(match.video_a_url) &&
+            isReadyVideoUrl(match.video_b_url) && (
+              <div className="space-y-2 rounded-md border border-amber-400/40 bg-amber-400/5 p-3">
+                <p className="text-sm font-semibold">🎬 Finale-Videos abspielen</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => playVideo("A")}
+                    disabled={videoPending}
+                  >
+                    Video „{nameById.get(match.player_a_id ?? "") ?? "?"}"
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => playVideo("B")}
+                    disabled={videoPending}
+                  >
+                    Video „{nameById.get(match.player_b_id ?? "") ?? "?"}"
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearVideo}
+                  disabled={videoPending}
+                  className="w-full"
+                >
+                  Zurück zum Reveal
+                </Button>
+              </div>
+            )}
+          {match.status === "reveal" &&
+            match.round === "FINAL" &&
+            (!isReadyVideoUrl(match.video_a_url) ||
+              !isReadyVideoUrl(match.video_b_url)) && (
+              <p className="text-muted-foreground rounded-md border border-dashed p-3 text-xs">
+                🎬 Finale-Videos werden generiert… (60–120s)
+              </p>
+            )}
           {match.status === "reveal" && (
             <form action={startVotingFormAction}>
               <Button type="submit" disabled={startVotingPending}>
@@ -450,6 +513,17 @@ export function MatchControl({
       )}
     </div>
   );
+}
+
+/**
+ * The video columns hold one of three values while a FINAL match is in
+ * flight: null (not started), "pending" (the in-flight sentinel set by
+ * generateFinalVideosAction), or a real public URL (success). This
+ * predicate filters out the first two so the UI only treats actual URLs
+ * as "ready to play".
+ */
+function isReadyVideoUrl(url: string | null): url is string {
+  return !!url && url !== "pending";
 }
 
 function PlayerCell({ name, prompt }: { name: string; prompt: string }) {

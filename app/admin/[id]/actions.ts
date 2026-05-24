@@ -132,6 +132,51 @@ export async function updateRoundTimeAction(
 }
 
 /**
+ * Set or clear a per-round timer override. Pass `seconds=null` to clear
+ * the override (round falls back to tournament default). Validates range
+ * 10–600s. Only the affected round entry is changed — others keep their
+ * existing override (if any).
+ */
+export async function updateRoundTimeOverrideAction(
+  tournamentId: string,
+  round: Round,
+  seconds: number | null,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!["R32", "R16", "QF", "SF", "FINAL"].includes(round)) {
+    return { ok: false, error: "Ungültige Runde." };
+  }
+  if (
+    seconds !== null &&
+    (!Number.isFinite(seconds) || seconds < 10 || seconds > 600)
+  ) {
+    return { ok: false, error: "Rundenzeit muss zwischen 10 und 600 Sekunden liegen." };
+  }
+  const supabase = createServiceRoleClient();
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("round_time_overrides")
+    .eq("id", tournamentId)
+    .maybeSingle();
+  if (!tournament) return { ok: false, error: "Turnier nicht gefunden." };
+
+  const overrides = {
+    ...((tournament.round_time_overrides as Partial<Record<Round, number>>) ?? {}),
+  };
+  if (seconds === null) {
+    delete overrides[round];
+  } else {
+    overrides[round] = Math.round(seconds);
+  }
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ round_time_overrides: overrides })
+    .eq("id", tournamentId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
+}
+
+/**
  * Switch tournament size before the bracket has been generated. Allowed only
  * during `setup`; once the bracket is live the schedule is locked.
  */

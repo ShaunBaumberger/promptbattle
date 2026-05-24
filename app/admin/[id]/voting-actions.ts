@@ -7,6 +7,39 @@ import type { PlayerCount, Round } from "@/lib/types/database";
 
 export type VotingActionState = { error?: string; ok?: boolean };
 
+/**
+ * Admin-driven signal for the FINAL-round video playback. Writes
+ * `tournaments.current_video_playing` so the stage knows which video
+ * to autoplay fullscreen. Pass `slot=null` (or call `clearVideoPlayingAction`)
+ * to return the stage to the reveal layout.
+ */
+export async function playVideoAction(
+  tournamentId: string,
+  slot: "A" | "B",
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ current_video_playing: slot })
+    .eq("id", tournamentId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
+}
+
+export async function clearVideoPlayingAction(
+  tournamentId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ current_video_playing: null })
+    .eq("id", tournamentId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
+}
+
 /** Open the voting phase. Allowed only from `reveal`. */
 export async function startVotingAction(
   matchId: string,

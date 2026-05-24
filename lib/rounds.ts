@@ -46,3 +46,21 @@ export const ROUND_LABELS: Record<Round, string> = {
   SF: "Halbfinale",
   FINAL: "Finale",
 };
+
+/**
+ * Resolve the round timer for a given match: per-round override wins,
+ * tournament default is the fallback. Used by startCurrentMatch /
+ * restartLiveMatch / replayMatch so a later round can have more time
+ * without changing the global default.
+ */
+export function roundTimeFor(
+  round: Round,
+  defaultSeconds: number,
+  overrides: Partial<Record<Round, number>> | null | undefined,
+): number {
+  const candidate = overrides?.[round];
+  if (typeof candidate === "number" && candidate >= 10 && candidate <= 600) {
+    return Math.round(candidate);
+  }
+  return defaultSeconds;
+}

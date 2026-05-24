@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getNextSlot, shuffle } from "@/lib/bracket";
-import { getRoundsForPlayerCount } from "@/lib/rounds";
+import { getRoundsForPlayerCount, roundTimeFor } from "@/lib/rounds";
 import type { PlayerCount, Round } from "@/lib/types/database";
 
 export type MatchActionState = { error?: string; ok?: boolean };
@@ -110,7 +110,7 @@ export async function startCurrentMatchAction(
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, status, task_id, tournament_id")
+    .select("id, status, round, task_id, tournament_id")
     .eq("id", matchId)
     .maybeSingle();
   if (!match) return { error: "Match nicht gefunden." };
@@ -121,7 +121,7 @@ export async function startCurrentMatchAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("round_time_seconds")
+    .select("round_time_seconds, round_time_overrides")
     .eq("id", match.tournament_id)
     .maybeSingle();
   if (!tournament) return { error: "Turnier nicht gefunden." };
@@ -133,8 +133,13 @@ export async function startCurrentMatchAction(
     .maybeSingle();
   if (!task) return { error: "Task nicht gefunden." };
 
+  const seconds = roundTimeFor(
+    match.round as Round,
+    tournament.round_time_seconds,
+    tournament.round_time_overrides as Partial<Record<Round, number>> | null,
+  );
   const startTime = new Date();
-  const endTime = new Date(startTime.getTime() + tournament.round_time_seconds * 1000);
+  const endTime = new Date(startTime.getTime() + seconds * 1000);
 
   const { error } = await supabase
     .from("matches")
@@ -250,7 +255,7 @@ export async function replayMatchAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, status, is_test_mode, round_time_seconds")
+    .select("id, status, is_test_mode, round_time_seconds, round_time_overrides")
     .eq("id", match.tournament_id)
     .maybeSingle();
 
@@ -283,8 +288,13 @@ export async function replayMatchAction(
   );
   const pick = shuffle(candidates)[0];
 
+  const seconds = roundTimeFor(
+    match.round as Round,
+    tournament.round_time_seconds,
+    tournament.round_time_overrides as Partial<Record<Round, number>> | null,
+  );
   const startTime = new Date();
-  const endTime = new Date(startTime.getTime() + tournament.round_time_seconds * 1000);
+  const endTime = new Date(startTime.getTime() + seconds * 1000);
 
   const { error: matchErr } = await supabase
     .from("matches")
@@ -428,7 +438,7 @@ export async function restartLiveMatchAction(
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, tournament_id, status, player_a_id, player_b_id")
+    .select("id, tournament_id, status, round, player_a_id, player_b_id")
     .eq("id", matchId)
     .maybeSingle();
 
@@ -449,14 +459,19 @@ export async function restartLiveMatchAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, round_time_seconds")
+    .select("id, round_time_seconds, round_time_overrides")
     .eq("id", match.tournament_id)
     .maybeSingle();
 
   if (!tournament) return { error: "Turnier nicht gefunden." };
 
+  const seconds = roundTimeFor(
+    match.round as Round,
+    tournament.round_time_seconds,
+    tournament.round_time_overrides as Partial<Record<Round, number>> | null,
+  );
   const startTime = new Date();
-  const endTime = new Date(startTime.getTime() + tournament.round_time_seconds * 1000);
+  const endTime = new Date(startTime.getTime() + seconds * 1000);
 
   const { error: matchErr } = await supabase
     .from("matches")

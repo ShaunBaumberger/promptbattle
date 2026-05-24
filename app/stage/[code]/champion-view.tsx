@@ -70,6 +70,12 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
   const runnerUpName = runnerUpId ? nameById.get(runnerUpId) ?? "?" : null;
   const championImage =
     final.winner_id === final.player_a_id ? final.result_a_url : final.result_b_url;
+  // Prefer the winner's Veo video as a looping background (mutes by default
+  // so we don't clash with the champion fanfare). Falls back to the
+  // backup image when the video isn't available.
+  const rawVideo =
+    final.winner_id === final.player_a_id ? final.video_a_url : final.video_b_url;
+  const championVideo = rawVideo && rawVideo !== "pending" ? rawVideo : null;
 
   return (
     <main className="bg-background relative flex flex-1 flex-col items-center justify-center gap-8 overflow-hidden p-12 text-center">
@@ -91,7 +97,17 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
         </h1>
       </div>
 
-      {championImage ? (
+      {championVideo ? (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video
+          src={championVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="z-10 max-h-[40vh] w-auto rounded-lg border-4 border-amber-400 object-contain shadow-[0_0_80px_rgba(251,191,36,0.5)] delay-500 duration-1000 animate-in fade-in zoom-in-95 fill-mode-both"
+        />
+      ) : championImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={championImage}

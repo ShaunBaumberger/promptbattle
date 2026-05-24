@@ -35,6 +35,9 @@ export function Stage({
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(
     initialCurrentMatchId,
   );
+  const [currentVideoPlaying, setCurrentVideoPlaying] = useState<
+    "A" | "B" | null
+  >(null);
   const [participantCount, setParticipantCount] = useState(initialParticipantCount);
   const [joinUrl, setJoinUrl] = useState<string>("");
   const audio = useStageAudio();
@@ -70,9 +73,11 @@ export function Stage({
           const next = payload.new as {
             status: TournamentStatus;
             current_match_id: string | null;
+            current_video_playing: "A" | "B" | null;
           };
           setStatus(next.status);
           setCurrentMatchId(next.current_match_id);
+          setCurrentVideoPlaying(next.current_video_playing ?? null);
         },
       )
       .on(
@@ -109,7 +114,7 @@ export function Stage({
     const [tRes, cRes] = await Promise.all([
       supabase
         .from("tournaments")
-        .select("status, current_match_id")
+        .select("status, current_match_id, current_video_playing")
         .eq("id", tournamentId)
         .maybeSingle(),
       supabase
@@ -120,6 +125,9 @@ export function Stage({
     if (tRes.data) {
       setStatus(tRes.data.status as TournamentStatus);
       setCurrentMatchId(tRes.data.current_match_id);
+      setCurrentVideoPlaying(
+        (tRes.data.current_video_playing as "A" | "B" | null) ?? null,
+      );
     }
     if (typeof cRes.count === "number") setParticipantCount(cRes.count);
   });
@@ -149,6 +157,7 @@ export function Stage({
           matchId={currentMatchId}
           tournamentId={tournamentId}
           play={audio.play}
+          videoPlaying={currentVideoPlaying}
         />
         {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
       </>

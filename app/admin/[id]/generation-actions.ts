@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { generateImage } from "@/lib/gemini";
+import { generateVideo } from "@/lib/veo";
 
 const STORAGE_BUCKET = "images";
 
@@ -121,6 +122,102 @@ async function generateAndUpload(
     return data.publicUrl;
   } catch (err) {
     console.error(`generation failed for ${slot}:`, err);
+    return null;
+  }
+}
+
+// ---------- Final-round video generation ----------------------------------
+
+/**
+ * Kick off Veo video generation for both players of a FINAL match. Runs in
+ * parallel and updates `video_a_url` / `video_b_url` on the match row as
+ * each video finishes. Images (Nano Banana) are generated separately by
+ * `generateMatchImagesAction` and act as the always-available backup.
+ *
+ * Atomic guard: only the first caller actually runs the API calls. We claim
+ * by setting `video_a_url` to a sentinel placeholder before kicking off —
+ * subsequent callers see it set and bail with `{ ok: true, skipped: true }`.
+ *
+ * Empty prompts are skipped (no API call), and per-video failures are
+ * isolated: if one fails the other still gets uploaded.
+ */
+export async function generateFinalVideosAction(
+  matchId: string,
+): Promise<GenerationResult> {
+  const supabase = createServiceRoleClient();
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select("id, round, prompt_a, prompt_b, video_a_url, video_b_url, tournament_id")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  if (!match) return { ok: false, error: "Match nicht gefunden." };
+  if (match.round !== "FINAL") {
+    return { ok: false, error: "Videos werden nur im Finale generiert." };
+  }
+  // Idempotency guard: if either video URL is already set, skip (another
+  // caller is generating or already finished).
+  if (match.video_a_url || match.video_b_url) {
+    return { ok: true, skipped: true };
+  }
+
+  const tournamentId = match.tournament_id;
+  const promptA = (match.prompt_a ?? "").trim();
+  const promptB = (match.prompt_b ?? "").trim();
+
+  // Sentinel claim so concurrent callers bail. Real URL or null replaces it.
+  await supabase
+    .from("matches")
+    .update({
+      video_a_url: promptA ? "pending" : null,
+      video_b_url: promptB ? "pending" : null,
+    })
+    .eq("id", matchId)
+    .is("video_a_url", null);
+
+  const [videoA, videoB] = await Promise.all([
+    generateAndUploadVideo(promptA, tournamentId, matchId, "a"),
+    generateAndUploadVideo(promptB, tournamentId, matchId, "b"),
+  ]);
+
+  await supabase
+    .from("matches")
+    .update({ video_a_url: videoA, video_b_url: videoB })
+    .eq("id", matchId);
+
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
+}
+
+async function generateAndUploadVideo(
+  prompt: string,
+  tournamentId: string,
+  matchId: string,
+  slot: "a" | "b",
+): Promise<string | null> {
+  if (!prompt) return null;
+  try {
+    const { bytes, mimeType } = await generateVideo(prompt, {
+      durationSeconds: 8,
+      aspectRatio: "16:9",
+      resolution: "720p",
+    });
+    const ext = mimeType === "video/webm" ? "webm" : "mp4";
+    const path = `tournaments/${tournamentId}/results/${matchId}/${slot}-${nanoid(6)}.${ext}`;
+
+    const supabase = createServiceRoleClient();
+    const { error: uploadErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, bytes, { contentType: mimeType, upsert: false });
+    if (uploadErr) {
+      console.error(`video upload failed for ${slot}:`, uploadErr);
+      return null;
+    }
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } catch (err) {
+    console.error(`video generation failed for ${slot}:`, err);
     return null;
   }
 }

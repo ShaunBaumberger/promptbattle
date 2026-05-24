@@ -90,6 +90,10 @@ export default async function TournamentAdminPage({
           tournamentId={tournament.id}
           initialPlayerCount={tournament.player_count as PlayerCount}
           initialRoundTime={tournament.round_time_seconds}
+          initialRoundTimeOverrides={
+            (tournament.round_time_overrides as Partial<Record<Round, number>>) ??
+            {}
+          }
           status={tournament.status as Tournament["status"]}
         />
       </section>

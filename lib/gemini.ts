@@ -1,6 +1,10 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const MODEL = "gemini-2.5-flash-image";
+// Nano Banana Pro — Google's higher-fidelity image model. ~$0.134 per 1K
+// image vs $0.039 for gemini-2.5-flash-image, but noticeably better detail
+// and prompt adherence. Slower too (~15–25s).
+const MODEL = "gemini-3-pro-image-preview";
+const IMAGE_SIZE = "1K"; // "1K" | "2K" | "4K" — bigger = pricier (4K is $0.24).
 
 let cached: GoogleGenAI | null = null;
 
@@ -40,9 +44,10 @@ export async function generateImage(
           },
         ],
         config: {
-          // gemini-2.5-flash-image returns text + inline image parts; both
+          // Gemini image models return text + inline image parts; both
           // modalities must be requested or the response comes back empty.
           responseModalities: [Modality.IMAGE, Modality.TEXT],
+          imageConfig: { imageSize: IMAGE_SIZE },
         },
       });
 
