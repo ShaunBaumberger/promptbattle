@@ -94,10 +94,14 @@ export interface Match {
   prompt_b: string;
   result_a_url: string | null;
   result_b_url: string | null;
-  /** Veo-generated video URL for player A; only populated on FINAL matches. */
+  /** Veo-generated video URL for player A; only populated for video tasks. */
   video_a_url: string | null;
-  /** Veo-generated video URL for player B; only populated on FINAL matches. */
+  /** Veo-generated video URL for player B; only populated for video tasks. */
   video_b_url: string | null;
+  /** Veo long-running operation name for A — polled by pollMatchVideosAction. */
+  video_a_operation: string | null;
+  /** Veo long-running operation name for B — polled by pollMatchVideosAction. */
+  video_b_operation: string | null;
   winner_id: string | null;
   status: MatchStatus;
   start_time: string | null;

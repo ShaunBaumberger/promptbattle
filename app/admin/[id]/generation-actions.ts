@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { generateImage } from "@/lib/gemini";
-import { generateVideo } from "@/lib/veo";
+import { startVideoGeneration, pollVideoGeneration } from "@/lib/veo";
 
 const STORAGE_BUCKET = "images";
 
@@ -131,27 +131,29 @@ async function generateAndUpload(
   }
 }
 
-// ---------- Video-task generation -----------------------------------------
+// ---------- Video-task generation (polling architecture) ------------------
 
 /**
- * Generate Veo videos for a video-task match — with Nano Banana image
- * backups generated in parallel. Drives the full locked → generating →
- * reveal lifecycle:
- *   1. atomic claim (status: locked → generating)
- *   2. kick off image + video generation in parallel
- *   3. as soon as images land (~15s), UPDATE result URLs + flip to
- *      `reveal` so the audience sees something quickly
- *   4. continue waiting for videos; UPDATE video URLs when they arrive
+ * Kick-off action for a video-task match. Designed to finish well inside
+ * Vercel's 60s function budget regardless of how long Veo takes, by
+ * decoupling render from download:
  *
- * Why both: Veo can take 60–120s and Vercel Hobby caps functions at
- * 60s. The image backup means even if the function gets killed before
- * videos land, the audience still has something to vote on; admin can
- * use the manual winner-pick. If videos do finish in time, the admin's
- * "Video abspielen" buttons enable and they get the full show.
+ *   1. atomic claim (locked → generating)
+ *   2. kick off both Veo jobs (returns operation handles instantly)
+ *   3. kick off Nano Banana image backups in parallel
+ *   4. store operation names on the match row so a separate poller
+ *      can resume them
+ *   5. await ONLY the images (~15s), set their URLs + flip to reveal
+ *      so the audience sees something quickly
+ *   6. return
  *
- * Atomic claim guarantees only one caller actually runs the API calls
- * even if multiple clients fan out triggers. Per-asset failures are
- * isolated.
+ * Total runtime ≈ 15–25s. Veo continues to render server-side at
+ * Google; `pollMatchVideosAction` (called every 10s by the stage and
+ * admin clients) checks status, downloads bytes when done, and writes
+ * the public URL onto the row.
+ *
+ * If image backup is disabled in test mode, the action sets status =
+ * reveal immediately so the flow still progresses.
  */
 export async function generateMatchVideosAction(
   matchId: string,
@@ -174,9 +176,6 @@ export async function generateMatchVideosAction(
 
   const tournamentId = existing.tournament_id;
 
-  // Check if test-mode wants to skip image generation (the toggle still
-  // applies to the backup images — videos are always real because there's
-  // no equivalent debug shortcut for Veo).
   const { data: tournament } = await supabase
     .from("tournaments")
     .select("skip_image_generation")
@@ -203,8 +202,7 @@ export async function generateMatchVideosAction(
   const promptA = (claimed.prompt_a ?? "").trim();
   const promptB = (claimed.prompt_b ?? "").trim();
 
-  // Mark videos as pending so the UI knows generation is in flight
-  // (admin's "Video abspielen" buttons stay hidden until real URLs land).
+  // Mark videos as pending so the UI shows the "wird generiert" hint.
   await supabase
     .from("matches")
     .update({
@@ -213,83 +211,191 @@ export async function generateMatchVideosAction(
     })
     .eq("id", matchId);
 
-  // Start both pipelines in parallel.
-  const imageJob: Promise<[string | null, string | null]> = skipBackupImages
-    ? Promise.resolve([null, null])
-    : Promise.all([
-        generateAndUpload(promptA, tournamentId, matchId, "a"),
-        generateAndUpload(promptB, tournamentId, matchId, "b"),
-      ]);
-  const videoJob = Promise.all([
-    generateAndUploadVideo(promptA, tournamentId, matchId, "a"),
-    generateAndUploadVideo(promptB, tournamentId, matchId, "b"),
+  // Kick off Veo jobs (returns LRO names in ~2s each). Store the names
+  // so pollMatchVideosAction can resume them across invocations.
+  const [opA, opB] = await Promise.all([
+    kickoffVideo(promptA),
+    kickoffVideo(promptB),
   ]);
+  await supabase
+    .from("matches")
+    .update({
+      video_a_operation: opA,
+      video_b_operation: opB,
+    })
+    .eq("id", matchId);
 
-  // Phase 1: images land first (~15s for Nano Banana Pro). As soon as
-  // they do, flip to reveal so the audience has something to look at
-  // even if videos take their full time. Image errors are non-fatal —
-  // we still flip to reveal so the flow doesn't get stuck.
-  try {
-    const [imgA, imgB] = await imageJob;
-    await supabase
-      .from("matches")
-      .update({
-        status: "reveal",
-        result_a_url: imgA,
-        result_b_url: imgB,
-      })
-      .eq("id", matchId);
-  } catch (err) {
-    console.error("image backup batch failed:", err);
+  // Image backup runs in parallel and we wait for it before flipping to
+  // reveal so the audience has visuals immediately. Test mode skips.
+  if (skipBackupImages) {
     await supabase
       .from("matches")
       .update({ status: "reveal" })
       .eq("id", matchId);
+  } else {
+    try {
+      const [imgA, imgB] = await Promise.all([
+        generateAndUpload(promptA, tournamentId, matchId, "a"),
+        generateAndUpload(promptB, tournamentId, matchId, "b"),
+      ]);
+      await supabase
+        .from("matches")
+        .update({
+          status: "reveal",
+          result_a_url: imgA,
+          result_b_url: imgB,
+        })
+        .eq("id", matchId);
+    } catch (err) {
+      console.error("image backup batch failed:", err);
+      await supabase
+        .from("matches")
+        .update({ status: "reveal" })
+        .eq("id", matchId);
+    }
   }
-  revalidatePath(`/admin/${tournamentId}`);
-
-  // Phase 2: wait for videos. If Vercel kills the function before this
-  // resolves, the row stays at video_*_url='pending'. Images are
-  // already up, so the audience can still vote — admin uses the
-  // manual winner pick.
-  const [videoA, videoB] = await videoJob;
-  await supabase
-    .from("matches")
-    .update({ video_a_url: videoA, video_b_url: videoB })
-    .eq("id", matchId);
-
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };
 }
 
-async function generateAndUploadVideo(
-  prompt: string,
-  tournamentId: string,
-  matchId: string,
-  slot: "a" | "b",
-): Promise<string | null> {
+/**
+ * Helper: start a single Veo job. Returns null for empty prompts so
+ * the caller can record "no video for this slot" without an API call.
+ * Catches startup errors so a failed kick-off for one slot doesn't
+ * abort the other.
+ */
+async function kickoffVideo(prompt: string): Promise<string | null> {
   if (!prompt) return null;
   try {
-    const { bytes, mimeType } = await generateVideo(prompt, {
+    const { operationName } = await startVideoGeneration(prompt, {
       durationSeconds: 8,
       aspectRatio: "16:9",
       resolution: "720p",
     });
-    const ext = mimeType === "video/webm" ? "webm" : "mp4";
-    const path = `tournaments/${tournamentId}/results/${matchId}/${slot}-${nanoid(6)}.${ext}`;
-
-    const supabase = createServiceRoleClient();
-    const { error: uploadErr } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(path, bytes, { contentType: mimeType, upsert: false });
-    if (uploadErr) {
-      console.error(`video upload failed for ${slot}:`, uploadErr);
-      return null;
-    }
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    return data.publicUrl;
+    return operationName;
   } catch (err) {
-    console.error(`video generation failed for ${slot}:`, err);
+    console.error("Veo kickoff failed:", err);
     return null;
   }
+}
+
+/**
+ * Polling action. Called by stage and admin clients every ~10s while a
+ * video-task match has any video_a_url / video_b_url still at the
+ * 'pending' sentinel.
+ *
+ * For each pending slot with a stored operation name: ask Veo once.
+ *   * still rendering → no-op, caller polls again later
+ *   * done            → download bytes, upload to Storage, write URL
+ *   * error / no op   → write `null` so the UI stops showing "wird
+ *                       generiert" and falls back to the backup image
+ *
+ * Each call is short (1–5s typical) so it always fits inside Vercel's
+ * function budget. Atomic claim guard prevents two simultaneous
+ * pollers from double-uploading the same Veo asset.
+ */
+export async function pollMatchVideosAction(
+  matchId: string,
+): Promise<{ ok: boolean; aPending: boolean; bPending: boolean }> {
+  const supabase = createServiceRoleClient();
+
+  const { data: match } = await supabase
+    .from("matches")
+    .select(
+      "id, task_kind, tournament_id, video_a_url, video_b_url, video_a_operation, video_b_operation",
+    )
+    .eq("id", matchId)
+    .maybeSingle();
+
+  if (!match || match.task_kind !== "video") {
+    return { ok: false, aPending: false, bPending: false };
+  }
+
+  await Promise.all([
+    pollOneSlot(matchId, "a", match.video_a_url, match.video_a_operation),
+    pollOneSlot(matchId, "b", match.video_b_url, match.video_b_operation),
+  ]);
+
+  // Re-read for the freshest pending state to return to the client.
+  const { data: after } = await supabase
+    .from("matches")
+    .select("video_a_url, video_b_url")
+    .eq("id", matchId)
+    .maybeSingle();
+  return {
+    ok: true,
+    aPending: after?.video_a_url === "pending",
+    bPending: after?.video_b_url === "pending",
+  };
+}
+
+/**
+ * Poll one slot. No-op when the URL isn't 'pending' (already done or
+ * never started) or when the operation handle is missing.
+ */
+async function pollOneSlot(
+  matchId: string,
+  slot: "a" | "b",
+  currentUrl: string | null,
+  operationName: string | null,
+): Promise<void> {
+  if (currentUrl !== "pending") return;
+  if (!operationName) {
+    // Kick-off failed earlier; resolve to null so UI stops waiting.
+    await markVideoUrl(matchId, slot, null);
+    return;
+  }
+
+  let result;
+  try {
+    result = await pollVideoGeneration(operationName);
+  } catch (err) {
+    console.error(`Veo poll failed for ${slot}:`, err);
+    return; // transient — try again next tick
+  }
+  if (result.status === "pending") return;
+  if (result.status === "error") {
+    console.error(`Veo error for ${slot}:`, result.error);
+    await markVideoUrl(matchId, slot, null);
+    return;
+  }
+
+  // Done. Race guard: claim the slot by overwriting 'pending' →
+  // 'uploading'. If 0 rows match, another poller already moved on.
+  const supabase = createServiceRoleClient();
+  const urlColumn = slot === "a" ? "video_a_url" : "video_b_url";
+  const { data: claimed } = await supabase
+    .from("matches")
+    .update({ [urlColumn]: "uploading" })
+    .eq("id", matchId)
+    .eq(urlColumn, "pending")
+    .select("tournament_id")
+    .maybeSingle();
+  if (!claimed) return;
+
+  const tournamentId = claimed.tournament_id as string;
+  try {
+    const ext = result.mimeType === "video/webm" ? "webm" : "mp4";
+    const path = `tournaments/${tournamentId}/results/${matchId}/${slot}-${nanoid(6)}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, result.bytes, { contentType: result.mimeType, upsert: false });
+    if (uploadErr) throw uploadErr;
+    const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+    await markVideoUrl(matchId, slot, pub.publicUrl);
+    revalidatePath(`/admin/${tournamentId}`);
+  } catch (err) {
+    console.error(`video upload failed for ${slot}:`, err);
+    await markVideoUrl(matchId, slot, null);
+  }
+}
+
+async function markVideoUrl(
+  matchId: string,
+  slot: "a" | "b",
+  url: string | null,
+): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const column = slot === "a" ? "video_a_url" : "video_b_url";
+  await supabase.from("matches").update({ [column]: url }).eq("id", matchId);
 }

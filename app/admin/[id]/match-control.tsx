@@ -33,6 +33,7 @@ import {
 import {
   generateMatchImagesAction,
   generateMatchVideosAction,
+  pollMatchVideosAction,
 } from "./generation-actions";
 import { RestartMatchDialog } from "./restart-match-dialog";
 
@@ -217,6 +218,26 @@ export function MatchControl({
         ? generateMatchVideosAction
         : generateMatchImagesAction;
     action(match.id).catch(() => {});
+  }, [match]);
+
+  // Backup poller for Veo (the stage polls too — either suffices).
+  // Stops as soon as no video slot is 'pending' anymore.
+  useEffect(() => {
+    if (!match || match.task_kind !== "video") return;
+    const aPending = match.video_a_url === "pending";
+    const bPending = match.video_b_url === "pending";
+    if (!aPending && !bPending) return;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      pollMatchVideosAction(match.id).catch(() => {});
+    };
+    tick();
+    const id = window.setInterval(tick, 10_000);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
   }, [match]);
 
   const [winnerPending, startWinnerTransition] = useTransition();
@@ -524,14 +545,14 @@ export function MatchControl({
 }
 
 /**
- * The video columns hold one of three values while a FINAL match is in
- * flight: null (not started), "pending" (the in-flight sentinel set by
- * generateFinalVideosAction), or a real public URL (success). This
- * predicate filters out the first two so the UI only treats actual URLs
- * as "ready to play".
+ * The video columns hold one of four values while a video-task match
+ * is in flight: null (not started or failed), "pending" (Veo job
+ * kicked off, waiting on render), "uploading" (Veo done, server is
+ * downloading bytes), or a real public URL (success). This predicate
+ * filters out everything except the real URL.
  */
 function isReadyVideoUrl(url: string | null): url is string {
-  return !!url && url !== "pending";
+  return !!url && url !== "pending" && url !== "uploading";
 }
 
 function PlayerCell({ name, prompt }: { name: string; prompt: string }) {

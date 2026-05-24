@@ -1,16 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Veo 3 Fast: $0.10/sec at 720p. Each 8s video ≈ $0.80, so a final round
-// with two videos costs ~$1.60 in addition to the Nano Banana backup
-// images (~$0.08). Identifier may need bumping when the model graduates
+// Veo 3 Fast: $0.10/sec at 720p. Each 8s video ≈ $0.80, so a video-task
+// match (two videos) costs ~$1.60 in addition to the Nano Banana backup
+// images (~$0.27). Identifier may need bumping when the model graduates
 // from preview — the @google/genai SDK accepts any string here.
 const MODEL = "veo-3.0-fast-generate-001";
-
-// Polling cadence + overall timeout for the long-running operation.
-// Veo typically returns in 60–120s; we cap at 4 minutes so a stuck job
-// doesn't hold a generating match indefinitely.
-const POLL_INTERVAL_MS = 6_000;
-const POLL_TIMEOUT_MS = 240_000;
 
 let cached: GoogleGenAI | null = null;
 
@@ -20,11 +14,6 @@ function client(): GoogleGenAI {
   if (!apiKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
   cached = new GoogleGenAI({ apiKey });
   return cached;
-}
-
-export interface GeneratedVideoAsset {
-  bytes: Buffer;
-  mimeType: string;
 }
 
 export interface VideoOptions {
@@ -37,21 +26,18 @@ export interface VideoOptions {
 }
 
 /**
- * Generate a video with Veo 3 Fast. Returns the raw bytes for the caller
- * to upload to Supabase Storage. Resolves once the long-running operation
- * is done and the video has been downloaded from Google's file store.
- *
- * Throws if the operation errors, gets filtered by Veo's safety policy,
- * or doesn't complete within POLL_TIMEOUT_MS.
+ * Kick off a Veo video generation. Returns the LRO name so a separate
+ * poller can resume the operation across many short server-function
+ * invocations (instead of one long-blocking call that risks hitting
+ * Vercel's per-function timeout).
  */
-export async function generateVideo(
+export async function startVideoGeneration(
   prompt: string,
   opts: VideoOptions = {},
-): Promise<GeneratedVideoAsset> {
+): Promise<{ operationName: string }> {
+  if (!prompt) throw new Error("startVideoGeneration: empty prompt");
   const ai = client();
-
-  // Kick off the long-running operation.
-  let operation = await ai.models.generateVideos({
+  const operation = await ai.models.generateVideos({
     model: MODEL,
     source: { prompt },
     config: {
@@ -61,43 +47,69 @@ export async function generateVideo(
       numberOfVideos: 1,
     },
   });
-
-  // Poll until done. Veo returns done=true when the asset is ready.
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (!operation.done) {
-    if (Date.now() > deadline) {
-      throw new Error(
-        `Veo timeout after ${POLL_TIMEOUT_MS / 1000}s (operation=${operation.name ?? "?"})`,
-      );
-    }
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-    operation = await ai.operations.getVideosOperation({ operation });
+  if (!operation.name) {
+    throw new Error("Veo returned no operation name");
   }
+  return { operationName: operation.name };
+}
+
+export type VideoPollResult =
+  | { status: "pending" }
+  | { status: "error"; error: string }
+  | { status: "done"; bytes: Buffer; mimeType: string };
+
+/**
+ * Poll a previously-started Veo job exactly once. Returns:
+ *   * `pending` — still rendering, poll again later
+ *   * `done`    — render finished, bytes are downloaded and ready to upload
+ *   * `error`   — Veo failed or was blocked by RAI safety policy
+ *
+ * Cheap (1–3s typical) so safe to call on a 10s interval until done.
+ */
+export async function pollVideoGeneration(
+  operationName: string,
+): Promise<VideoPollResult> {
+  const ai = client();
+
+  // The SDK's getVideosOperation wants the full Operation object; reconstruct
+  // a minimal one from the stored name — the API only uses the name to fetch
+  // the latest server-side state.
+  const operation = await ai.operations.getVideosOperation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    operation: { name: operationName } as any,
+  });
+
+  if (!operation.done) return { status: "pending" };
 
   if (operation.error) {
-    throw new Error(
-      `Veo error: ${JSON.stringify(operation.error).slice(0, 500)}`,
-    );
+    return {
+      status: "error",
+      error: JSON.stringify(operation.error).slice(0, 500),
+    };
   }
 
   const filtered = operation.response?.raiMediaFilteredCount ?? 0;
   if (filtered > 0) {
     const reason =
       operation.response?.raiMediaFilteredReasons?.[0] ?? "RAI filter";
-    throw new Error(`Veo blocked by safety policy: ${reason}`);
+    return { status: "error", error: `Safety policy: ${reason}` };
   }
 
   const video = operation.response?.generatedVideos?.[0]?.video;
-  const uri = video?.uri;
   const mimeType = video?.mimeType ?? "video/mp4";
 
-  // The SDK can hand back either inline base64 bytes or a fetch-by-URI
-  // pointer. Veo returns the URI form; we need to download with the
-  // API key appended.
+  // Veo usually returns a URI to fetch, occasionally inline base64.
   if (video?.videoBytes) {
-    return { bytes: Buffer.from(video.videoBytes, "base64"), mimeType };
+    return {
+      status: "done",
+      bytes: Buffer.from(video.videoBytes, "base64"),
+      mimeType,
+    };
   }
-  if (!uri) throw new Error("Veo response had neither bytes nor URI");
+  const uri = video?.uri;
+  if (!uri) {
+    return { status: "error", error: "no bytes or URI in response" };
+  }
 
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY!;
   const downloadUrl = uri.includes("?")
@@ -105,10 +117,11 @@ export async function generateVideo(
     : `${uri}?key=${apiKey}`;
   const fetched = await fetch(downloadUrl);
   if (!fetched.ok) {
-    throw new Error(
-      `Veo file download failed (HTTP ${fetched.status} ${fetched.statusText})`,
-    );
+    return {
+      status: "error",
+      error: `download failed HTTP ${fetched.status}`,
+    };
   }
   const ab = await fetched.arrayBuffer();
-  return { bytes: Buffer.from(ab), mimeType };
+  return { status: "done", bytes: Buffer.from(ab), mimeType };
 }

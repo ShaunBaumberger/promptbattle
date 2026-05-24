@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
-import { generateMatchVideosAction } from "@/app/admin/[id]/generation-actions";
+import {
+  generateMatchVideosAction,
+  pollMatchVideosAction,
+} from "@/app/admin/[id]/generation-actions";
 import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match, MatchStatus, Participant } from "@/lib/types/database";
 
@@ -207,6 +210,28 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
     if (videoFiredRef.current === match.id) return;
     videoFiredRef.current = match.id;
     generateMatchVideosAction(match.id).catch(() => {});
+  }, [match]);
+
+  // Veo polling: while either video is 'pending', call the polling
+  // action every 10s. The action is short-lived (well under Vercel's
+  // function limit) so we can keep at it however long Veo needs.
+  useEffect(() => {
+    if (!match) return;
+    if (match.task_kind !== "video") return;
+    const aPending = match.video_a_url === "pending";
+    const bPending = match.video_b_url === "pending";
+    if (!aPending && !bPending) return;
+    let stopped = false;
+    const tick = () => {
+      if (stopped) return;
+      pollMatchVideosAction(match.id).catch(() => {});
+    };
+    tick(); // fire immediately on mount / dep change
+    const id = window.setInterval(tick, 10_000);
+    return () => {
+      stopped = true;
+      window.clearInterval(id);
+    };
   }, [match]);
 
   // Auto-return to the bracket after a non-final match's reveal so the
