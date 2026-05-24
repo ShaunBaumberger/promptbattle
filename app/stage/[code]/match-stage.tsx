@@ -125,8 +125,17 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
   //   1 = both bars rise to min(votes_a, votes_b) — equal tension, no winner yet
   //   2 = the winner's bar continues past min toward its full count
   //   3 = winner is officially revealed (Champion banner + gold frame + dim loser)
+  //
+  // Deps are narrowed to the specific fields that should re-trigger the
+  // animation. Using `match` as a dep would re-fire the entire animation
+  // every time the row is refetched (stale-state guard polls every 10s
+  // and hands back a new object reference even when nothing changed),
+  // causing the visible "looping" reveal.
+  const currentMatchIdForReveal = match?.id ?? null;
+  const matchStatusForReveal = match?.status ?? null;
+  const matchWinnerIdForReveal = match?.winner_id ?? null;
   useEffect(() => {
-    if (!match || match.status !== "done" || match.winner_id == null) {
+    if (matchStatusForReveal !== "done" || matchWinnerIdForReveal == null) {
       setRevealPhase(0);
       return;
     }
@@ -145,7 +154,12 @@ export function MatchStage({ matchId, tournamentId, play }: Props) {
       window.clearTimeout(t2);
       window.clearTimeout(t3);
     };
-  }, [match, showBars]);
+  }, [
+    currentMatchIdForReveal,
+    matchStatusForReveal,
+    matchWinnerIdForReveal,
+    showBars,
+  ]);
 
   const nameById = useMemo(
     () => new Map(participants.map((p) => [p.id, p.name])),
@@ -339,13 +353,13 @@ function LiveView({
 }) {
   const generating = match.status === "generating" || match.status === "locked";
   return (
-    <div className="grid flex-1 grid-cols-[1fr_auto_1fr] gap-6">
+    <div className="grid flex-1 grid-cols-[1fr_auto_1fr] gap-8">
       <PlayerColumn name={aName} prompt={match.prompt_a} side="left" />
 
-      <div className="flex w-[28vw] flex-col items-center justify-start gap-4">
+      <div className="flex w-[34vw] flex-col items-center justify-start gap-5">
         <TaskDisplay match={match} variant="live" />
         {generating && (
-          <p className="text-foreground animate-pulse text-2xl">
+          <p className="text-white animate-pulse text-3xl">
             Bilder werden generiert…
           </p>
         )}
@@ -363,17 +377,23 @@ function TaskDisplay({
   match: Match;
   variant: "live" | "reveal";
 }) {
-  const maxH = variant === "live" ? "max-h-[60vh]" : "max-h-[55vh]";
+  // Live view gets a more generous max-height — the audience needs to read
+  // the reference from the back of the room.
+  const maxH = variant === "live" ? "max-h-[72vh]" : "max-h-[55vh]";
+  const labelClass =
+    variant === "live"
+      ? "text-white/60 text-2xl uppercase tracking-[0.35em]"
+      : "text-white/50 text-base uppercase tracking-[0.3em]";
+  const taskTextClass =
+    variant === "live"
+      ? "text-white w-full text-center text-6xl font-semibold leading-tight break-words [overflow-wrap:anywhere]"
+      : "text-white w-full text-center text-3xl font-semibold leading-snug break-words [overflow-wrap:anywhere]";
   if (match.task_text) {
     return (
       <>
-        <p className="text-white/50 text-base uppercase tracking-[0.3em]">
-          Generiere ein Bild von …
-        </p>
-        <div className="bg-white/5 flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 p-7 backdrop-blur">
-          <p className="text-white w-full text-center text-3xl font-semibold leading-snug break-words [overflow-wrap:anywhere]">
-            {match.task_text}
-          </p>
+        <p className={labelClass}>Generiere ein Bild von …</p>
+        <div className="bg-white/5 flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 p-8 backdrop-blur">
+          <p className={taskTextClass}>{match.task_text}</p>
         </div>
       </>
     );
@@ -381,7 +401,7 @@ function TaskDisplay({
   if (match.task_reference_url) {
     return (
       <>
-        <p className="text-white/50 text-base uppercase tracking-[0.3em]">
+        <p className={labelClass}>
           {variant === "live" ? "Referenzbild" : "Referenz"}
         </p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -395,7 +415,7 @@ function TaskDisplay({
   }
   return (
     <div
-      className={`bg-white/5 ${maxH === "max-h-[60vh]" ? "h-[60vh]" : "h-[55vh]"} w-full animate-pulse rounded-2xl border border-white/10`}
+      className={`bg-white/5 ${maxH === "max-h-[72vh]" ? "h-[72vh]" : "h-[55vh]"} w-full animate-pulse rounded-2xl border border-white/10`}
     />
   );
 }
@@ -437,6 +457,7 @@ function RevealView({
       <RevealColumn
         name={aName}
         resultUrl={match.result_a_url}
+        prompt={match.prompt_a}
         side="left"
         isWinner={aIsWinner}
         isLoser={decided && !aIsWinner}
@@ -454,6 +475,7 @@ function RevealView({
       <RevealColumn
         name={bName}
         resultUrl={match.result_b_url}
+        prompt={match.prompt_b}
         side="right"
         isWinner={bIsWinner}
         isLoser={decided && !bIsWinner}
@@ -470,6 +492,7 @@ function RevealView({
 function RevealColumn({
   name,
   resultUrl,
+  prompt,
   side,
   isWinner,
   isLoser,
@@ -480,6 +503,7 @@ function RevealColumn({
 }: {
   name: string;
   resultUrl: string | null;
+  prompt: string;
   side: "left" | "right";
   /** This player won the match (decided server-side). */
   isWinner: boolean;
@@ -533,6 +557,18 @@ function RevealColumn({
           Keine Bildgenerierung
         </div>
       )}
+      <div
+        className={`bg-white/5 w-full rounded-2xl border border-white/10 p-4 backdrop-blur ${
+          side === "left" ? "text-left" : "text-right"
+        }`}
+      >
+        <p className="text-white/40 text-xs uppercase tracking-[0.25em]">
+          Prompt
+        </p>
+        <p className="text-white mt-1.5 whitespace-pre-wrap break-words text-xl leading-snug [overflow-wrap:anywhere]">
+          {prompt || <span className="text-white/30 italic">(kein Prompt)</span>}
+        </p>
+      </div>
       {showBar && (
         <div
           className={`flex w-full items-end gap-4 ${
@@ -571,13 +607,13 @@ function PlayerColumn({
 }) {
   return (
     <div
-      className={`flex flex-col gap-4 ${
+      className={`flex flex-col gap-5 ${
         side === "left" ? "items-start text-left" : "items-end text-right"
       }`}
     >
-      <h2 className="text-white text-5xl font-semibold tracking-tight">{name}</h2>
-      <div className="bg-white/5 min-h-[20vh] w-full rounded-2xl border border-white/10 p-5 backdrop-blur">
-        <p className="text-white whitespace-pre-wrap break-words text-2xl leading-snug">
+      <h2 className="text-white text-7xl font-semibold tracking-tight">{name}</h2>
+      <div className="bg-white/5 min-h-[30vh] w-full flex-1 rounded-2xl border border-white/10 p-6 backdrop-blur">
+        <p className="text-white whitespace-pre-wrap break-words text-4xl leading-snug [overflow-wrap:anywhere]">
           {prompt || <span className="text-white/30 italic">…</span>}
         </p>
       </div>

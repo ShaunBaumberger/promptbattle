@@ -36,6 +36,12 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
   const [remaining, setRemaining] = useState(() => calcRemaining(match.end_time));
   const [locked, setLocked] = useState(match.status !== "live");
   const [expanded, setExpanded] = useState(false);
+  // iOS blocks programmatic focus from opening the keyboard unless it
+  // happens synchronously inside a user-gesture handler. When the match
+  // goes live via realtime push there's no gesture, so the keyboard
+  // stays closed. We show a tap-to-start overlay; the user's tap is the
+  // gesture, and inside its handler we focus the textarea.
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
 
   const latestRef = useRef(prompt);
   latestRef.current = prompt;
@@ -71,10 +77,16 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
   // Auto-open the keyboard on Android Chrome (iOS often blocks programmatic
   // focus without a user gesture, but it's harmless to try).
   useEffect(() => {
-    if (locked) return;
+    if (locked || !hasStartedTyping) return;
     const id = window.setTimeout(() => textareaRef.current?.focus(), 50);
     return () => window.clearTimeout(id);
-  }, [locked]);
+  }, [locked, hasStartedTyping]);
+
+  // Reset the tap-to-start overlay whenever a new match begins or an existing
+  // match is restarted (replay / kill-switch — both bump start_time).
+  useEffect(() => {
+    setHasStartedTyping(false);
+  }, [match.id, match.start_time]);
 
   // Periodic flush of typed prompt to server.
   useEffect(() => {
@@ -151,6 +163,15 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
     if (!locked) {
       textareaRef.current?.focus();
     }
+  };
+
+  const startTyping = () => {
+    // Same iOS quirk as closeExpanded: unmount the overlay synchronously so
+    // the textarea is mounted-and-paintable before we focus it inside this
+    // gesture handler. Without flushSync the focus call races React's
+    // commit and iOS swallows the keyboard.
+    flushSync(() => setHasStartedTyping(true));
+    textareaRef.current?.focus();
   };
 
   const showSeconds = Math.max(0, Math.ceil(remaining));
@@ -249,6 +270,35 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
         disabled={locked}
         className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 mt-auto h-24 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
       />
+
+      {!hasStartedTyping && !locked && (
+        <button
+          type="button"
+          onClick={startTyping}
+          className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-black/85 p-6 text-center backdrop-blur-sm duration-300 animate-in fade-in"
+          aria-label="Tippen, um zu starten"
+        >
+          <div className="border-white/20 flex h-20 w-20 items-center justify-center rounded-full border-2">
+            <span className="text-4xl">✏️</span>
+          </div>
+          <div className="space-y-2">
+            <p className="text-white text-3xl font-semibold tracking-tight">
+              Tippen, um zu starten
+            </p>
+            <p className="text-white/60 max-w-xs text-base">
+              Tippe hier, dann öffnet sich die Tastatur und der Timer läuft für dich.
+            </p>
+          </div>
+          <p
+            className={`tabular-nums mt-4 text-5xl font-semibold ${
+              showSeconds <= 10 ? "text-rose-400" : "text-white"
+            }`}
+            aria-live="polite"
+          >
+            {showSeconds}s
+          </p>
+        </button>
+      )}
 
       {expanded && match.task_reference_url && (
         <button
