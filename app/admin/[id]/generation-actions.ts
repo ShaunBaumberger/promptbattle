@@ -134,22 +134,24 @@ async function generateAndUpload(
 // ---------- Video-task generation -----------------------------------------
 
 /**
- * Generate Veo videos for both players of a video-task match. Drives the
- * full locked → generating → reveal lifecycle (no separate image step,
- * no backup images — that's the agreed contract for kind='video').
+ * Generate Veo videos for a video-task match — with Nano Banana image
+ * backups generated in parallel. Drives the full locked → generating →
+ * reveal lifecycle:
+ *   1. atomic claim (status: locked → generating)
+ *   2. kick off image + video generation in parallel
+ *   3. as soon as images land (~15s), UPDATE result URLs + flip to
+ *      `reveal` so the audience sees something quickly
+ *   4. continue waiting for videos; UPDATE video URLs when they arrive
  *
- * Atomic claim on the status transition: only the first caller actually
- * runs the API calls. Subsequent fan-outs from other clients bail with
- * `{ ok: true, skipped: true }`.
+ * Why both: Veo can take 60–120s and Vercel Hobby caps functions at
+ * 60s. The image backup means even if the function gets killed before
+ * videos land, the audience still has something to vote on; admin can
+ * use the manual winner-pick. If videos do finish in time, the admin's
+ * "Video abspielen" buttons enable and they get the full show.
  *
- * Per-video failures are isolated: if one fails the other still uploads;
- * the match still advances to `reveal` so the UI doesn't get stuck.
- *
- * Vercel caveat: each Veo render takes ~30–90s. Two parallel runs share
- * the function's 60s budget on Hobby; if either exceeds, the action gets
- * killed and the sentinel "pending" URL stays on the row. Recovery: admin
- * can clear video_a_url / video_b_url in Supabase and the client trigger
- * will re-fire on the next stale-state poll.
+ * Atomic claim guarantees only one caller actually runs the API calls
+ * even if multiple clients fan out triggers. Per-asset failures are
+ * isolated.
  */
 export async function generateMatchVideosAction(
   matchId: string,
@@ -172,6 +174,16 @@ export async function generateMatchVideosAction(
 
   const tournamentId = existing.tournament_id;
 
+  // Check if test-mode wants to skip image generation (the toggle still
+  // applies to the backup images — videos are always real because there's
+  // no equivalent debug shortcut for Veo).
+  const { data: tournament } = await supabase
+    .from("tournaments")
+    .select("skip_image_generation")
+    .eq("id", tournamentId)
+    .maybeSingle();
+  const skipBackupImages = tournament?.skip_image_generation === true;
+
   // Atomic status flip: only one caller succeeds.
   const { data: claimed, error: claimErr } = await supabase
     .from("matches")
@@ -191,7 +203,7 @@ export async function generateMatchVideosAction(
   const promptA = (claimed.prompt_a ?? "").trim();
   const promptB = (claimed.prompt_b ?? "").trim();
 
-  // Mark URLs as pending so the audience knows generation is in flight
+  // Mark videos as pending so the UI knows generation is in flight
   // (admin's "Video abspielen" buttons stay hidden until real URLs land).
   await supabase
     .from("matches")
@@ -201,18 +213,49 @@ export async function generateMatchVideosAction(
     })
     .eq("id", matchId);
 
-  const [videoA, videoB] = await Promise.all([
+  // Start both pipelines in parallel.
+  const imageJob: Promise<[string | null, string | null]> = skipBackupImages
+    ? Promise.resolve([null, null])
+    : Promise.all([
+        generateAndUpload(promptA, tournamentId, matchId, "a"),
+        generateAndUpload(promptB, tournamentId, matchId, "b"),
+      ]);
+  const videoJob = Promise.all([
     generateAndUploadVideo(promptA, tournamentId, matchId, "a"),
     generateAndUploadVideo(promptB, tournamentId, matchId, "b"),
   ]);
 
+  // Phase 1: images land first (~15s for Nano Banana Pro). As soon as
+  // they do, flip to reveal so the audience has something to look at
+  // even if videos take their full time. Image errors are non-fatal —
+  // we still flip to reveal so the flow doesn't get stuck.
+  try {
+    const [imgA, imgB] = await imageJob;
+    await supabase
+      .from("matches")
+      .update({
+        status: "reveal",
+        result_a_url: imgA,
+        result_b_url: imgB,
+      })
+      .eq("id", matchId);
+  } catch (err) {
+    console.error("image backup batch failed:", err);
+    await supabase
+      .from("matches")
+      .update({ status: "reveal" })
+      .eq("id", matchId);
+  }
+  revalidatePath(`/admin/${tournamentId}`);
+
+  // Phase 2: wait for videos. If Vercel kills the function before this
+  // resolves, the row stays at video_*_url='pending'. Images are
+  // already up, so the audience can still vote — admin uses the
+  // manual winner pick.
+  const [videoA, videoB] = await videoJob;
   await supabase
     .from("matches")
-    .update({
-      video_a_url: videoA,
-      video_b_url: videoB,
-      status: "reveal",
-    })
+    .update({ video_a_url: videoA, video_b_url: videoB })
     .eq("id", matchId);
 
   revalidatePath(`/admin/${tournamentId}`);
