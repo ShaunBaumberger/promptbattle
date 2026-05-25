@@ -90,12 +90,42 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
     };
   }, [previewUrl]);
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] ?? null;
-    setPickedFile(f);
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const original = input.files?.[0] ?? null;
+    if (!original) {
+      setPickedFile(null);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+
+    // Vercel Hobby caps serverless function request bodies at 4.5 MB.
+    // Most phone photos sit at 3–5 MB so we'd hit 413 on the server
+    // action. Resize anything over 1.5 MB to a max edge of 2048 px and
+    // re-encode as JPEG q=0.92 — keeps detail more than enough for a
+    // prompt-recreation reference image while shrinking typical
+    // inputs to 400–900 KB. Swap the input's File via DataTransfer
+    // so the form's native submission picks up the resized version.
+    let processed: File;
+    try {
+      processed = await resizeImageIfLarge(original);
+    } catch (err) {
+      console.error("image resize failed; using original:", err);
+      processed = original;
+    }
+    if (processed !== original) {
+      const dt = new DataTransfer();
+      dt.items.add(processed);
+      input.files = dt.files;
+    }
+
+    setPickedFile(processed);
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
-      return f ? URL.createObjectURL(f) : null;
+      return URL.createObjectURL(processed);
     });
   };
 
@@ -360,4 +390,67 @@ function groupBy<T, K>(arr: T[], key: (t: T) => K): Map<K, T[]> {
     m.set(k, list);
   }
   return m;
+}
+
+// ---------- Client-side image resize -----------------------------------
+// See `onFileChange` for the why. These helpers run in the browser and
+// keep the upload comfortably under Vercel Hobby's 4.5 MB body cap.
+
+const RESIZE_THRESHOLD_BYTES = 1.5 * 1024 * 1024;
+const MAX_EDGE_PX = 2048;
+const JPEG_QUALITY = 0.92;
+
+/**
+ * Resize an image to fit within MAX_EDGE_PX × MAX_EDGE_PX (preserving
+ * aspect ratio) and re-encode as JPEG. Files already under the size
+ * threshold are returned unchanged so we don't needlessly recompress
+ * small screenshots / icons. Always returns a File so the caller can
+ * swap it into the form input.
+ */
+async function resizeImageIfLarge(file: File): Promise<File> {
+  if (file.size < RESIZE_THRESHOLD_BYTES) return file;
+
+  const img = await loadImageBitmap(file);
+  try {
+    const ratio = Math.min(MAX_EDGE_PX / img.width, MAX_EDGE_PX / img.height, 1);
+    const w = Math.max(1, Math.round(img.width * ratio));
+    const h = Math.max(1, Math.round(img.height * ratio));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context unavailable");
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY);
+    });
+    if (!blob) throw new Error("canvas.toBlob returned null");
+
+    // Strip the original extension; replace with .jpg since we always
+    // output JPEG. Preserves the original name for context.
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "image";
+    return new File([blob], `${baseName}.jpg`, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } finally {
+    // createImageBitmap returns an ImageBitmap which holds GPU memory
+    // until close() — important on phones with limited RAM.
+    img.close?.();
+  }
+}
+
+/**
+ * Decode a File into an ImageBitmap. Prefer createImageBitmap over
+ * <img> + URL.createObjectURL because it skips a layout pass and
+ * works off the main thread on supporting browsers.
+ */
+async function loadImageBitmap(file: File): Promise<ImageBitmap> {
+  if (typeof createImageBitmap === "function") {
+    return createImageBitmap(file);
+  }
+  // Very old browser fallback — unlikely to be hit in 2026.
+  throw new Error("createImageBitmap not supported in this browser");
 }
