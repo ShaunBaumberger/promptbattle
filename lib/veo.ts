@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateVideosOperation } from "@google/genai";
 
 // Veo 3 Fast: $0.10/sec at 720p. Each 8s video ≈ $0.80, so a video-task
 // match (two videos) costs ~$1.60 in addition to the Nano Banana backup
@@ -71,12 +71,17 @@ export async function pollVideoGeneration(
 ): Promise<VideoPollResult> {
   const ai = client();
 
-  // The SDK's getVideosOperation wants the full Operation object; reconstruct
-  // a minimal one from the stored name — the API only uses the name to fetch
-  // the latest server-side state.
+  // ⚠️ The SDK calls `operation._fromAPIResponse(...)` on whatever we pass
+  // in as `parameters.operation`. A plain object like `{ name }` doesn't
+  // have that method and throws TypeError on every poll — videos stay
+  // "pending" forever, swallowed by the client-side `.catch`. We MUST
+  // construct a real GenerateVideosOperation instance so the prototype
+  // method is reachable. Only the `name` field is used to build the
+  // request URL; the rest of the fields are populated by the response.
+  const handle = new GenerateVideosOperation();
+  handle.name = operationName;
   const operation = await ai.operations.getVideosOperation({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    operation: { name: operationName } as any,
+    operation: handle,
   });
 
   if (!operation.done) return { status: "pending" };

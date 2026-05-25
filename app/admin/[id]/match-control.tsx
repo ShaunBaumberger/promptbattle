@@ -21,7 +21,6 @@ import {
   setMatchWinnerAction,
   setSkipGenerationAction,
   clearCurrentMatchAction,
-  showBracketAction,
   type MatchActionState,
 } from "./match-actions";
 import {
@@ -311,18 +310,6 @@ export function MatchControl({
     });
   };
 
-  // ⚠️ MUST be declared BEFORE the `if (!loaded) return …` below — adding a
-  // hook after the early return changes the hook count between renders and
-  // crashes the whole tree with React error #310 ("Rendered more hooks…").
-  const [bracketPending, startBracketTransition] = useTransition();
-  const showBracket = () => {
-    startBracketTransition(async () => {
-      const result = await showBracketAction(tournamentId);
-      if (result.error) toast.error(result.error);
-      else toast.success("Bracket auf der Bühne angezeigt.");
-    });
-  };
-
   const nameById = new Map(participants.map((p) => [p.id, p.name]));
 
   if (!loaded) {
@@ -347,20 +334,9 @@ export function MatchControl({
     <div className="space-y-4 rounded-md border p-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Match-Steuerung</h2>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={showBracket}
-            disabled={bracketPending}
-          >
-            {bracketPending ? "Wird angezeigt…" : "🪜 Bracket auf Stage zeigen"}
-          </Button>
-          <p className="text-muted-foreground text-xs">
-            Rundenzeit: {roundTimeSeconds}s
-          </p>
-        </div>
+        <p className="text-muted-foreground text-xs">
+          Rundenzeit: {roundTimeSeconds}s
+        </p>
       </div>
 
       {isTestMode && (

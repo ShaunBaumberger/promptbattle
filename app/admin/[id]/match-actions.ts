@@ -162,30 +162,6 @@ export async function startCurrentMatchAction(
 }
 
 /**
- * Force the stage onto the bracket view. Clears current_match_id +
- * current_video_playing regardless of the current match status. Use
- * for emergencies (something looks wrong, want a clean slate, etc.)
- * or to show the bracket between matches.
- *
- * Does NOT mutate match state — the match stays where it is in the
- * lifecycle. The admin can later pick "Match wieder anzeigen" by
- * clicking "Nächstes Match starten" (which sets a new match) or
- * other controls.
- */
-export async function showBracketAction(
-  tournamentId: string,
-): Promise<MatchActionState> {
-  const supabase = createServiceRoleClient();
-  const { error } = await supabase
-    .from("tournaments")
-    .update({ current_match_id: null, current_video_playing: null })
-    .eq("id", tournamentId);
-  if (error) return { error: error.message };
-  revalidatePath(`/admin/${tournamentId}`);
-  return { ok: true };
-}
-
-/**
  * Clear the tournament's `current_match_id` pointer so the stage falls back
  * to the bracket view between matches. Allowed only when the current match
  * is `done` — would be destructive mid-match.

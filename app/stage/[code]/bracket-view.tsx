@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
@@ -10,20 +9,9 @@ import type { Match, Participant, PlayerCount, Round } from "@/lib/types/databas
 interface Props {
   tournamentId: string;
   playerCount: PlayerCount;
-  /** Tournament join code (6 chars). Shown alongside the QR so dropped
-   *  players have a fallback to rejoin during the show. */
-  tournamentCode: string;
-  /** Full URL the QR encodes (e.g. https://app/?code=ABC123). Empty
-   *  string during initial render before window is available. */
-  joinUrl: string;
 }
 
-export function BracketView({
-  tournamentId,
-  playerCount,
-  tournamentCode,
-  joinUrl,
-}: Props) {
+export function BracketView({ tournamentId, playerCount }: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -159,12 +147,9 @@ export function BracketView({
     const finalSpec = rounds[0];
     const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
     return (
-      <>
-        <div className="flex flex-1 items-center justify-center duration-500 animate-in fade-in">
-          <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
-        </div>
-        <JoinFooter tournamentCode={tournamentCode} joinUrl={joinUrl} />
-      </>
+      <div className="flex flex-1 items-center justify-center duration-500 animate-in fade-in">
+        <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+      </div>
     );
   }
 
@@ -173,58 +158,20 @@ export function BracketView({
   const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
 
   return (
-    <>
-      <div className="flex flex-1 items-stretch justify-center gap-0 px-4 duration-500 animate-in fade-in">
-        <HalfBracket
-          rounds={earlierRounds}
-          matchesByRound={matchesByRound}
-          nameById={nameById}
-          side="left"
-        />
-        <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
-        <HalfBracket
-          rounds={earlierRounds}
-          matchesByRound={matchesByRound}
-          nameById={nameById}
-          side="right"
-        />
-      </div>
-      <JoinFooter tournamentCode={tournamentCode} joinUrl={joinUrl} />
-    </>
-  );
-}
-
-/**
- * Small QR + code pill anchored to the bottom-right of the stage. Lets a
- * player who closed their browser (phone went to sleep, accidentally
- * killed the tab, etc.) rejoin during the show without the host having
- * to swap views. Their existing localStorage participant_id snaps them
- * back to where they were.
- */
-function JoinFooter({
-  tournamentCode,
-  joinUrl,
-}: {
-  tournamentCode: string;
-  joinUrl: string;
-}) {
-  return (
-    <div className="pointer-events-none fixed right-6 bottom-6 z-10 flex items-end gap-4 duration-500 animate-in fade-in">
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-right backdrop-blur">
-        <p className="text-white/50 text-xs uppercase tracking-[0.25em]">
-          Beitritts-Code
-        </p>
-        <p className="text-white font-mono text-3xl font-semibold tracking-[0.2em]">
-          {tournamentCode}
-        </p>
-      </div>
-      <div className="rounded-2xl bg-white p-3 shadow-lg">
-        {joinUrl ? (
-          <QRCodeSVG value={joinUrl} size={104} level="M" marginSize={0} />
-        ) : (
-          <div className="bg-muted h-[104px] w-[104px] animate-pulse" />
-        )}
-      </div>
+    <div className="flex flex-1 items-stretch justify-center gap-0 px-3 duration-500 animate-in fade-in">
+      <HalfBracket
+        rounds={earlierRounds}
+        matchesByRound={matchesByRound}
+        nameById={nameById}
+        side="left"
+      />
+      <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+      <HalfBracket
+        rounds={earlierRounds}
+        matchesByRound={matchesByRound}
+        nameById={nameById}
+        side="right"
+      />
     </div>
   );
 }
@@ -262,11 +209,15 @@ function HalfBracket({
         const connectorFromCount = isInnermost ? halfCount : halfCount;
 
         const column = (
-          <div key={`col-${spec.round}`} className="flex min-w-[260px] flex-1 flex-col">
-            <h3 className="text-white/70 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
-              {spec.label}
-            </h3>
-            <div className="flex flex-1 flex-col justify-around gap-4 py-2">
+          <div key={`col-${spec.round}`} className="flex min-w-[140px] flex-1 flex-col">
+            {/* Invisible spacer mirrors the visible FINALE label height
+                in CenterColumn so match cards across all half-bracket
+                columns line up vertically with the FINAL card. Round
+                labels themselves are intentionally hidden — the bracket
+                topology is self-explanatory and labels overlap badly on
+                larger brackets (R16+). */}
+            <div className="invisible py-5 text-3xl">.</div>
+            <div className="flex flex-1 flex-col justify-around gap-3 py-2">
               {Array.from({ length: halfCount }).map((_, i) => (
                 <MatchCard key={i} match={halfMatches[i]} nameById={nameById} />
               ))}
@@ -324,23 +275,18 @@ function CenterColumn({
   label: string;
   nameById: Map<string, string>;
 }) {
-  // FINALE label sits at the top of the column with the exact same padding
-  // as the round labels in the half-brackets, so all three (e.g.
-  // HALBFINALE | FINALE | HALBFINALE) line up horizontally.
-  //
-  // The FINAL match card sits at the *exact* vertical centre of the
-  // remaining space — that's the y=50% point where the SF connector
-  // lines meet. The trophy fills the top half above it (aligned to its
-  // bottom edge so it sits right above the card); an empty flex-1 div
-  // balances the bottom half so the card stays centred.
+  // FINALE is the only visible round label — the half-bracket columns
+  // use invisible spacers of identical height so the FINAL card aligns
+  // with the centre line where the SF connectors meet (y=50% of the
+  // match area).
   return (
-    <div className="flex min-w-[300px] flex-1 flex-col">
+    <div className="flex min-w-[220px] flex-1 flex-col">
       <h3 className="text-amber-300 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
         {label}
       </h3>
-      <div className="flex flex-1 flex-col items-center px-3 py-2">
+      <div className="flex flex-1 flex-col items-center px-2 py-2">
         <div className="flex flex-1 items-end pb-6">
-          <span className="text-9xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+          <span className="text-8xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
             🏆
           </span>
         </div>
@@ -390,7 +336,7 @@ function ConnectorSVG({
     <svg
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
-      className="h-full w-12"
+      className="h-full w-8"
       fill="none"
     >
       <path
@@ -415,14 +361,14 @@ function MatchCard({
   if (!match) {
     return (
       <div
-        className={`flex w-full flex-col gap-2.5 rounded-xl border border-dashed p-4 ${
+        className={`flex w-full flex-col gap-1.5 rounded-xl border border-dashed p-2.5 ${
           highlight
             ? "border-amber-400/30 bg-amber-400/5"
             : "border-white/10 bg-white/[0.02]"
         }`}
       >
-        <Slot label="—" state="empty" />
-        <Slot label="—" state="empty" />
+        <Slot label="—" state="empty" highlight={highlight} />
+        <Slot label="—" state="empty" highlight={highlight} />
       </div>
     );
   }
@@ -437,7 +383,7 @@ function MatchCard({
 
   return (
     <div
-      className={`flex w-full flex-col gap-2.5 rounded-xl border p-4 backdrop-blur transition-all ${
+      className={`flex w-full flex-col gap-1.5 rounded-xl border p-2.5 backdrop-blur transition-all ${
         isLive
           ? "border-sky-400/60 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.3)] ring-2 ring-sky-400/40"
           : highlight
@@ -448,21 +394,31 @@ function MatchCard({
       <Slot
         label={aName}
         state={aWins ? "winner" : decided ? "loser" : match.player_a_id ? "set" : "empty"}
+        highlight={highlight}
       />
       <Slot
         label={bName}
         state={bWins ? "winner" : decided ? "loser" : match.player_b_id ? "set" : "empty"}
+        highlight={highlight}
       />
     </div>
   );
 }
 
+/**
+ * Slot text scales with whether this is the FINAL card (highlighted) or a
+ * regular half-bracket card. FINAL cards have generous space so we
+ * dial the text up; regular cards live in narrow columns and need to
+ * fit two long German names on one line per slot.
+ */
 function Slot({
   label,
   state,
+  highlight = false,
 }: {
   label: string;
   state: "set" | "winner" | "loser" | "empty";
+  highlight?: boolean;
 }) {
   const cls =
     state === "winner"
@@ -472,9 +428,10 @@ function Slot({
         : state === "empty"
           ? "text-white/30"
           : "text-white/85";
+  const sizeCls = highlight ? "text-2xl" : "text-base";
   return (
-    <div className={`flex items-center gap-2 truncate text-2xl ${cls}`}>
-      {state === "winner" && <span className="text-2xl">🏆</span>}
+    <div className={`flex items-center gap-1.5 truncate ${sizeCls} ${cls}`}>
+      {state === "winner" && <span>🏆</span>}
       <span className="truncate">{label}</span>
     </div>
   );
