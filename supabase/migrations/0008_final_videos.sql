@@ -1,4 +1,9 @@
 -- =============================================================
+-- NOTE: This is one of TWO 0008 migrations. The other is
+-- `0008b_preparing_status.sql`. Both must be applied; order
+-- between them does not matter (they touch disjoint columns
+-- and constraints). Apply 0008 → 0008b → 0009 → … in sequence.
+-- =============================================================
 -- Final-round video reveal:
 --   * matches.video_a_url / video_b_url store Veo-generated mp4 URLs
 --     (Supabase Storage public URLs). Populated only for FINAL matches.

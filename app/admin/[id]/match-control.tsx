@@ -311,6 +311,18 @@ export function MatchControl({
     });
   };
 
+  // ⚠️ MUST be declared BEFORE the `if (!loaded) return …` below — adding a
+  // hook after the early return changes the hook count between renders and
+  // crashes the whole tree with React error #310 ("Rendered more hooks…").
+  const [bracketPending, startBracketTransition] = useTransition();
+  const showBracket = () => {
+    startBracketTransition(async () => {
+      const result = await showBracketAction(tournamentId);
+      if (result.error) toast.error(result.error);
+      else toast.success("Bracket auf der Bühne angezeigt.");
+    });
+  };
+
   const nameById = new Map(participants.map((p) => [p.id, p.name]));
 
   if (!loaded) {
@@ -328,15 +340,6 @@ export function MatchControl({
         toast.error(result.error);
         setSkipGeneration(!next); // rollback
       }
-    });
-  };
-
-  const [bracketPending, startBracketTransition] = useTransition();
-  const showBracket = () => {
-    startBracketTransition(async () => {
-      const result = await showBracketAction(tournamentId);
-      if (result.error) toast.error(result.error);
-      else toast.success("Bracket auf der Bühne angezeigt.");
     });
   };
 
