@@ -94,6 +94,7 @@ export default async function TournamentAdminPage({
             (tournament.round_time_overrides as Partial<Record<Round, number>>) ??
             {}
           }
+          initialSkipGeneration={tournament.skip_image_generation === true}
           status={tournament.status as Tournament["status"]}
         />
       </section>

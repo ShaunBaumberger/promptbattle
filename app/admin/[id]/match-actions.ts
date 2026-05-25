@@ -228,23 +228,18 @@ export async function clearCurrentMatchAction(
 }
 
 /**
- * Test-mode toggle: skip Gemini image generation. Allowed only in dedicated
- * test-mode tournaments so a real event can't accidentally turn this on.
+ * Toggle the tournament between Test-Modus (no Gemini API calls — neither
+ * Nano Banana nor Veo) and Live-Modus (real generation). The flag's name
+ * is a historical artifact (`skip_image_generation`) but it now controls
+ * both image and video generation. Allowed any time, on any tournament —
+ * the admin needs this for dry runs irrespective of how the tournament
+ * was originally created.
  */
 export async function setSkipGenerationAction(
   tournamentId: string,
   skip: boolean,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
-  const { data: tournament } = await supabase
-    .from("tournaments")
-    .select("is_test_mode")
-    .eq("id", tournamentId)
-    .maybeSingle();
-  if (!tournament) return { error: "Turnier nicht gefunden." };
-  if (!tournament.is_test_mode) {
-    return { error: "Nur im Test-Modus verfügbar." };
-  }
   const { error } = await supabase
     .from("tournaments")
     .update({ skip_image_generation: skip })

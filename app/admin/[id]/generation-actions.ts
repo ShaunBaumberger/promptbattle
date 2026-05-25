@@ -181,7 +181,10 @@ export async function generateMatchVideosAction(
     .select("skip_image_generation")
     .eq("id", tournamentId)
     .maybeSingle();
-  const skipBackupImages = tournament?.skip_image_generation === true;
+  // The flag is the unified Test-Modus switch — when on, we skip BOTH
+  // Veo video generation AND the Nano Banana backup. Keeps API spend
+  // at zero during gameplay dry-runs.
+  const skipGeneration = tournament?.skip_image_generation === true;
 
   // Atomic status flip: only one caller succeeds.
   const { data: claimed, error: claimErr } = await supabase
@@ -201,6 +204,24 @@ export async function generateMatchVideosAction(
 
   const promptA = (claimed.prompt_a ?? "").trim();
   const promptB = (claimed.prompt_b ?? "").trim();
+
+  // Test-Modus short-circuit: no Veo calls, no Nano Banana calls. Just
+  // flip to reveal with empty results so the gameplay loop can be
+  // exercised without burning API budget.
+  if (skipGeneration) {
+    await supabase
+      .from("matches")
+      .update({
+        status: "reveal",
+        video_a_url: null,
+        video_b_url: null,
+        result_a_url: null,
+        result_b_url: null,
+      })
+      .eq("id", matchId);
+    revalidatePath(`/admin/${tournamentId}`);
+    return { ok: true };
+  }
 
   // Mark videos as pending so the UI shows the "wird generiert" hint.
   await supabase
@@ -225,34 +246,27 @@ export async function generateMatchVideosAction(
     })
     .eq("id", matchId);
 
-  // Image backup runs in parallel and we wait for it before flipping to
-  // reveal so the audience has visuals immediately. Test mode skips.
-  if (skipBackupImages) {
+  // Image backup runs in parallel with the Veo render so the reveal
+  // has visuals even if videos run long.
+  try {
+    const [imgA, imgB] = await Promise.all([
+      generateAndUpload(promptA, tournamentId, matchId, "a"),
+      generateAndUpload(promptB, tournamentId, matchId, "b"),
+    ]);
+    await supabase
+      .from("matches")
+      .update({
+        status: "reveal",
+        result_a_url: imgA,
+        result_b_url: imgB,
+      })
+      .eq("id", matchId);
+  } catch (err) {
+    console.error("image backup batch failed:", err);
     await supabase
       .from("matches")
       .update({ status: "reveal" })
       .eq("id", matchId);
-  } else {
-    try {
-      const [imgA, imgB] = await Promise.all([
-        generateAndUpload(promptA, tournamentId, matchId, "a"),
-        generateAndUpload(promptB, tournamentId, matchId, "b"),
-      ]);
-      await supabase
-        .from("matches")
-        .update({
-          status: "reveal",
-          result_a_url: imgA,
-          result_b_url: imgB,
-        })
-        .eq("id", matchId);
-    } catch (err) {
-      console.error("image backup batch failed:", err);
-      await supabase
-        .from("matches")
-        .update({ status: "reveal" })
-        .eq("id", matchId);
-    }
   }
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };

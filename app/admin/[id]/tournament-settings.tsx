@@ -12,12 +12,14 @@ import {
   updateRoundTimeAction,
   updateRoundTimeOverrideAction,
 } from "./actions";
+import { setSkipGenerationAction } from "./match-actions";
 
 interface Props {
   tournamentId: string;
   initialPlayerCount: PlayerCount;
   initialRoundTime: number;
   initialRoundTimeOverrides: Partial<Record<Round, number>>;
+  initialSkipGeneration: boolean;
   status: TournamentStatus;
 }
 
@@ -34,12 +36,15 @@ export function TournamentSettings({
   initialPlayerCount,
   initialRoundTime,
   initialRoundTimeOverrides,
+  initialSkipGeneration,
   status,
 }: Props) {
   const [playerCount, setPlayerCount] = useState<PlayerCount>(initialPlayerCount);
   const [roundTime, setRoundTime] = useState<number>(initialRoundTime);
+  const [skipGeneration, setSkipGeneration] = useState<boolean>(initialSkipGeneration);
   const [pcPending, startPcTransition] = useTransition();
   const [rtPending, startRtTransition] = useTransition();
+  const [modePending, startModeTransition] = useTransition();
 
   const playerCountLocked = status !== "setup";
 
@@ -69,9 +74,58 @@ export function TournamentSettings({
     });
   };
 
+  const setMode = (mode: "test" | "live") => {
+    const wantSkip = mode === "test";
+    if (wantSkip === skipGeneration) return; // no-op if already in this mode
+    const previous = skipGeneration;
+    setSkipGeneration(wantSkip);
+    startModeTransition(async () => {
+      const result = await setSkipGenerationAction(tournamentId, wantSkip);
+      if (result.error) {
+        toast.error(result.error);
+        setSkipGeneration(previous); // rollback optimistic update
+      } else {
+        toast.success(
+          wantSkip
+            ? "Test-Modus aktiv — keine API-Aufrufe an Gemini."
+            : "Live-Modus aktiv — Bilder & Videos werden generiert.",
+        );
+      }
+    });
+  };
+
   return (
     <div className="space-y-4 rounded-md border p-4">
       <h2 className="text-base font-semibold">Einstellungen</h2>
+
+      <div className="flex flex-col gap-2">
+        <Label>Modus</Label>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant={skipGeneration ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("test")}
+            disabled={modePending}
+          >
+            🧪 Test-Modus
+          </Button>
+          <Button
+            type="button"
+            variant={!skipGeneration ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("live")}
+            disabled={modePending}
+          >
+            🚀 Live-Modus
+          </Button>
+        </div>
+        <p className="text-muted-foreground text-xs">
+          {skipGeneration
+            ? "Test-Modus: spart API-Kosten — weder Bilder noch Videos werden generiert."
+            : "Live-Modus: Bilder werden mit Nano Banana Pro generiert, Videos (bei Video-Tasks) mit Veo 3 Fast."}
+        </p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
