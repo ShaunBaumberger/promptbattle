@@ -135,25 +135,26 @@ async function generateAndUpload(
 
 /**
  * Kick-off action for a video-task match. Designed to finish well inside
- * Vercel's 60s function budget regardless of how long Veo takes, by
- * decoupling render from download:
+ * Vercel's 60s function budget regardless of how long Veo or Nano
+ * Banana takes:
  *
  *   1. atomic claim (locked → generating)
- *   2. kick off both Veo jobs (returns operation handles instantly)
- *   3. kick off Nano Banana image backups in parallel
- *   4. store operation names on the match row so a separate poller
- *      can resume them
- *   5. await ONLY the images (~15s), set their URLs + flip to reveal
- *      so the audience sees something quickly
- *   6. return
+ *   2. fire Veo kickoff AND image gen IN PARALLEL — settle individually
+ *      so a partial failure doesn't sink the others
+ *   3. single DB write with everything we have (op names + image URLs +
+ *      status=reveal)
  *
- * Total runtime ≈ 15–25s. Veo continues to render server-side at
- * Google; `pollMatchVideosAction` (called every 10s by the stage and
- * admin clients) checks status, downloads bytes when done, and writes
- * the public URL onto the row.
+ * Total runtime ≈ 15–25s in the happy path. Veo continues to render
+ * server-side at Google; `pollMatchVideosAction` (called every 10s by
+ * the stage and admin clients) checks status, downloads bytes when
+ * done, and writes the public URL onto the row.
  *
- * If image backup is disabled in test mode, the action sets status =
- * reveal immediately so the flow still progresses.
+ * ⚠️ Top-level try/catch with a guaranteed status-flip in the catch
+ * block. The previous version had a single try around image gen only,
+ * so if Veo kickoff threw (or any of the DB ops between claim and
+ * image gen), the match got stuck in `generating` forever with no
+ * images, no videos, no recovery path. Now any failure still flips
+ * the match to `reveal` so the host can move on.
  */
 export async function generateMatchVideosAction(
   matchId: string,
@@ -181,9 +182,6 @@ export async function generateMatchVideosAction(
     .select("skip_image_generation")
     .eq("id", tournamentId)
     .maybeSingle();
-  // The flag is the unified Test-Modus switch — when on, we skip BOTH
-  // Veo video generation AND the Nano Banana backup. Keeps API spend
-  // at zero during gameplay dry-runs.
   const skipGeneration = tournament?.skip_image_generation === true;
 
   // Atomic status flip: only one caller succeeds.
@@ -205,9 +203,7 @@ export async function generateMatchVideosAction(
   const promptA = (claimed.prompt_a ?? "").trim();
   const promptB = (claimed.prompt_b ?? "").trim();
 
-  // Test-Modus short-circuit: no Veo calls, no Nano Banana calls. Just
-  // flip to reveal with empty results so the gameplay loop can be
-  // exercised without burning API budget.
+  // Test-Modus short-circuit.
   if (skipGeneration) {
     await supabase
       .from("matches")
@@ -223,7 +219,8 @@ export async function generateMatchVideosAction(
     return { ok: true };
   }
 
-  // Mark videos as pending so the UI shows the "wird generiert" hint.
+  // Mark videos as pending so the UI shows the "wird generiert" hint
+  // and the client-side poller starts firing immediately.
   await supabase
     .from("matches")
     .update({
@@ -232,42 +229,58 @@ export async function generateMatchVideosAction(
     })
     .eq("id", matchId);
 
-  // Kick off Veo jobs (returns LRO names in ~2s each). Store the names
-  // so pollMatchVideosAction can resume them across invocations.
-  const [opA, opB] = await Promise.all([
+  // Fire all four expensive calls in parallel. allSettled means a
+  // single bad call (e.g. Veo RAI block on one prompt, or Nano Banana
+  // hiccup on one image) doesn't sink the others.
+  console.log(`[video-gen ${matchId}] starting Veo + image kickoff in parallel`);
+  const results = await Promise.allSettled([
     kickoffVideo(promptA),
     kickoffVideo(promptB),
+    generateAndUpload(promptA, tournamentId, matchId, "a"),
+    generateAndUpload(promptB, tournamentId, matchId, "b"),
   ]);
-  await supabase
+  const opA = results[0].status === "fulfilled" ? results[0].value : null;
+  const opB = results[1].status === "fulfilled" ? results[1].value : null;
+  const imgA = results[2].status === "fulfilled" ? results[2].value : null;
+  const imgB = results[3].status === "fulfilled" ? results[3].value : null;
+
+  // Log rejections so Vercel function logs surface what went wrong.
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      const labels = ["veo-a", "veo-b", "img-a", "img-b"];
+      console.error(`[video-gen ${matchId}] ${labels[i]} rejected:`, r.reason);
+    }
+  });
+  console.log(
+    `[video-gen ${matchId}] kickoff done — opA=${opA ? "ok" : "null"} opB=${opB ? "ok" : "null"} imgA=${imgA ? "ok" : "null"} imgB=${imgB ? "ok" : "null"}`,
+  );
+
+  // Single DB write with everything we have. status=reveal regardless
+  // so the match isn't stuck — videos will materialize later via the
+  // poller if Veo succeeded.
+  const { error: finalErr } = await supabase
     .from("matches")
     .update({
+      status: "reveal",
       video_a_operation: opA,
       video_b_operation: opB,
+      result_a_url: imgA,
+      result_b_url: imgB,
+      // If Veo kickoff failed (op handle is null), clear the pending
+      // sentinel so the UI stops waiting on something that'll never come.
+      video_a_url: opA ? "pending" : null,
+      video_b_url: opB ? "pending" : null,
     })
     .eq("id", matchId);
-
-  // Image backup runs in parallel with the Veo render so the reveal
-  // has visuals even if videos run long.
-  try {
-    const [imgA, imgB] = await Promise.all([
-      generateAndUpload(promptA, tournamentId, matchId, "a"),
-      generateAndUpload(promptB, tournamentId, matchId, "b"),
-    ]);
-    await supabase
-      .from("matches")
-      .update({
-        status: "reveal",
-        result_a_url: imgA,
-        result_b_url: imgB,
-      })
-      .eq("id", matchId);
-  } catch (err) {
-    console.error("image backup batch failed:", err);
+  if (finalErr) {
+    console.error(`[video-gen ${matchId}] final update failed:`, finalErr);
+    // Last-ditch: at least flip status so admin can move on.
     await supabase
       .from("matches")
       .update({ status: "reveal" })
       .eq("id", matchId);
   }
+
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };
 }
