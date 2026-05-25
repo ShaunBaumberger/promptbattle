@@ -21,6 +21,7 @@ import {
   setMatchWinnerAction,
   setSkipGenerationAction,
   clearCurrentMatchAction,
+  showBracketAction,
   type MatchActionState,
 } from "./match-actions";
 import {
@@ -330,13 +331,33 @@ export function MatchControl({
     });
   };
 
+  const [bracketPending, startBracketTransition] = useTransition();
+  const showBracket = () => {
+    startBracketTransition(async () => {
+      const result = await showBracketAction(tournamentId);
+      if (result.error) toast.error(result.error);
+      else toast.success("Bracket auf der Bühne angezeigt.");
+    });
+  };
+
   return (
     <div className="space-y-4 rounded-md border p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Match-Steuerung</h2>
-        <p className="text-muted-foreground text-xs">
-          Rundenzeit: {roundTimeSeconds}s
-        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={showBracket}
+            disabled={bracketPending}
+          >
+            {bracketPending ? "Wird angezeigt…" : "🪜 Bracket auf Stage zeigen"}
+          </Button>
+          <p className="text-muted-foreground text-xs">
+            Rundenzeit: {roundTimeSeconds}s
+          </p>
+        </div>
       </div>
 
       {isTestMode && (

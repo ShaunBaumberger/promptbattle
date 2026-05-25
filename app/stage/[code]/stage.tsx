@@ -184,7 +184,12 @@ export function Stage({
             {tournamentName}
           </h1>
         </header>
-        <BracketView tournamentId={tournamentId} playerCount={playerCount} />
+        <BracketView
+          tournamentId={tournamentId}
+          playerCount={playerCount}
+          tournamentCode={tournamentCode}
+          joinUrl={joinUrl}
+        />
       </main>
       {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
     </>

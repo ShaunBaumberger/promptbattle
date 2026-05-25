@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
@@ -9,9 +10,20 @@ import type { Match, Participant, PlayerCount, Round } from "@/lib/types/databas
 interface Props {
   tournamentId: string;
   playerCount: PlayerCount;
+  /** Tournament join code (6 chars). Shown alongside the QR so dropped
+   *  players have a fallback to rejoin during the show. */
+  tournamentCode: string;
+  /** Full URL the QR encodes (e.g. https://app/?code=ABC123). Empty
+   *  string during initial render before window is available. */
+  joinUrl: string;
 }
 
-export function BracketView({ tournamentId, playerCount }: Props) {
+export function BracketView({
+  tournamentId,
+  playerCount,
+  tournamentCode,
+  joinUrl,
+}: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -147,9 +159,12 @@ export function BracketView({ tournamentId, playerCount }: Props) {
     const finalSpec = rounds[0];
     const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
     return (
-      <div className="flex flex-1 items-center justify-center duration-500 animate-in fade-in">
-        <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
-      </div>
+      <>
+        <div className="flex flex-1 items-center justify-center duration-500 animate-in fade-in">
+          <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+        </div>
+        <JoinFooter tournamentCode={tournamentCode} joinUrl={joinUrl} />
+      </>
     );
   }
 
@@ -158,20 +173,58 @@ export function BracketView({ tournamentId, playerCount }: Props) {
   const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
 
   return (
-    <div className="flex flex-1 items-stretch justify-center gap-0 px-4 duration-500 animate-in fade-in">
-      <HalfBracket
-        rounds={earlierRounds}
-        matchesByRound={matchesByRound}
-        nameById={nameById}
-        side="left"
-      />
-      <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
-      <HalfBracket
-        rounds={earlierRounds}
-        matchesByRound={matchesByRound}
-        nameById={nameById}
-        side="right"
-      />
+    <>
+      <div className="flex flex-1 items-stretch justify-center gap-0 px-4 duration-500 animate-in fade-in">
+        <HalfBracket
+          rounds={earlierRounds}
+          matchesByRound={matchesByRound}
+          nameById={nameById}
+          side="left"
+        />
+        <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+        <HalfBracket
+          rounds={earlierRounds}
+          matchesByRound={matchesByRound}
+          nameById={nameById}
+          side="right"
+        />
+      </div>
+      <JoinFooter tournamentCode={tournamentCode} joinUrl={joinUrl} />
+    </>
+  );
+}
+
+/**
+ * Small QR + code pill anchored to the bottom-right of the stage. Lets a
+ * player who closed their browser (phone went to sleep, accidentally
+ * killed the tab, etc.) rejoin during the show without the host having
+ * to swap views. Their existing localStorage participant_id snaps them
+ * back to where they were.
+ */
+function JoinFooter({
+  tournamentCode,
+  joinUrl,
+}: {
+  tournamentCode: string;
+  joinUrl: string;
+}) {
+  return (
+    <div className="pointer-events-none fixed right-6 bottom-6 z-10 flex items-end gap-4 duration-500 animate-in fade-in">
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-right backdrop-blur">
+        <p className="text-white/50 text-xs uppercase tracking-[0.25em]">
+          Beitritts-Code
+        </p>
+        <p className="text-white font-mono text-3xl font-semibold tracking-[0.2em]">
+          {tournamentCode}
+        </p>
+      </div>
+      <div className="rounded-2xl bg-white p-3 shadow-lg">
+        {joinUrl ? (
+          <QRCodeSVG value={joinUrl} size={104} level="M" marginSize={0} />
+        ) : (
+          <div className="bg-muted h-[104px] w-[104px] animate-pulse" />
+        )}
+      </div>
     </div>
   );
 }
