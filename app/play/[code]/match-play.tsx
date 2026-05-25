@@ -261,7 +261,11 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
           type="button"
           onClick={openExpanded}
           disabled={!match.task_reference_url}
-          className="bg-white/5 relative flex h-[40%] min-h-0 shrink items-center justify-center overflow-hidden rounded-2xl border border-white/10 backdrop-blur"
+          // flex-1 lets the image grow to fill all space between header and
+          // textarea. With min-h-0 it can also shrink when the keyboard opens
+          // (visualViewport shrinks the container). Result: image + textarea
+          // are always packed together with no empty gap between them.
+          className="bg-white/5 relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-white/10 backdrop-blur"
           aria-label="Referenzbild vergrößern"
         >
           {match.task_reference_url ? (
@@ -282,6 +286,11 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
         </button>
       )}
 
+      {/* No `mt-auto` — sits directly below the task. The container is
+          height-locked to the visual viewport (see useEffect above), so
+          when the keyboard opens the image flex-shrinks and the textarea
+          stays glued to it. Players see both at the same time without
+          having to scroll. */}
       <Textarea
         ref={textareaRef}
         autoFocus
@@ -293,7 +302,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
             : "Beschreibe das Bild so präzise wie möglich…"
         }
         disabled={locked}
-        className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 mt-auto h-24 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
+        className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 h-28 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
       />
 
       {expanded && match.task_reference_url && (
