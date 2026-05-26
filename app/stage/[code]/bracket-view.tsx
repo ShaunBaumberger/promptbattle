@@ -209,7 +209,7 @@ function HalfBracket({
         const connectorFromCount = isInnermost ? halfCount : halfCount;
 
         const column = (
-          <div key={`col-${spec.round}`} className="flex min-w-[140px] flex-1 flex-col">
+          <div key={`col-${spec.round}`} className="flex min-w-[180px] flex-1 flex-col">
             {/* Invisible spacer mirrors the visible FINALE label height
                 in CenterColumn so match cards across all half-bracket
                 columns line up vertically with the FINAL card. Round
@@ -280,7 +280,7 @@ function CenterColumn({
   // with the centre line where the SF connectors meet (y=50% of the
   // match area).
   return (
-    <div className="flex min-w-[220px] flex-1 flex-col">
+    <div className="flex min-w-[280px] flex-1 flex-col">
       <h3 className="text-amber-300 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
         {label}
       </h3>
@@ -361,7 +361,7 @@ function MatchCard({
   if (!match) {
     return (
       <div
-        className={`flex w-full flex-col gap-1.5 rounded-xl border border-dashed p-2.5 ${
+        className={`flex w-full flex-col gap-2 rounded-xl border border-dashed p-3 ${
           highlight
             ? "border-amber-400/30 bg-amber-400/5"
             : "border-white/10 bg-white/[0.02]"
@@ -383,7 +383,7 @@ function MatchCard({
 
   return (
     <div
-      className={`flex w-full flex-col gap-1.5 rounded-xl border p-2.5 backdrop-blur transition-all ${
+      className={`flex w-full flex-col gap-2 rounded-xl border p-3 backdrop-blur transition-all ${
         isLive
           ? "border-sky-400/60 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.3)] ring-2 ring-sky-400/40"
           : highlight
@@ -407,9 +407,17 @@ function MatchCard({
 
 /**
  * Slot text scales with whether this is the FINAL card (highlighted) or a
- * regular half-bracket card. FINAL cards have generous space so we
- * dial the text up; regular cards live in narrow columns and need to
- * fit two long German names on one line per slot.
+ * regular half-bracket card. FINAL is bumped a tier so it remains the
+ * visual focal point even after the half-bracket text grew.
+ *
+ * Sizes are chosen so the entire bracket fits a 1920×1080 projector
+ * without horizontal scroll up to 32 players (the tournament cap):
+ *   * 16 players: 7 main columns × ~245px + 6 connectors × 32px ≈ 1390px
+ *   * 32 players: 9 main columns × 180px + 8 connectors × 32px ≈ 1876px
+ * Both fit comfortably inside ~1896px (1920 minus px-3 padding).
+ *
+ * Names long enough to overflow truncate gracefully — preserves first
+ * letters which is what an audience reads from the back of the room.
  */
 function Slot({
   label,
@@ -424,13 +432,13 @@ function Slot({
     state === "winner"
       ? "text-white font-semibold"
       : state === "loser"
-        ? "text-white/30 line-through"
+        ? "text-white/40 line-through"
         : state === "empty"
           ? "text-white/30"
-          : "text-white/85";
-  const sizeCls = highlight ? "text-2xl" : "text-base";
+          : "text-white/90 font-medium";
+  const sizeCls = highlight ? "text-3xl" : "text-2xl";
   return (
-    <div className={`flex items-center gap-1.5 truncate ${sizeCls} ${cls}`}>
+    <div className={`flex items-center gap-2 truncate ${sizeCls} ${cls}`}>
       {state === "winner" && <span>🏆</span>}
       <span className="truncate">{label}</span>
     </div>
