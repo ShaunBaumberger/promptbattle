@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useStaleStateGuard } from "@/lib/use-stale-state-guard";
 import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
 import type { Match, Participant, PlayerCount, Round } from "@/lib/types/database";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function BracketView({ tournamentId, playerCount }: Props) {
+  const { dict } = useI18n();
   const [matches, setMatches] = useState<Match[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -137,7 +139,7 @@ export function BracketView({ tournamentId, playerCount }: Props) {
   if (!loaded) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-white/40 text-2xl">Bracket wird geladen…</p>
+        <p className="text-white/40 text-2xl">{dict.stage.loadingBracket}</p>
       </div>
     );
   }
@@ -148,7 +150,11 @@ export function BracketView({ tournamentId, playerCount }: Props) {
     const finalMatch = matchesByRound.get(finalSpec.round)?.[0];
     return (
       <div className="flex flex-1 items-center justify-center duration-500 animate-in fade-in">
-        <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+        <CenterColumn
+          match={finalMatch}
+          label={dict.rounds[finalSpec.round]}
+          nameById={nameById}
+        />
       </div>
     );
   }
@@ -165,7 +171,11 @@ export function BracketView({ tournamentId, playerCount }: Props) {
         nameById={nameById}
         side="left"
       />
-      <CenterColumn match={finalMatch} label={finalSpec.label} nameById={nameById} />
+      <CenterColumn
+        match={finalMatch}
+        label={dict.rounds[finalSpec.round]}
+        nameById={nameById}
+      />
       <HalfBracket
         rounds={earlierRounds}
         matchesByRound={matchesByRound}

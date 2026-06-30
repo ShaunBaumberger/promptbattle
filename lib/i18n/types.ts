@@ -97,4 +97,50 @@ export interface Dictionary {
     resultOf: string;
     noImage: string;
   };
+  /** Projector / stage view. */
+  stage: {
+    loadingMatch: string;
+    loadingBracket: string;
+    loadingChampion: string;
+    audioEnable: string;
+    scanOrGoTo: string;
+    personJoined: string;
+    peopleJoined: string;
+    /** "{count}" */
+    playersSelected: string;
+    /** "{round}", "{n}" */
+    roundMatch: string;
+    votingLive: string;
+    champion: string;
+    winner: string;
+    finalVideosGenerating: string;
+    /** "{name}" */
+    videoNotReady: string;
+    prepareReady: string;
+    taskAppears: string;
+    left: string;
+    right: string;
+    generateVideoOf: string;
+    generateImageOf: string;
+    referenceImage: string;
+    reference: string;
+    imagesGenerating: string;
+    noImage: string;
+    promptLabel: string;
+    noPrompt: string;
+    /** "{name}" */
+    tournamentOver: string;
+    /** "{name}" */
+    runnerUp: string;
+    status: {
+      pending: string;
+      preparing: string;
+      live: string;
+      locked: string;
+      generating: string;
+      reveal: string;
+      voting: string;
+      done: string;
+    };
+  };
 }

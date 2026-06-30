@@ -7,11 +7,11 @@ import {
   generateMatchVideosAction,
   pollMatchVideosAction,
 } from "@/app/admin/[id]/generation-actions";
-import { ROUND_LABELS } from "@/lib/rounds";
-import type { Match, MatchStatus, Participant } from "@/lib/types/database";
+import type { Match, Participant } from "@/lib/types/database";
 
 import type { Cue } from "@/lib/stage-audio";
 import { clearCurrentMatchAction } from "@/app/admin/[id]/match-actions";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   matchId: string;
@@ -21,18 +21,8 @@ interface Props {
   videoPlaying?: "A" | "B" | null;
 }
 
-const STATUS_LABEL: Record<MatchStatus, string> = {
-  pending: "Bereit",
-  preparing: "Bereit machen",
-  live: "Battle läuft",
-  locked: "Zeit abgelaufen",
-  generating: "Bilder werden generiert…",
-  reveal: "Reveal",
-  voting: "Voting",
-  done: "Abgeschlossen",
-};
-
 export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props) {
+  const { dict } = useI18n();
   // ⚠️ ALL HOOKS MUST BE CALLED UNCONDITIONALLY ON EVERY RENDER, BEFORE ANY
   // EARLY RETURN. Adding a hook after the `if (!match) return …` below would
   // change the hook count between renders and crash the whole stage tree
@@ -254,7 +244,7 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
   if (!match) {
     return (
       <main className="flex flex-1 items-center justify-center">
-        <p className="text-white/50 text-2xl">Lade Match…</p>
+        <p className="text-white/50 text-2xl">{dict.stage.loadingMatch}</p>
       </main>
     );
   }
@@ -274,8 +264,11 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
       <header className="flex items-center justify-between">
         <p className="text-white/50 text-2xl uppercase tracking-[0.3em]">
           {match.round === "FINAL"
-            ? ROUND_LABELS[match.round]
-            : `${ROUND_LABELS[match.round]} – Match ${match.bracket_position + 1}`}
+            ? dict.rounds.FINAL
+            : interpolate(dict.stage.roundMatch, {
+                round: dict.rounds[match.round],
+                n: match.bracket_position + 1,
+              })}
         </p>
         {live ? (
           <p
@@ -289,18 +282,18 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
           <div className="flex items-center gap-3 rounded-full border border-sky-400/40 bg-sky-400/10 px-5 py-2 backdrop-blur">
             <span className="bg-sky-400 inline-block h-3 w-3 animate-pulse rounded-full" />
             <p className="text-sky-100 text-2xl font-semibold uppercase tracking-widest">
-              Voting läuft
+              {dict.stage.votingLive}
             </p>
           </div>
         ) : !winnerName && match.status !== "done" ? (
-          <p className="text-white/70 text-2xl">{STATUS_LABEL[match.status]}</p>
+          <p className="text-white/70 text-2xl">{dict.stage.status[match.status]}</p>
         ) : null}
       </header>
 
       {winnerRevealed && (
         <div className="flex flex-col items-center gap-2 pb-2 text-center duration-700 animate-in fade-in slide-in-from-bottom-2">
           <span className="text-amber-400/80 text-base uppercase tracking-[0.4em]">
-            {match.round === "FINAL" ? "Champion" : "Gewinner:in"}
+            {match.round === "FINAL" ? dict.stage.champion : dict.stage.winner}
           </span>
           <p className="text-white flex items-center justify-center gap-4 text-6xl font-semibold tracking-tight drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
             <span className="text-6xl">🏆</span>
@@ -362,6 +355,7 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
  * banner (which happens as soon as both video URLs land).
  */
 function FinalVideoStatusBanner({ startedAt: _startedAt }: { startedAt: string | null }) {
+  const { dict } = useI18n();
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const t0 = Date.now();
@@ -374,7 +368,7 @@ function FinalVideoStatusBanner({ startedAt: _startedAt }: { startedAt: string |
     <div className="bg-amber-400/10 border-amber-400/30 mx-auto flex w-fit items-center gap-4 rounded-full border px-6 py-3 backdrop-blur duration-500 animate-in fade-in">
       <span className="text-2xl">🎬</span>
       <p className="text-amber-100 text-xl font-medium">
-        Final-Videos werden generiert…
+        {dict.stage.finalVideosGenerating}
       </p>
       <span className="text-amber-200/70 tabular-nums text-base">
         {elapsed}s
@@ -397,11 +391,12 @@ function FinalVideoOverlay({
   videoUrl: string | null;
   playerName: string;
 }) {
+  const { dict } = useI18n();
   if (!videoUrl || videoUrl === "pending") {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-12 text-center">
         <p className="text-white/70 text-2xl">
-          Video für {playerName} ist noch nicht bereit.
+          {interpolate(dict.stage.videoNotReady, { name: playerName })}
         </p>
       </div>
     );
@@ -438,6 +433,7 @@ function PreparingView({
   aName: string;
   bName: string;
 }) {
+  const { dict } = useI18n();
   return (
     <div className="grid flex-1 grid-cols-[1fr_auto_1fr] gap-6 duration-500 animate-in fade-in">
       <PlayerSeat name={aName} side="left" />
@@ -445,10 +441,10 @@ function PreparingView({
       <div className="flex w-[28vw] flex-col items-center justify-center gap-4">
         <span className="bg-white/10 text-white/80 inline-flex items-center gap-3 rounded-full border border-white/15 px-6 py-3 text-xl font-medium uppercase tracking-[0.3em] backdrop-blur">
           <span className="bg-amber-400 inline-block h-2.5 w-2.5 animate-pulse rounded-full" />
-          Bereit machen
+          {dict.stage.prepareReady}
         </span>
         <p className="text-white/40 max-w-xs text-center text-base">
-          Aufgabe erscheint, sobald der Host startet.
+          {dict.stage.taskAppears}
         </p>
       </div>
 
@@ -464,6 +460,7 @@ function PlayerSeat({
   name: string;
   side: "left" | "right";
 }) {
+  const { dict } = useI18n();
   return (
     <div
       className={`flex flex-col gap-4 ${
@@ -471,7 +468,7 @@ function PlayerSeat({
       }`}
     >
       <span className="text-white/40 text-base uppercase tracking-[0.3em]">
-        {side === "left" ? "Links" : "Rechts"}
+        {side === "left" ? dict.stage.left : dict.stage.right}
       </span>
       <h2 className="text-white text-6xl font-semibold tracking-tight">
         {name}
@@ -492,6 +489,7 @@ function LiveView({
   aName: string;
   bName: string;
 }) {
+  const { dict } = useI18n();
   const generating = match.status === "generating" || match.status === "locked";
   return (
     <div className="grid flex-1 grid-cols-[1fr_auto_1fr] gap-8">
@@ -501,7 +499,7 @@ function LiveView({
         <TaskDisplay match={match} variant="live" />
         {generating && (
           <p className="text-white animate-pulse text-3xl">
-            Bilder werden generiert…
+            {dict.stage.imagesGenerating}
           </p>
         )}
       </div>
@@ -518,6 +516,7 @@ function TaskDisplay({
   match: Match;
   variant: "live" | "reveal";
 }) {
+  const { dict } = useI18n();
   // Live view gets a more generous max-height — the audience needs to read
   // the reference from the back of the room.
   const maxH = variant === "live" ? "max-h-[72vh]" : "max-h-[55vh]";
@@ -534,8 +533,8 @@ function TaskDisplay({
       <>
         <p className={labelClass}>
           {match.task_kind === "video"
-            ? "Generiere ein Video von …"
-            : "Generiere ein Bild von …"}
+            ? dict.stage.generateVideoOf
+            : dict.stage.generateImageOf}
         </p>
         <div className="bg-white/5 flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-white/10 p-8 backdrop-blur">
           <p className={taskTextClass}>{match.task_text}</p>
@@ -547,12 +546,12 @@ function TaskDisplay({
     return (
       <>
         <p className={labelClass}>
-          {variant === "live" ? "Referenzbild" : "Referenz"}
+          {variant === "live" ? dict.stage.referenceImage : dict.stage.reference}
         </p>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={match.task_reference_url}
-          alt="Referenzbild"
+          alt={dict.stage.referenceImage}
           className={`bg-white/5 ${maxH} w-auto rounded-2xl border border-white/10 object-contain shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]`}
         />
       </>
@@ -661,6 +660,7 @@ function RevealColumn({
   shownVotes: number;
   max: number;
 }) {
+  const { dict } = useI18n();
   const heightPct = max > 0 ? (shownVotes / max) * 100 : 0;
   // Visual winner/loser styling waits for `winnerRevealed`. During phases
   // 0–2 both columns look neutral so the audience focuses on the bars.
@@ -699,7 +699,7 @@ function RevealColumn({
             showWinnerStyle ? "h-[45vh]" : "h-[35vh]"
           }`}
         >
-          Keine Bildgenerierung
+          {dict.stage.noImage}
         </div>
       )}
       {/*
@@ -715,10 +715,10 @@ function RevealColumn({
           }`}
         >
           <p className="text-white/40 text-xs uppercase tracking-[0.25em]">
-            Prompt
+            {dict.stage.promptLabel}
           </p>
           <p className="text-white mt-1.5 whitespace-pre-wrap break-words text-xl leading-snug [overflow-wrap:anywhere]">
-            {prompt || <span className="text-white/30 italic">(kein Prompt)</span>}
+            {prompt || <span className="text-white/30 italic">{dict.stage.noPrompt}</span>}
           </p>
         </div>
       )}

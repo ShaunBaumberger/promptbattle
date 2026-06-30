@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Match, Participant } from "@/lib/types/database";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -15,6 +16,7 @@ interface Props {
  * resolves the winner participant.
  */
 export function ChampionView({ tournamentId, tournamentName }: Props) {
+  const { dict } = useI18n();
   const [final, setFinal] = useState<Match | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -50,7 +52,7 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
   if (!loaded) {
     return (
       <main className="bg-background flex flex-1 items-center justify-center p-12">
-        <p className="text-muted-foreground text-2xl">Lade Champion…</p>
+        <p className="text-muted-foreground text-2xl">{dict.stage.loadingChampion}</p>
       </main>
     );
   }
@@ -58,7 +60,9 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
   if (!final || !final.winner_id) {
     return (
       <main className="bg-background flex flex-1 items-center justify-center p-12 text-center">
-        <h1 className="text-6xl font-bold tracking-tight">{tournamentName} – Vorbei!</h1>
+        <h1 className="text-6xl font-bold tracking-tight">
+          {interpolate(dict.stage.tournamentOver, { name: tournamentName })}
+        </h1>
       </main>
     );
   }
@@ -86,7 +90,7 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
           {tournamentName}
         </p>
         <p className="text-amber-500 text-3xl font-bold uppercase tracking-[0.4em] drop-shadow-[0_0_20px_rgba(251,191,36,0.5)]">
-          Champion
+          {dict.stage.champion}
         </p>
       </div>
 
@@ -118,7 +122,8 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
 
       {runnerUpName && (
         <p className="text-muted-foreground z-10 text-xl delay-700 duration-700 animate-in fade-in fill-mode-both">
-          Vize-Champion: <span className="font-semibold">{runnerUpName}</span>
+          {dict.stage.runnerUp.split("{name}")[0]}
+          <span className="font-semibold">{runnerUpName}</span>
         </p>
       )}
     </main>

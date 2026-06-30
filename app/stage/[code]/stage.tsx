@@ -11,6 +11,7 @@ import { BracketView } from "./bracket-view";
 import { ChampionView } from "./champion-view";
 import { MatchStage } from "./match-stage";
 import { useStageAudio } from "./use-stage-audio";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -196,6 +197,7 @@ export function Stage({
 
 /** Floating button shown while the audio context hasn't been unlocked yet. */
 function AudioEnableGate({ onEnable }: { onEnable: () => void }) {
+  const { dict } = useI18n();
   return (
     <div className="fixed right-4 bottom-4 z-50">
       <Button
@@ -206,7 +208,7 @@ function AudioEnableGate({ onEnable }: { onEnable: () => void }) {
         className="gap-2 shadow-lg"
       >
         <Volume2 className="size-4" />
-        Audio aktivieren
+        {dict.stage.audioEnable}
       </Button>
     </div>
   );
@@ -225,6 +227,7 @@ function SetupView({
   participantCount: number;
   playerCount: PlayerCount;
 }) {
+  const { dict } = useI18n();
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-14 p-12">
       <header className="space-y-3 text-center duration-700 animate-in fade-in slide-in-from-top-2">
@@ -246,7 +249,7 @@ function SetupView({
         </div>
         <div className="space-y-2 text-center">
           <p className="text-white/70 text-2xl">
-            Scanne den Code oder gehe auf{" "}
+            {dict.stage.scanOrGoTo}{" "}
             <span className="text-white font-mono font-semibold">
               {joinUrl.replace(/^https?:\/\//, "") || "…"}
             </span>
@@ -262,8 +265,10 @@ function SetupView({
           {participantCount}
         </p>
         <p className="text-white/60 mt-1 text-xl">
-          {participantCount === 1 ? "Person beigetreten" : "Personen beigetreten"}{" "}
-          · {playerCount} Spieler:innen werden ausgewählt
+          {participantCount === 1
+            ? dict.stage.personJoined
+            : dict.stage.peopleJoined}{" "}
+          · {interpolate(dict.stage.playersSelected, { count: playerCount })}
         </p>
       </div>
     </main>
