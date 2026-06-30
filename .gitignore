@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local-only event assets — personal/reference photos used while running
+# tournaments. Never commit (this repo is public; these are private).
+/Promptbattle images/
+

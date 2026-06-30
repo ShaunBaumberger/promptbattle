@@ -1,10 +1,14 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Nano Banana Pro — Google's higher-fidelity image model. ~$0.134 per 1K
-// image vs $0.039 for gemini-2.5-flash-image, but noticeably better detail
-// and prompt adherence. Slower too (~15–25s).
-const MODEL = "gemini-3-pro-image-preview";
-const IMAGE_SIZE = "1K"; // "1K" | "2K" | "4K" — bigger = pricier (4K is $0.24).
+// Image model + size are env-configurable so self-hosters can trade cost
+// for quality without editing code (bring-your-own-key + bring-your-own-
+// model). Defaults match what we run in production: Nano Banana Pro —
+// Google's higher-fidelity model (~$0.134 per 1K image, noticeably better
+// prompt adherence than gemini-2.5-flash-image at $0.039, ~15–25s slower).
+// See .env.local.example for the menu of supported models and pricing.
+const MODEL =
+  process.env.GEMINI_IMAGE_MODEL?.trim() || "gemini-3-pro-image-preview";
+const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE?.trim() || "1K"; // "1K" | "2K" | "4K"
 
 let cached: GoogleGenAI | null = null;
 

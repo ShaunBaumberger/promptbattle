@@ -1,7 +1,9 @@
 {
   "name": "promptbattle",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "license": "AGPL-3.0-or-later",
+  "description": "Live prompt-battle tournament — players compete to recreate AI images/videos from their phones, shown on a projector. Self-hostable, bring-your-own Gemini key.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
