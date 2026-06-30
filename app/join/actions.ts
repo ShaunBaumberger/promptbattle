@@ -1,6 +1,8 @@
 "use server";
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getServerDictionary } from "@/lib/i18n/server";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 export type JoinState =
   | { status: "idle" }
@@ -13,10 +15,12 @@ export async function joinTournamentAction(
 ): Promise<JoinState> {
   const code = String(formData.get("code") ?? "").trim().toUpperCase();
   const name = String(formData.get("name") ?? "").trim();
+  // Errors are localized to the player's chosen language (cookie-driven).
+  const { dict } = await getServerDictionary();
 
-  if (!code) return { status: "error", error: "Code fehlt." };
-  if (!name) return { status: "error", error: "Bitte einen Namen angeben." };
-  if (name.length > 40) return { status: "error", error: "Name ist zu lang (max. 40 Zeichen)." };
+  if (!code) return { status: "error", error: dict.join.errCodeMissing };
+  if (!name) return { status: "error", error: dict.join.errNameRequired };
+  if (name.length > 40) return { status: "error", error: dict.join.errNameTooLong };
 
   const supabase = createServiceRoleClient();
 
@@ -27,13 +31,13 @@ export async function joinTournamentAction(
     .maybeSingle();
 
   if (lookupErr) {
-    return { status: "error", error: "Turnier konnte nicht geladen werden." };
+    return { status: "error", error: dict.join.errLoadFailed };
   }
   if (!tournament) {
-    return { status: "error", error: "Ungültiger Code." };
+    return { status: "error", error: dict.join.errInvalidCode };
   }
   if (tournament.status === "finished") {
-    return { status: "error", error: "Dieses Turnier ist bereits beendet." };
+    return { status: "error", error: dict.join.errFinished };
   }
 
   const { data: participant, error: insertErr } = await supabase
@@ -45,7 +49,9 @@ export async function joinTournamentAction(
   if (insertErr || !participant) {
     return {
       status: "error",
-      error: `Beitritt fehlgeschlagen: ${insertErr?.message ?? "unbekannter Fehler"}`,
+      error: interpolate(dict.join.errFailed, {
+        msg: insertErr?.message ?? "unknown error",
+      }),
     };
   }
 

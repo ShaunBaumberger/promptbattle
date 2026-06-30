@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { joinTournamentAction, type JoinState } from "./actions";
 import { participantStorageKey } from "@/lib/participant-storage";
+import { useI18n } from "@/lib/i18n/context";
 
 const initial: JoinState = { status: "idle" };
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function JoinFlow({ tournamentName, tournamentCode }: Props) {
+  const { dict } = useI18n();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [state, formAction, pending] = useActionState(joinTournamentAction, initial);
@@ -39,7 +41,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
   if (checking) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
-        <p className="text-white/40 text-sm">Lade…</p>
+        <p className="text-white/40 text-sm">{dict.common.loading}</p>
       </main>
     );
   }
@@ -57,7 +59,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
           <input type="hidden" name="code" value={tournamentCode} />
           <div className="flex flex-col gap-2">
             <Label htmlFor="name" className="text-white/70 text-sm font-medium">
-              Dein Name (für alle Spieler:innen sichtbar)
+              {dict.join.nameLabel}
             </Label>
             <Input
               id="name"
@@ -85,7 +87,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
             disabled={pending || state.status === "ok"}
             className="bg-white text-black hover:bg-white/90 active:scale-[0.98] h-14 rounded-2xl text-base font-semibold transition-transform"
           >
-            {pending || state.status === "ok" ? "Trete bei…" : "Beitreten"}
+            {pending || state.status === "ok" ? dict.join.joining : dict.join.joinButton}
           </Button>
         </form>
       </div>

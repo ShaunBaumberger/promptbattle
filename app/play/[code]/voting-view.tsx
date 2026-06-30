@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match } from "@/lib/types/database";
 import { castVoteAction } from "@/app/admin/[id]/voting-actions";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   match: Match;
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function VotingView({ match, participantId, aName, bName }: Props) {
+  const { dict } = useI18n();
   const [voted, setVoted] = useState<"A" | "B" | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -25,7 +26,9 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
       } else {
         setVoted(choice);
         toast.success(
-          `Stimme abgegeben für ${choice === "A" ? aName : bName}.`,
+          interpolate(dict.vote.voteCastFor, {
+            name: choice === "A" ? aName : bName,
+          }),
         );
       }
     });
@@ -35,24 +38,22 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
     <main className="flex flex-1 flex-col gap-5 p-4 duration-500 animate-in fade-in slide-in-from-bottom-2">
       <header className="flex items-center justify-between">
         <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
-          {ROUND_LABELS[match.round]}
+          {dict.rounds[match.round]}
         </span>
         <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-sky-300 backdrop-blur">
           <span className="bg-sky-400 inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
-          Voting läuft
+          {dict.vote.votingLive}
         </span>
       </header>
 
       <div className="space-y-1.5 text-center">
         <h1 className="text-white text-3xl font-semibold tracking-tight">
-          Wer hat besser gepromptet?
+          {dict.vote.whoPromptedBetter}
         </h1>
-        <p className="text-white/60 text-sm">
-          Tippe auf das Bild, das deiner Meinung nach gewinnen soll.
-        </p>
+        <p className="text-white/60 text-sm">{dict.vote.tapImageToWin}</p>
         {match.task_text && (
           <p className="text-white/40 pt-2 text-xs">
-            Aufgabe: „{match.task_text}"
+            {interpolate(dict.vote.taskLabel, { task: match.task_text })}
           </p>
         )}
       </div>
@@ -76,7 +77,7 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
 
       {voted && (
         <p className="text-white/50 text-center text-sm">
-          Du kannst deine Stimme bis zum Voting-Ende ändern.
+          {dict.vote.canChangeVote}
         </p>
       )}
     </main>
@@ -96,6 +97,7 @@ function VoteCard({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const { dict } = useI18n();
   return (
     <button
       type="button"
@@ -111,7 +113,7 @@ function VoteCard({
         <span className="text-white text-lg font-semibold">{name}</span>
         {selected && (
           <span className="rounded-full bg-sky-400 px-2.5 py-0.5 text-xs font-semibold text-black">
-            Deine Wahl
+            {dict.vote.yourChoice}
           </span>
         )}
       </div>
@@ -120,13 +122,13 @@ function VoteCard({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={resultUrl}
-            alt={`Ergebnis von ${name}`}
+            alt={interpolate(dict.vote.resultOf, { name })}
             className="h-full w-full object-contain"
           />
         </div>
       ) : (
         <div className="bg-white/5 text-white/40 flex aspect-square w-full items-center justify-center rounded-2xl text-sm italic">
-          Keine Bildgenerierung
+          {dict.vote.noImage}
         </div>
       )}
     </button>

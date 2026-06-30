@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { ROUND_LABELS } from "@/lib/rounds";
 import type { Match } from "@/lib/types/database";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 import { lockMatchAction } from "@/app/admin/[id]/match-actions";
 import {
   generateMatchImagesAction,
@@ -26,6 +25,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
   // status-based view switches happen AFTER all hooks. Putting any hook
   // below an early return changes the hook count between renders and
   // crashes React with "Rendered fewer hooks…".
+  const { dict } = useI18n();
   const isPlayerA = match.player_a_id === participantId;
   const initialPrompt = isPlayerA ? match.prompt_a : match.prompt_b;
   const ownPrompt = isPlayerA ? match.prompt_a : match.prompt_b;
@@ -233,7 +233,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
     >
       <header className="flex shrink-0 items-center justify-between">
         <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
-          {ROUND_LABELS[match.round]}
+          {dict.rounds[match.round]}
         </span>
         <p
           className={`tabular-nums text-3xl font-semibold tracking-tight transition-colors ${
@@ -249,8 +249,8 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
         <div className="bg-white/5 flex shrink-0 flex-col gap-1.5 rounded-2xl border border-white/10 p-4 backdrop-blur">
           <p className="text-white/40 text-xs uppercase tracking-widest">
             {match.task_kind === "video"
-              ? "Generiere ein Video von:"
-              : "Generiere ein Bild von:"}
+              ? dict.play.generateVideoOf
+              : dict.play.generateImageOf}
           </p>
           <p className="text-white text-lg font-medium leading-snug break-words [overflow-wrap:anywhere]">
             {match.task_text}
@@ -277,7 +277,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
                 className="max-h-full max-w-full object-contain"
               />
               <span className="bg-black/70 text-white/90 pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/10 px-3 py-1 text-[11px] font-medium backdrop-blur">
-                Tippen zum Vergrößern
+                {dict.play.tapToEnlarge}
               </span>
             </>
           ) : (
@@ -298,8 +298,8 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
         onChange={(e) => setPrompt(e.target.value)}
         placeholder={
           match.task_kind === "video"
-            ? "Beschreibe das Video so präzise wie möglich…"
-            : "Beschreibe das Bild so präzise wie möglich…"
+            ? dict.play.videoPlaceholder
+            : dict.play.imagePlaceholder
         }
         disabled={locked}
         className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 h-28 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
@@ -314,7 +314,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
         >
           <header className="flex w-full shrink-0 items-center justify-between text-white">
             <span className="text-sm uppercase tracking-widest opacity-70">
-              Tippen zum Schließen
+              {dict.play.tapToClose}
             </span>
             <span
               className={`font-mono text-xl font-bold ${
@@ -345,42 +345,43 @@ function PreparingPhoneView({
   opponentName: string;
   side: "left" | "right";
 }) {
+  const { dict } = useI18n();
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
       <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
-        {ROUND_LABELS[round]}
+        {dict.rounds[round]}
       </span>
       <div className="flex flex-col items-center gap-3">
-        <p className="text-white/60 text-base">Mach dich bereit</p>
+        <p className="text-white/60 text-base">{dict.play.prepareReady}</p>
         <p className="text-white text-3xl font-semibold tracking-tight">
-          Du sitzt {side === "left" ? "links" : "rechts"}
+          {side === "left" ? dict.play.youSitLeft : dict.play.youSitRight}
         </p>
         <p className="text-white/60 mt-2 text-base">
-          vs. <span className="text-white font-medium">{opponentName}</span>
+          {dict.play.versus.split("{name}")[0]}
+          <span className="text-white font-medium">{opponentName}</span>
         </p>
       </div>
       <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-6 py-4 backdrop-blur">
-        <p className="text-amber-100 text-sm">
-          Die Aufgabe erscheint, sobald der Host startet.
-        </p>
+        <p className="text-amber-100 text-sm">{dict.play.taskAppearsWhenHost}</p>
       </div>
     </main>
   );
 }
 
 function GeneratingView({ round }: { round: Match["round"] }) {
+  const { dict } = useI18n();
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
       <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
-        {ROUND_LABELS[round]}
+        {dict.rounds[round]}
       </span>
       <div className="flex flex-col items-center gap-5">
         <div className="border-white/15 border-t-sky-400 h-14 w-14 animate-spin rounded-full border-4" />
         <p className="text-white text-2xl font-semibold tracking-tight">
-          Bilder werden generiert
+          {dict.play.generatingTitle}
         </p>
         <p className="text-white/50 max-w-xs text-sm leading-relaxed">
-          Schau auf die Bühne — gleich gibt&apos;s das Reveal.
+          {dict.play.generatingHint}
         </p>
       </div>
     </main>
@@ -400,70 +401,69 @@ function ResultView({
   opponentName: string;
   didWin: boolean | null;
 }) {
+  const { dict } = useI18n();
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 duration-500 animate-in fade-in">
       <header className="flex items-center justify-between">
         <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
-          {ROUND_LABELS[round]}
+          {dict.rounds[round]}
         </span>
-        <p className="text-white/50 text-sm">vs. {opponentName}</p>
+        <p className="text-white/50 text-sm">
+          {interpolate(dict.play.versus, { name: opponentName })}
+        </p>
       </header>
 
       {didWin === true && (
         <div className="rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-center backdrop-blur duration-700 animate-in zoom-in-95">
           <p className="text-white text-3xl font-semibold tracking-tight">
-            🏆 Gewonnen
+            {dict.play.wonTitle}
           </p>
           {round !== "FINAL" && (
-            <p className="text-white/60 mt-1 text-sm">
-              Du bist eine Runde weiter. Bleib in der App.
-            </p>
+            <p className="text-white/60 mt-1 text-sm">{dict.play.advancedText}</p>
           )}
         </div>
       )}
       {didWin === false && (
         <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-center backdrop-blur duration-500 animate-in fade-in">
           <p className="text-white text-3xl font-semibold tracking-tight">
-            Knapp daneben.
+            {dict.play.lostTitle}
           </p>
           {round !== "FINAL" && (
-            <p className="text-white/60 mt-1 text-sm">
-              Du bist raus. Schau das Finale auf der Bühne.
-            </p>
+            <p className="text-white/60 mt-1 text-sm">{dict.play.lostText}</p>
           )}
         </div>
       )}
 
       <p className="text-white/40 text-xs uppercase tracking-widest">
-        Dein Ergebnis
+        {dict.play.yourResult}
       </p>
       {resultUrl ? (
         <div className="bg-white/5 relative aspect-square w-full overflow-hidden rounded-2xl border border-white/10 backdrop-blur">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={resultUrl}
-            alt="Dein generiertes Bild"
+            alt={dict.play.yourResult}
             className="h-full w-full object-contain"
           />
         </div>
       ) : (
         <div className="bg-white/5 text-white/40 flex aspect-square w-full items-center justify-center rounded-2xl border border-white/10 text-sm italic backdrop-blur">
-          Bildgenerierung fehlgeschlagen
+          {dict.play.generationFailed}
         </div>
       )}
 
       <div className="bg-white/5 rounded-2xl border border-white/10 p-4 backdrop-blur">
         <p className="text-white/40 text-xs uppercase tracking-widest">
-          Dein Prompt
+          {dict.play.yourPrompt}
         </p>
         <p className="text-white mt-1.5 whitespace-pre-wrap break-words text-base leading-relaxed">
-          {prompt || <span className="text-white/40 italic">(leer)</span>}
+          {prompt || <span className="text-white/40 italic">{dict.play.emptyPrompt}</span>}
         </p>
       </div>
 
       {didWin === null && (
         <p className="text-white/50 text-center text-sm">
-          Das Voting läuft auf der Bühne.
+          {dict.play.votingOnStage}
         </p>
       )}
     </main>

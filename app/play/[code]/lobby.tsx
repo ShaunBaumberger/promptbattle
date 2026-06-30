@@ -13,6 +13,8 @@ import type {
 } from "@/lib/types/database";
 import { MatchPlay } from "./match-play";
 import { VotingView } from "./voting-view";
+import { useI18n, interpolate } from "@/lib/i18n/context";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 interface Props {
   tournamentId: string;
@@ -29,6 +31,7 @@ export function Lobby({
   initialStatus,
   initialCurrentMatchId,
 }: Props) {
+  const { dict } = useI18n();
   const router = useRouter();
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [participant, setParticipant] = useState<Participant | null>(null);
@@ -68,7 +71,7 @@ export function Lobby({
       if (error || !data) {
         window.localStorage.removeItem(participantStorageKey(tournamentCode));
         router.replace(`/?code=${tournamentCode}`);
-        setLoadError("Sitzung abgelaufen, bitte erneut beitreten.");
+        setLoadError(dict.lobby.sessionExpired);
         return;
       }
       setParticipant(data as Participant);
@@ -264,7 +267,7 @@ export function Lobby({
     return <Center>{loadError}</Center>;
   }
   if (!participantId || !participant) {
-    return <Center>Lade…</Center>;
+    return <Center>{dict.common.loading}</Center>;
   }
 
   const isOneOfTheTwoPlayers =
@@ -307,7 +310,7 @@ export function Lobby({
     status === "live" &&
     participant.is_player &&
     myActiveMatchCount === 0;
-  const message = renderMessage(status, participant, eliminated);
+  const message = renderMessage(dict, status, participant, eliminated);
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 p-6 text-center duration-500 animate-in fade-in">
@@ -316,7 +319,7 @@ export function Lobby({
           {tournamentName}
         </p>
         <h1 className="text-white text-3xl font-semibold tracking-tight">
-          Hallo, {participant.name}
+          {interpolate(dict.lobby.greeting, { name: participant.name })}
         </h1>
       </div>
 
@@ -337,7 +340,7 @@ export function Lobby({
         <div className="flex items-center gap-2">
           <span className="bg-sky-400 inline-block h-2 w-2 animate-pulse rounded-full" />
           <span className="text-white/50 text-xs uppercase tracking-widest">
-            Bleib in der App
+            {dict.lobby.stayInApp}
           </span>
         </div>
       )}
@@ -346,6 +349,7 @@ export function Lobby({
 }
 
 function renderMessage(
+  dict: Dictionary,
   status: TournamentStatus,
   participant: Participant,
   eliminated: boolean,
@@ -353,39 +357,39 @@ function renderMessage(
   if (status === "finished") {
     return {
       icon: "🏁",
-      badge: "Turnier beendet",
-      text: "Vielen Dank fürs Mitmachen!",
+      badge: dict.lobby.finishedBadge,
+      text: dict.lobby.finishedText,
       pulse: false,
     };
   }
   if (status === "setup") {
     return {
       icon: "⏳",
-      badge: "Warteraum",
-      text: "Das Turnier startet gleich. Bleib in der App — du wirst entweder selber spielen oder gleich für die besten Bilder abstimmen.",
+      badge: dict.lobby.waitingBadge,
+      text: dict.lobby.waitingText,
       pulse: true,
     };
   }
   if (eliminated) {
     return {
       icon: "🫡",
-      badge: "Du bist ausgeschieden",
-      text: "Du kannst weiter für die anderen Matches abstimmen.",
+      badge: dict.lobby.eliminatedBadge,
+      text: dict.lobby.eliminatedText,
       pulse: true,
     };
   }
   if (participant.is_player) {
     return {
       icon: "🎮",
-      badge: "Du bist Spieler:in",
-      text: "Warte auf dein nächstes Match. Bei den anderen Matches kannst du zwischendurch abstimmen.",
+      badge: dict.lobby.playerBadge,
+      text: dict.lobby.playerText,
       pulse: true,
     };
   }
   return {
     icon: "👀",
-    badge: "Du bist Zuschauer:in",
-    text: "Bei jedem Match kannst du für das beste Bild abstimmen.",
+    badge: dict.lobby.viewerBadge,
+    text: dict.lobby.viewerText,
     pulse: true,
   };
 }
