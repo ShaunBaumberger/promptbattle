@@ -8,6 +8,8 @@ import { shuffle } from "@/lib/bracket";
 import { getRoundsForPlayerCount } from "@/lib/rounds";
 import { generateJoinCode } from "@/lib/join-code";
 import type { PlayerCount, Round } from "@/lib/types/database";
+import { getServerDictionary } from "@/lib/i18n/server";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 const VALID_ROUNDS: readonly Round[] = ["R32", "R16", "QF", "SF", "FINAL"] as const;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -26,19 +28,22 @@ export async function createTaskAction(
   const round = String(formData.get("round") ?? "") as Round;
   const kind = String(formData.get("kind") ?? "image");
   const internalLabel = String(formData.get("internal_label") ?? "").trim() || null;
+  const { dict } = await getServerDictionary();
 
-  if (!VALID_ROUNDS.includes(round)) return { error: "Ungültige Runde." };
+  if (!VALID_ROUNDS.includes(round)) return { error: dict.admin.err.invalidRound };
   if (kind !== "image" && kind !== "text" && kind !== "video") {
-    return { error: "Ungültiger Aufgabentyp." };
+    return { error: dict.admin.err.invalidTaskType };
   }
 
   // Text and video tasks share the same input shape — a text prompt.
   // The discriminator is `kind`, which downstream generation branches on.
   if (kind === "text" || kind === "video") {
     const text = String(formData.get("text_prompt") ?? "").trim();
-    if (!text) return { error: "Bitte einen Prompt eingeben." };
+    if (!text) return { error: dict.admin.err.promptRequired };
     if (text.length > MAX_TEXT_LENGTH) {
-      return { error: `Text ist zu lang (max. ${MAX_TEXT_LENGTH} Zeichen).` };
+      return {
+        error: interpolate(dict.admin.err.textTooLong, { max: MAX_TEXT_LENGTH }),
+      };
     }
 
     const supabase = createServiceRoleClient();
@@ -50,7 +55,9 @@ export async function createTaskAction(
       round,
     });
     if (insertErr) {
-      return { error: `Task konnte nicht gespeichert werden: ${insertErr.message}` };
+      return {
+        error: interpolate(dict.admin.err.taskSaveFailed, { msg: insertErr.message }),
+      };
     }
     revalidatePath(`/admin/${tournamentId}`);
     return {};
@@ -58,11 +65,11 @@ export async function createTaskAction(
 
   // Image task
   const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { error: "Bitte ein Bild auswählen." };
+  if (!file || file.size === 0) return { error: dict.admin.err.imageRequired };
   if (!ALLOWED_MIME.includes(file.type)) {
-    return { error: "Nur JPG, PNG oder WEBP erlaubt." };
+    return { error: dict.admin.err.imageFormatError };
   }
-  if (file.size > MAX_BYTES) return { error: "Bild ist zu groß (max. 5 MB)." };
+  if (file.size > MAX_BYTES) return { error: dict.admin.err.imageTooLarge };
 
   const supabase = createServiceRoleClient();
 
@@ -74,7 +81,9 @@ export async function createTaskAction(
     .from(STORAGE_BUCKET)
     .upload(storagePath, buffer, { contentType: file.type, upsert: false });
 
-  if (uploadErr) return { error: `Upload fehlgeschlagen: ${uploadErr.message}` };
+  if (uploadErr) {
+    return { error: interpolate(dict.admin.err.uploadFailed, { msg: uploadErr.message }) };
+  }
 
   const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath);
 
@@ -88,7 +97,9 @@ export async function createTaskAction(
 
   if (insertErr) {
     await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
-    return { error: `Task konnte nicht gespeichert werden: ${insertErr.message}` };
+    return {
+      error: interpolate(dict.admin.err.taskSaveFailed, { msg: insertErr.message }),
+    };
   }
 
   revalidatePath(`/admin/${tournamentId}`);
@@ -126,7 +137,8 @@ export async function updateRoundTimeAction(
   seconds: number,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!Number.isFinite(seconds) || seconds < 10 || seconds > 600) {
-    return { ok: false, error: "Rundenzeit muss zwischen 10 und 600 Sekunden liegen." };
+    const { dict } = await getServerDictionary();
+    return { ok: false, error: dict.admin.roundTimeRangeError };
   }
   const supabase = createServiceRoleClient();
   const { error } = await supabase
@@ -149,14 +161,15 @@ export async function updateRoundTimeOverrideAction(
   round: Round,
   seconds: number | null,
 ): Promise<{ ok: boolean; error?: string }> {
+  const { dict } = await getServerDictionary();
   if (!["R32", "R16", "QF", "SF", "FINAL"].includes(round)) {
-    return { ok: false, error: "Ungültige Runde." };
+    return { ok: false, error: dict.admin.err.invalidRound };
   }
   if (
     seconds !== null &&
     (!Number.isFinite(seconds) || seconds < 10 || seconds > 600)
   ) {
-    return { ok: false, error: "Rundenzeit muss zwischen 10 und 600 Sekunden liegen." };
+    return { ok: false, error: dict.admin.roundTimeRangeError };
   }
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
@@ -164,7 +177,7 @@ export async function updateRoundTimeOverrideAction(
     .select("round_time_overrides")
     .eq("id", tournamentId)
     .maybeSingle();
-  if (!tournament) return { ok: false, error: "Turnier nicht gefunden." };
+  if (!tournament) return { ok: false, error: dict.admin.err.tournamentNotFound };
 
   const overrides = {
     ...((tournament.round_time_overrides as Partial<Record<Round, number>>) ?? {}),
@@ -191,8 +204,9 @@ export async function updatePlayerCountAction(
   tournamentId: string,
   newPlayerCount: number,
 ): Promise<{ ok: boolean; error?: string }> {
+  const { dict } = await getServerDictionary();
   if (![2, 4, 8, 16, 32].includes(newPlayerCount)) {
-    return { ok: false, error: "Spieleranzahl muss 2, 4, 8, 16 oder 32 sein." };
+    return { ok: false, error: dict.admin.err.playerCountInvalid };
   }
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
@@ -200,11 +214,11 @@ export async function updatePlayerCountAction(
     .select("status")
     .eq("id", tournamentId)
     .maybeSingle();
-  if (!tournament) return { ok: false, error: "Turnier nicht gefunden." };
+  if (!tournament) return { ok: false, error: dict.admin.err.tournamentNotFound };
   if (tournament.status !== "setup") {
     return {
       ok: false,
-      error: "Spieleranzahl kann nur vor dem Turnier-Start geändert werden.",
+      error: dict.admin.err.playerCountLockedError,
     };
   }
   // Just update player_count — skip_image_generation is now driven by the
@@ -357,6 +371,7 @@ export async function startBracketAction(
   _formData: FormData,
 ): Promise<StartBracketState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: tournament, error: tErr } = await supabase
     .from("tournaments")
@@ -364,9 +379,9 @@ export async function startBracketAction(
     .eq("id", tournamentId)
     .maybeSingle();
 
-  if (tErr || !tournament) return { error: "Turnier nicht gefunden." };
+  if (tErr || !tournament) return { error: dict.admin.err.tournamentNotFound };
   if (tournament.status !== "setup") {
-    return { error: "Turnier wurde bereits gestartet." };
+    return { error: dict.admin.err.tournamentAlreadyStarted };
   }
 
   const playerCount = tournament.player_count as PlayerCount;
@@ -379,7 +394,10 @@ export async function startBracketAction(
 
   if (!participants || participants.length < playerCount) {
     return {
-      error: `Nicht genug Teilnehmer: ${participants?.length ?? 0} von ${playerCount} benötigt.`,
+      error: interpolate(dict.admin.err.notEnoughParticipants, {
+        have: participants?.length ?? 0,
+        need: playerCount,
+      }),
     };
   }
 
@@ -394,7 +412,11 @@ export async function startBracketAction(
     const have = tasksByRound.get(spec.round)?.length ?? 0;
     if (have < spec.matches) {
       return {
-        error: `Nicht genug Tasks für ${spec.label}: ${have} von ${spec.matches} benötigt.`,
+        error: interpolate(dict.admin.err.notEnoughTasks, {
+          label: dict.rounds[spec.round],
+          have,
+          need: spec.matches,
+        }),
       };
     }
   }
@@ -406,7 +428,11 @@ export async function startBracketAction(
     .update({ is_player: true })
     .in("id", selectedIds);
 
-  if (updateErr) return { error: `Spieler konnten nicht markiert werden: ${updateErr.message}` };
+  if (updateErr) {
+    return {
+      error: interpolate(dict.admin.err.playersMarkFailed, { msg: updateErr.message }),
+    };
+  }
 
   const matchRows: Array<{
     tournament_id: string;
@@ -457,7 +483,9 @@ export async function startBracketAction(
       .from("participants")
       .update({ is_player: false })
       .in("id", selectedIds);
-    return { error: `Matches konnten nicht erstellt werden: ${insertErr.message}` };
+    return {
+      error: interpolate(dict.admin.err.matchesCreateFailed, { msg: insertErr.message }),
+    };
   }
 
   // Track use_count so the no-repeat rotation rule has accurate baseline data.
@@ -473,7 +501,11 @@ export async function startBracketAction(
     .update({ status: "live" })
     .eq("id", tournamentId);
 
-  if (statusErr) return { error: `Status-Update fehlgeschlagen: ${statusErr.message}` };
+  if (statusErr) {
+    return {
+      error: interpolate(dict.admin.err.statusUpdateFailed, { msg: statusErr.message }),
+    };
+  }
 
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };

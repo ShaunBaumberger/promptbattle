@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getNextSlot } from "@/lib/bracket";
 import type { PlayerCount, Round } from "@/lib/types/database";
+import { getServerDictionary } from "@/lib/i18n/server";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 export type VotingActionState = { error?: string; ok?: boolean };
 
@@ -47,6 +49,7 @@ export async function startVotingAction(
   _formData: FormData,
 ): Promise<VotingActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
@@ -54,9 +57,9 @@ export async function startVotingAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { error: "Match nicht gefunden." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
   if (match.status !== "reveal") {
-    return { error: "Voting kann nur nach dem Reveal gestartet werden." };
+    return { error: dict.admin.err.votingAfterReveal };
   }
 
   const { error } = await supabase
@@ -65,7 +68,9 @@ export async function startVotingAction(
     .eq("id", matchId)
     .eq("status", "reveal");
 
-  if (error) return { error: `Voting konnte nicht gestartet werden: ${error.message}` };
+  if (error) {
+    return { error: interpolate(dict.admin.err.votingStartFailed, { msg: error.message }) };
+  }
 
   revalidatePath(`/admin/${match.tournament_id}`);
   return { ok: true };
@@ -81,6 +86,7 @@ export async function endVotingAction(
   _formData: FormData,
 ): Promise<VotingActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
@@ -90,10 +96,10 @@ export async function endVotingAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { error: "Match nicht gefunden." };
-  if (match.status !== "voting") return { error: "Voting ist nicht aktiv." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
+  if (match.status !== "voting") return { error: dict.admin.err.votingNotActive };
   if (!match.player_a_id || !match.player_b_id) {
-    return { error: "Spieler fehlen für dieses Match." };
+    return { error: dict.admin.err.playersMissing };
   }
 
   const { data: votes } = await supabase
@@ -116,10 +122,7 @@ export async function endVotingAction(
       .eq("id", matchId);
     revalidatePath(`/admin/${match.tournament_id}`);
     return {
-      error:
-        votesA === 0
-          ? "Keine Stimmen — bitte Sieger manuell wählen."
-          : "Unentschieden — bitte Sieger manuell wählen.",
+      error: votesA === 0 ? dict.admin.err.noVotesTie : dict.admin.err.tie,
     };
   }
 
@@ -135,7 +138,9 @@ export async function endVotingAction(
     })
     .eq("id", matchId);
 
-  if (matchErr) return { error: `Sieger konnte nicht gespeichert werden: ${matchErr.message}` };
+  if (matchErr) {
+    return { error: interpolate(dict.admin.err.winnerSaveFailed, { msg: matchErr.message }) };
+  }
 
   // Bracket advance / tournament finish.
   const { data: tournament } = await supabase
@@ -143,7 +148,7 @@ export async function endVotingAction(
     .select("player_count, is_test_mode")
     .eq("id", match.tournament_id)
     .maybeSingle();
-  if (!tournament) return { error: "Turnier nicht gefunden." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
 
   const playerCount = tournament.player_count as PlayerCount;
   const next = getNextSlot(match.round as Round, match.bracket_position, playerCount);
@@ -157,7 +162,9 @@ export async function endVotingAction(
       .eq("round", next.round)
       .eq("bracket_position", next.position);
     if (advanceErr) {
-      return { error: `Bracket-Vorschub fehlgeschlagen: ${advanceErr.message}` };
+      return {
+        error: interpolate(dict.admin.err.bracketAdvanceFailed, { msg: advanceErr.message }),
+      };
     }
   } else if (!tournament.is_test_mode) {
     // Final match of a real tournament: mark tournament finished.
@@ -166,7 +173,11 @@ export async function endVotingAction(
       .from("tournaments")
       .update({ status: "finished" })
       .eq("id", match.tournament_id);
-    if (tErr) return { error: `Turnier-Abschluss fehlgeschlagen: ${tErr.message}` };
+    if (tErr) {
+      return {
+        error: interpolate(dict.admin.err.tournamentFinishFailed, { msg: tErr.message }),
+      };
+    }
   }
 
   revalidatePath(`/admin/${match.tournament_id}`);
@@ -197,8 +208,9 @@ export async function castVoteAction(
   participantId: string,
   choice: "A" | "B",
 ): Promise<{ ok: boolean; error?: string }> {
+  const { dict } = await getServerDictionary();
   if (choice !== "A" && choice !== "B") {
-    return { ok: false, error: "Ungültige Auswahl." };
+    return { ok: false, error: dict.admin.err.invalidChoice };
   }
 
   const supabase = createServiceRoleClient();
@@ -209,13 +221,13 @@ export async function castVoteAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { ok: false, error: "Match nicht gefunden." };
-  if (match.status !== "voting") return { ok: false, error: "Voting ist nicht aktiv." };
+  if (!match) return { ok: false, error: dict.admin.err.matchNotFound };
+  if (match.status !== "voting") return { ok: false, error: dict.admin.err.votingNotActive };
   if (
     participantId === match.player_a_id ||
     participantId === match.player_b_id
   ) {
-    return { ok: false, error: "Spieler dieses Matches dürfen nicht abstimmen." };
+    return { ok: false, error: dict.admin.err.playersCantVote };
   }
 
   const { data: participant } = await supabase
@@ -225,7 +237,7 @@ export async function castVoteAction(
     .maybeSingle();
 
   if (!participant || participant.tournament_id !== match.tournament_id) {
-    return { ok: false, error: "Du bist kein:e Teilnehmer:in dieses Turniers." };
+    return { ok: false, error: dict.admin.err.notParticipant };
   }
 
   const { error } = await supabase

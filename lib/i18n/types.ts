@@ -325,5 +325,78 @@ export interface Dictionary {
     videoBadge: string;
     textBadge: string;
     deleteBtn: string;
+    // server-action error messages (returned to toasts). `{msg}` carries a
+    // raw backend detail; other placeholders as noted.
+    err: {
+      tournamentNotFound: string;
+      matchNotFound: string;
+      taskNotFound: string;
+      invalidRound: string;
+      invalidTaskType: string;
+      promptRequired: string;
+      imageRequired: string;
+      imageFormatError: string;
+      imageTooLarge: string;
+      /** "{max}" */
+      textTooLong: string;
+      /** "{msg}" */
+      taskSaveFailed: string;
+      /** "{msg}" */
+      uploadFailed: string;
+      playerCountInvalid: string;
+      playerCountLockedError: string;
+      tournamentAlreadyStarted: string;
+      /** "{have}", "{need}" */
+      notEnoughParticipants: string;
+      /** "{label}", "{have}", "{need}" */
+      notEnoughTasks: string;
+      /** "{msg}" */
+      playersMarkFailed: string;
+      /** "{msg}" */
+      matchesCreateFailed: string;
+      /** "{msg}" */
+      statusUpdateFailed: string;
+      tournamentNotLive: string;
+      currentMatchNotDone: string;
+      noStartableMatch: string;
+      matchNoTask: string;
+      matchAlreadyPrepared: string;
+      matchNotPrepared: string;
+      /** "{msg}" */
+      prepareFailed: string;
+      /** "{msg}" */
+      tournamentUpdateFailed: string;
+      /** "{msg}" */
+      matchStartFailed: string;
+      replayTestOnly: string;
+      playersMissing: string;
+      noTasksForRound: string;
+      /** "{msg}" */
+      resetFailed: string;
+      winnerAfterReveal: string;
+      invalidWinner: string;
+      /** "{msg}" */
+      winnerSaveFailed: string;
+      /** "{msg}" */
+      bracketAdvanceFailed: string;
+      /** "{msg}" */
+      tournamentFinishFailed: string;
+      restartOnlyActive: string;
+      /** "{msg}" */
+      restartFailed: string;
+      matchNotLive: string;
+      /** "{msg}" */
+      lockFailed: string;
+      votingAfterReveal: string;
+      votingNotActive: string;
+      /** "{msg}" */
+      votingStartFailed: string;
+      invalidChoice: string;
+      playersCantVote: string;
+      notParticipant: string;
+      wrongPassword: string;
+      noVotesTie: string;
+      tie: string;
+    };
   };
 }

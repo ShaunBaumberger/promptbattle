@@ -5,6 +5,8 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getNextSlot, shuffle } from "@/lib/bracket";
 import { getRoundsForPlayerCount, roundTimeFor } from "@/lib/rounds";
 import type { PlayerCount, Round } from "@/lib/types/database";
+import { getServerDictionary } from "@/lib/i18n/server";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 export type MatchActionState = { error?: string; ok?: boolean };
 
@@ -25,6 +27,7 @@ export async function prepareNextMatchAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: tournament } = await supabase
     .from("tournaments")
@@ -32,8 +35,8 @@ export async function prepareNextMatchAction(
     .eq("id", tournamentId)
     .maybeSingle();
 
-  if (!tournament) return { error: "Turnier nicht gefunden." };
-  if (tournament.status !== "live") return { error: "Turnier läuft nicht." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
+  if (tournament.status !== "live") return { error: dict.admin.err.tournamentNotLive };
 
   // Block if another match is currently in flight (anything except done).
   if (tournament.current_match_id) {
@@ -43,7 +46,7 @@ export async function prepareNextMatchAction(
       .eq("id", tournament.current_match_id)
       .maybeSingle();
     if (current && current.status !== "done") {
-      return { error: "Aktuelles Match ist noch nicht abgeschlossen." };
+      return { error: dict.admin.err.currentMatchNotDone };
     }
   }
 
@@ -60,7 +63,7 @@ export async function prepareNextMatchAction(
     .order("bracket_position", { ascending: true });
 
   if (!pending || pending.length === 0) {
-    return { error: "Kein startbares Match gefunden." };
+    return { error: dict.admin.err.noStartableMatch };
   }
 
   const sorted = [...pending].sort((a, b) => {
@@ -70,7 +73,7 @@ export async function prepareNextMatchAction(
     return a.bracket_position - b.bracket_position;
   });
   const next = sorted[0];
-  if (!next.task_id) return { error: "Match hat keine Task zugewiesen." };
+  if (!next.task_id) return { error: dict.admin.err.matchNoTask };
 
   // Atomic guard: only flip pending → preparing if it's still pending.
   const { error: matchErr, data: claimed } = await supabase
@@ -81,15 +84,17 @@ export async function prepareNextMatchAction(
     .select("id")
     .maybeSingle();
   if (matchErr) {
-    return { error: `Match-Vorbereitung fehlgeschlagen: ${matchErr.message}` };
+    return { error: interpolate(dict.admin.err.prepareFailed, { msg: matchErr.message }) };
   }
-  if (!claimed) return { error: "Match wurde bereits vorbereitet." };
+  if (!claimed) return { error: dict.admin.err.matchAlreadyPrepared };
 
   const { error: tErr } = await supabase
     .from("tournaments")
     .update({ current_match_id: next.id })
     .eq("id", tournamentId);
-  if (tErr) return { error: `Turnier-Update fehlgeschlagen: ${tErr.message}` };
+  if (tErr) {
+    return { error: interpolate(dict.admin.err.tournamentUpdateFailed, { msg: tErr.message }) };
+  }
 
   revalidatePath(`/admin/${tournamentId}`);
   return { ok: true };
@@ -107,31 +112,32 @@ export async function startCurrentMatchAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
     .select("id, status, round, task_id, tournament_id")
     .eq("id", matchId)
     .maybeSingle();
-  if (!match) return { error: "Match nicht gefunden." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
   if (match.status !== "preparing") {
-    return { error: "Match wurde noch nicht vorbereitet." };
+    return { error: dict.admin.err.matchNotPrepared };
   }
-  if (!match.task_id) return { error: "Match hat keine Task zugewiesen." };
+  if (!match.task_id) return { error: dict.admin.err.matchNoTask };
 
   const { data: tournament } = await supabase
     .from("tournaments")
     .select("round_time_seconds, round_time_overrides")
     .eq("id", match.tournament_id)
     .maybeSingle();
-  if (!tournament) return { error: "Turnier nicht gefunden." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
 
   const { data: task } = await supabase
     .from("tasks")
     .select("reference_image_url, text_prompt, kind")
     .eq("id", match.task_id)
     .maybeSingle();
-  if (!task) return { error: "Task nicht gefunden." };
+  if (!task) return { error: dict.admin.err.taskNotFound };
 
   const seconds = roundTimeFor(
     match.round as Round,
@@ -155,7 +161,9 @@ export async function startCurrentMatchAction(
     })
     .eq("id", matchId)
     .eq("status", "preparing");
-  if (error) return { error: `Match-Start fehlgeschlagen: ${error.message}` };
+  if (error) {
+    return { error: interpolate(dict.admin.err.matchStartFailed, { msg: error.message }) };
+  }
 
   revalidatePath(`/admin/${match.tournament_id}`);
   return { ok: true };
@@ -172,6 +180,7 @@ export async function clearCurrentMatchAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: tournament } = await supabase
     .from("tournaments")
@@ -179,7 +188,7 @@ export async function clearCurrentMatchAction(
     .eq("id", tournamentId)
     .maybeSingle();
 
-  if (!tournament) return { error: "Turnier nicht gefunden." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
   if (!tournament.current_match_id) return { ok: true };
 
   const { data: match } = await supabase
@@ -189,7 +198,7 @@ export async function clearCurrentMatchAction(
     .maybeSingle();
 
   if (match && match.status !== "done") {
-    return { error: "Aktuelles Match ist noch nicht abgeschlossen." };
+    return { error: dict.admin.err.currentMatchNotDone };
   }
 
   const { error } = await supabase
@@ -240,6 +249,7 @@ export async function replayMatchAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
@@ -247,7 +257,7 @@ export async function replayMatchAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { error: "Match nicht gefunden." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
 
   const { data: tournament } = await supabase
     .from("tournaments")
@@ -255,15 +265,15 @@ export async function replayMatchAction(
     .eq("id", match.tournament_id)
     .maybeSingle();
 
-  if (!tournament) return { error: "Turnier nicht gefunden." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
   if (!tournament.is_test_mode) {
-    return { error: "Match-Wiederholung ist nur im Test-Modus erlaubt." };
+    return { error: dict.admin.err.replayTestOnly };
   }
   if (tournament.status !== "live") {
-    return { error: "Turnier läuft nicht." };
+    return { error: dict.admin.err.tournamentNotLive };
   }
   if (!match.player_a_id || !match.player_b_id) {
-    return { error: "Spieler fehlen für dieses Match." };
+    return { error: dict.admin.err.playersMissing };
   }
 
   // No-repeat rotation: pick from the least-used tasks in this round so a task
@@ -276,7 +286,7 @@ export async function replayMatchAction(
     .eq("round", match.round);
 
   if (!tasks || tasks.length === 0) {
-    return { error: "Keine Tasks für diese Runde gefunden." };
+    return { error: dict.admin.err.noTasksForRound };
   }
   const minUse = Math.min(...tasks.map((t) => (t.use_count as number | null) ?? 0));
   const candidates = tasks.filter(
@@ -312,7 +322,9 @@ export async function replayMatchAction(
     })
     .eq("id", matchId);
 
-  if (matchErr) return { error: `Reset fehlgeschlagen: ${matchErr.message}` };
+  if (matchErr) {
+    return { error: interpolate(dict.admin.err.resetFailed, { msg: matchErr.message }) };
+  }
 
   // Track the new task assignment for the rotation rule.
   await supabase
@@ -326,7 +338,9 @@ export async function replayMatchAction(
     .update({ current_match_id: matchId })
     .eq("id", tournament.id);
 
-  if (tErr) return { error: `Turnier-Update fehlgeschlagen: ${tErr.message}` };
+  if (tErr) {
+    return { error: interpolate(dict.admin.err.tournamentUpdateFailed, { msg: tErr.message }) };
+  }
 
   revalidatePath(`/admin/${tournament.id}`);
   return { ok: true };
@@ -344,6 +358,7 @@ export async function setMatchWinnerAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
@@ -351,12 +366,12 @@ export async function setMatchWinnerAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { error: "Match nicht gefunden." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
   if (match.status !== "reveal" && match.status !== "voting") {
-    return { error: "Sieger kann nur nach dem Reveal gewählt werden." };
+    return { error: dict.admin.err.winnerAfterReveal };
   }
   if (winnerId !== match.player_a_id && winnerId !== match.player_b_id) {
-    return { error: "Ungültiger Sieger." };
+    return { error: dict.admin.err.invalidWinner };
   }
 
   const { data: tournament } = await supabase
@@ -365,7 +380,7 @@ export async function setMatchWinnerAction(
     .eq("id", match.tournament_id)
     .maybeSingle();
 
-  if (!tournament) return { error: "Turnier nicht gefunden." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
 
   // Capture current vote tally so the stage's reveal animation has data even
   // when the admin overrides voting manually (e.g. on a tie or shortcut).
@@ -390,7 +405,9 @@ export async function setMatchWinnerAction(
     })
     .eq("id", matchId);
 
-  if (matchErr) return { error: `Sieger konnte nicht gespeichert werden: ${matchErr.message}` };
+  if (matchErr) {
+    return { error: interpolate(dict.admin.err.winnerSaveFailed, { msg: matchErr.message }) };
+  }
 
   const playerCount = tournament.player_count as PlayerCount;
   const next = getNextSlot(match.round as Round, match.bracket_position, playerCount);
@@ -404,7 +421,9 @@ export async function setMatchWinnerAction(
       .eq("round", next.round)
       .eq("bracket_position", next.position);
     if (advanceErr) {
-      return { error: `Bracket-Vorschub fehlgeschlagen: ${advanceErr.message}` };
+      return {
+        error: interpolate(dict.admin.err.bracketAdvanceFailed, { msg: advanceErr.message }),
+      };
     }
   } else if (!tournament.is_test_mode) {
     // Final match of a real tournament: mark tournament finished.
@@ -413,7 +432,11 @@ export async function setMatchWinnerAction(
       .from("tournaments")
       .update({ status: "finished" })
       .eq("id", tournament.id);
-    if (tErr) return { error: `Turnier-Abschluss fehlgeschlagen: ${tErr.message}` };
+    if (tErr) {
+      return {
+        error: interpolate(dict.admin.err.tournamentFinishFailed, { msg: tErr.message }),
+      };
+    }
   }
 
   revalidatePath(`/admin/${match.tournament_id}`);
@@ -434,6 +457,7 @@ export async function restartLiveMatchAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
@@ -441,7 +465,7 @@ export async function restartLiveMatchAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { error: "Match nicht gefunden." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
   if (
     match.status !== "live" &&
     match.status !== "locked" &&
@@ -449,11 +473,11 @@ export async function restartLiveMatchAction(
     match.status !== "reveal"
   ) {
     return {
-      error: "Match kann nur während eines aktiven Matches neu gestartet werden.",
+      error: dict.admin.err.restartOnlyActive,
     };
   }
   if (!match.player_a_id || !match.player_b_id) {
-    return { error: "Spieler fehlen für dieses Match." };
+    return { error: dict.admin.err.playersMissing };
   }
 
   const { data: tournament } = await supabase
@@ -462,7 +486,7 @@ export async function restartLiveMatchAction(
     .eq("id", match.tournament_id)
     .maybeSingle();
 
-  if (!tournament) return { error: "Turnier nicht gefunden." };
+  if (!tournament) return { error: dict.admin.err.tournamentNotFound };
 
   const seconds = roundTimeFor(
     match.round as Round,
@@ -486,7 +510,9 @@ export async function restartLiveMatchAction(
     })
     .eq("id", matchId);
 
-  if (matchErr) return { error: `Restart fehlgeschlagen: ${matchErr.message}` };
+  if (matchErr) {
+    return { error: interpolate(dict.admin.err.restartFailed, { msg: matchErr.message }) };
+  }
 
   await supabase
     .from("tournaments")
@@ -508,6 +534,7 @@ export async function lockMatchAction(
   _formData: FormData,
 ): Promise<MatchActionState> {
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
@@ -515,9 +542,9 @@ export async function lockMatchAction(
     .eq("id", matchId)
     .maybeSingle();
 
-  if (!match) return { error: "Match nicht gefunden." };
+  if (!match) return { error: dict.admin.err.matchNotFound };
   if (match.status === "locked" || match.status === "done") return { ok: true };
-  if (match.status !== "live") return { error: "Match ist nicht live." };
+  if (match.status !== "live") return { error: dict.admin.err.matchNotLive };
 
   const now = new Date();
   const endTime = match.end_time ? new Date(match.end_time) : now;
@@ -529,7 +556,9 @@ export async function lockMatchAction(
     .eq("id", matchId)
     .eq("status", "live");
 
-  if (error) return { error: `Lock fehlgeschlagen: ${error.message}` };
+  if (error) {
+    return { error: interpolate(dict.admin.err.lockFailed, { msg: error.message }) };
+  }
 
   revalidatePath(`/admin/${match.tournament_id}`);
   return { ok: true };
