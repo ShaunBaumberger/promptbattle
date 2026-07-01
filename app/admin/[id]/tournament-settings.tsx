@@ -13,6 +13,7 @@ import {
   updateRoundTimeOverrideAction,
 } from "./actions";
 import { setSkipGenerationAction } from "./match-actions";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -23,13 +24,7 @@ interface Props {
   status: TournamentStatus;
 }
 
-const PLAYER_COUNT_OPTIONS: Array<{ value: PlayerCount; label: string }> = [
-  { value: 2, label: "2 Spieler" },
-  { value: 4, label: "4 Spieler" },
-  { value: 8, label: "8 Spieler" },
-  { value: 16, label: "16 Spieler" },
-  { value: 32, label: "32 Spieler" },
-];
+const PLAYER_COUNT_VALUES: PlayerCount[] = [2, 4, 8, 16, 32];
 
 export function TournamentSettings({
   tournamentId,
@@ -39,6 +34,7 @@ export function TournamentSettings({
   initialSkipGeneration,
   status,
 }: Props) {
+  const { dict } = useI18n();
   const [playerCount, setPlayerCount] = useState<PlayerCount>(initialPlayerCount);
   const [roundTime, setRoundTime] = useState<number>(initialRoundTime);
   const [skipGeneration, setSkipGeneration] = useState<boolean>(initialSkipGeneration);
@@ -57,7 +53,7 @@ export function TournamentSettings({
         toast.error(result.error);
         setPlayerCount(previous);
       } else {
-        toast.success("Spieleranzahl aktualisiert.");
+        toast.success(dict.admin.playerCountUpdated);
       }
     });
   };
@@ -69,7 +65,7 @@ export function TournamentSettings({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Rundenzeit aktualisiert.");
+        toast.success(dict.admin.roundTimeUpdated);
       }
     });
   };
@@ -86,9 +82,7 @@ export function TournamentSettings({
         setSkipGeneration(previous); // rollback optimistic update
       } else {
         toast.success(
-          wantSkip
-            ? "Test-Modus aktiv — keine API-Aufrufe an Gemini."
-            : "Live-Modus aktiv — Bilder & Videos werden generiert.",
+          wantSkip ? dict.admin.testModeActive : dict.admin.liveModeActive,
         );
       }
     });
@@ -96,10 +90,10 @@ export function TournamentSettings({
 
   return (
     <div className="space-y-4 rounded-md border p-4">
-      <h2 className="text-base font-semibold">Einstellungen</h2>
+      <h2 className="text-base font-semibold">{dict.admin.settings}</h2>
 
       <div className="flex flex-col gap-2">
-        <Label>Modus</Label>
+        <Label>{dict.admin.mode}</Label>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -108,7 +102,7 @@ export function TournamentSettings({
             onClick={() => setMode("test")}
             disabled={modePending}
           >
-            🧪 Test-Modus
+            {dict.admin.testModeBtn}
           </Button>
           <Button
             type="button"
@@ -117,19 +111,17 @@ export function TournamentSettings({
             onClick={() => setMode("live")}
             disabled={modePending}
           >
-            🚀 Live-Modus
+            {dict.admin.liveModeBtn}
           </Button>
         </div>
         <p className="text-muted-foreground text-xs">
-          {skipGeneration
-            ? "Test-Modus: spart API-Kosten — weder Bilder noch Videos werden generiert."
-            : "Live-Modus: Bilder werden mit Nano Banana Pro generiert, Videos (bei Video-Tasks) mit Veo 3 Fast."}
+          {skipGeneration ? dict.admin.testModeDesc : dict.admin.liveModeDesc}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="player_count_setting">Spieleranzahl</Label>
+          <Label htmlFor="player_count_setting">{dict.admin.playerCount}</Label>
           <select
             id="player_count_setting"
             value={playerCount}
@@ -137,23 +129,21 @@ export function TournamentSettings({
             disabled={playerCountLocked || pcPending}
             className="border-input bg-background h-9 rounded-md border px-3 text-sm disabled:opacity-60"
           >
-            {PLAYER_COUNT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {PLAYER_COUNT_VALUES.map((value) => (
+              <option key={value} value={value}>
+                {interpolate(dict.admin.playersN, { count: value })}
               </option>
             ))}
           </select>
           <p className="text-muted-foreground text-xs">
             {playerCountLocked
-              ? "Der Bracket läuft bereits — die Spieleranzahl ist gesperrt."
-              : "Kann bis zum Turnier-Start geändert werden."}
+              ? dict.admin.playerCountLockedHint
+              : dict.admin.playerCountEditableHint}
           </p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="round_time_setting">
-            Standard-Rundenzeit (Sekunden)
-          </Label>
+          <Label htmlFor="round_time_setting">{dict.admin.defaultRoundTime}</Label>
           <div className="flex gap-2">
             <Input
               id="round_time_setting"
@@ -170,11 +160,11 @@ export function TournamentSettings({
               onClick={saveRoundTime}
               disabled={rtPending || roundTime === initialRoundTime}
             >
-              {rtPending ? "Speichert…" : "Speichern"}
+              {rtPending ? dict.admin.saving : dict.admin.save}
             </Button>
           </div>
           <p className="text-muted-foreground text-xs">
-            Greift für jede Runde, die unten keinen eigenen Wert hat.
+            {dict.admin.roundTimeAppliesHint}
           </p>
         </div>
       </div>
@@ -206,6 +196,7 @@ function RoundTimeOverrides({
   defaultSeconds: number;
   initial: Partial<Record<Round, number>>;
 }) {
+  const { dict } = useI18n();
   const rounds = useMemo(
     () => getRoundsForPlayerCount(playerCount),
     [playerCount],
@@ -213,9 +204,9 @@ function RoundTimeOverrides({
   return (
     <div className="space-y-3 rounded-md border border-dashed p-3">
       <div>
-        <h3 className="text-sm font-semibold">Rundenzeit pro Runde</h3>
+        <h3 className="text-sm font-semibold">{dict.admin.roundTimePerRound}</h3>
         <p className="text-muted-foreground text-xs">
-          Optional. Leer lassen = Standard ({defaultSeconds}s) wird verwendet.
+          {interpolate(dict.admin.roundTimeOptionalHint, { seconds: defaultSeconds })}
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -224,7 +215,7 @@ function RoundTimeOverrides({
             key={spec.round}
             tournamentId={tournamentId}
             round={spec.round}
-            label={spec.label}
+            label={dict.rounds[spec.round]}
             initial={initial[spec.round] ?? null}
             placeholder={defaultSeconds}
           />
@@ -247,6 +238,7 @@ function RoundOverrideInput({
   initial: number | null;
   placeholder: number;
 }) {
+  const { dict } = useI18n();
   const [value, setValue] = useState<string>(initial != null ? String(initial) : "");
   const [pending, startTransition] = useTransition();
   const lastSaved = initial != null ? String(initial) : "";
@@ -256,13 +248,19 @@ function RoundOverrideInput({
     const trimmed = value.trim();
     const next = trimmed === "" ? null : Number(trimmed);
     if (next !== null && (!Number.isFinite(next) || next < 10 || next > 600)) {
-      toast.error("Rundenzeit muss zwischen 10 und 600 Sekunden liegen.");
+      toast.error(dict.admin.roundTimeRangeError);
       return;
     }
     startTransition(async () => {
       const result = await updateRoundTimeOverrideAction(tournamentId, round, next);
       if (result.error) toast.error(result.error);
-      else toast.success(`${label}: ${next === null ? "Standard" : `${next}s`}`);
+      else
+        toast.success(
+          interpolate(dict.admin.roundOverrideSaved, {
+            label,
+            value: next === null ? dict.admin.standardWord : `${next}s`,
+          }),
+        );
     });
   };
 
@@ -289,7 +287,7 @@ function RoundOverrideInput({
           onClick={save}
           disabled={pending || !dirty}
         >
-          {pending ? "…" : "OK"}
+          {pending ? "…" : dict.admin.ok}
         </Button>
       </div>
     </div>

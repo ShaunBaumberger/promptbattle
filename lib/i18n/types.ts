@@ -220,5 +220,110 @@ export interface Dictionary {
     selectAndStart: string;
     startingBracket: string;
     tournamentStarted: string;
+    // shared
+    save: string;
+    saving: string;
+    ok: string;
+    starting: string;
+    // settings
+    settings: string;
+    testModeBtn: string;
+    liveModeBtn: string;
+    testModeActive: string;
+    liveModeActive: string;
+    testModeDesc: string;
+    liveModeDesc: string;
+    playerCount: string;
+    playerCountLockedHint: string;
+    playerCountEditableHint: string;
+    playerCountUpdated: string;
+    defaultRoundTime: string;
+    roundTimeUpdated: string;
+    roundTimeAppliesHint: string;
+    roundTimePerRound: string;
+    /** "{seconds}" */
+    roundTimeOptionalHint: string;
+    roundTimeRangeError: string;
+    standardWord: string;
+    /** "{label}", "{value}" */
+    roundOverrideSaved: string;
+    // match-control — match status badge
+    mStatus: {
+      pending: string;
+      preparing: string;
+      live: string;
+      locked: string;
+      generating: string;
+      reveal: string;
+      voting: string;
+      done: string;
+    };
+    loadingMatchStatus: string;
+    matchControl: string;
+    /** "{n}" */
+    roundTimeLabel: string;
+    skipGenLabel: string;
+    skipGenDesc: string;
+    nothingWritten: string;
+    remainingLabel: string;
+    lockEarly: string;
+    locking: string;
+    playVideos: string;
+    /** "{name}" */
+    videoOf: string;
+    backToReveal: string;
+    videosGenerating: string;
+    startVoting: string;
+    /** "{n}" */
+    voteCountOne: string;
+    /** "{n}" */
+    voteCountMany: string;
+    votesHidden: string;
+    endVoting: string;
+    ending: string;
+    pickWinnerManual: string;
+    skipsVoting: string;
+    /** "{name}" */
+    winnerLabel: string;
+    backToBracket: string;
+    switching: string;
+    replayMatchTest: string;
+    noActiveMatch: string;
+    prepareMatch: string;
+    preparingMatch: string;
+    startMatch: string;
+    matchPrepared: string;
+    matchStarted: string;
+    matchLocked: string;
+    bracketShown: string;
+    votingStarted: string;
+    votingEnded: string;
+    winnerSaved: string;
+    // task-manager
+    newTask: string;
+    round: string;
+    internalLabel: string;
+    internalLabelPlaceholder: string;
+    taskType: string;
+    imageTask: string;
+    textTask: string;
+    videoTask: string;
+    referenceImageLabel: string;
+    chooseImage: string;
+    imageFormats: string;
+    remove: string;
+    imageTaskHint: string;
+    videoTaskLabel: string;
+    textTaskLabel: string;
+    videoTaskPlaceholder: string;
+    textTaskPlaceholder: string;
+    videoTaskHint: string;
+    textTaskHint: string;
+    savingTask: string;
+    addTask: string;
+    noTasksRound: string;
+    videoBadge: string;
+    textBadge: string;
+    deleteBtn: string;
   };
 }

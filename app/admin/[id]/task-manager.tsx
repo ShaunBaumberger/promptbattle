@@ -17,6 +17,7 @@ import {
 import type { PlayerCount, Round, Task } from "@/lib/types/database";
 import { taskKind } from "@/lib/types/database";
 import { getRoundsForPlayerCount, type RoundSpec } from "@/lib/rounds";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 /**
  * Pick the first round that still has missing tasks. Falls back to the last
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
+  const { dict } = useI18n();
   // Memoised so the array reference is stable across renders — the form-reset
   // effect depends on it and would otherwise fire on every render.
   const rounds = useMemo(
@@ -144,14 +146,14 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Neue Task hinzufügen</CardTitle>
+          <CardTitle>{dict.admin.newTask}</CardTitle>
         </CardHeader>
         <CardContent>
           <form ref={formRef} action={formAction} className="grid gap-4 sm:grid-cols-2">
             <input type="hidden" name="kind" value={kind} />
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="round">Runde</Label>
+              <Label htmlFor="round">{dict.admin.round}</Label>
               <select
                 id="round"
                 name="round"
@@ -162,23 +164,23 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
               >
                 {rounds.map((r) => (
                   <option key={r.round} value={r.round}>
-                    {r.label}
+                    {dict.rounds[r.round]}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="internal_label">Interne Bezeichnung (optional)</Label>
+              <Label htmlFor="internal_label">{dict.admin.internalLabel}</Label>
               <Input
                 id="internal_label"
                 name="internal_label"
-                placeholder="z. B. „Surrealistischer Wald"
+                placeholder={dict.admin.internalLabelPlaceholder}
               />
             </div>
 
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <Label>Aufgabentyp</Label>
+              <Label>{dict.admin.taskType}</Label>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -186,7 +188,7 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                   size="sm"
                   onClick={() => setKind("image")}
                 >
-                  Bildaufgabe
+                  {dict.admin.imageTask}
                 </Button>
                 <Button
                   type="button"
@@ -194,7 +196,7 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                   size="sm"
                   onClick={() => setKind("text")}
                 >
-                  Textaufgabe
+                  {dict.admin.textTask}
                 </Button>
                 <Button
                   type="button"
@@ -202,16 +204,14 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                   size="sm"
                   onClick={() => setKind("video")}
                 >
-                  Videoaufgabe
+                  {dict.admin.videoTask}
                 </Button>
               </div>
             </div>
 
             {kind === "image" ? (
               <div className="flex flex-col gap-2 sm:col-span-2">
-                <Label htmlFor="file">
-                  Referenzbild (JPG, PNG, WEBP – max. 5 MB)
-                </Label>
+                <Label htmlFor="file">{dict.admin.referenceImageLabel}</Label>
                 {/* Hidden native input — driven by the custom button / preview. */}
                 <input
                   ref={fileInputRef}
@@ -244,7 +244,7 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                         className="text-destructive hover:text-destructive w-fit gap-1"
                       >
                         <Trash2 className="size-4" />
-                        Entfernen
+                        {dict.admin.remove}
                       </Button>
                     </div>
                   </div>
@@ -256,20 +256,18 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                     className="border-input hover:bg-accent flex h-24 w-full flex-col items-center justify-center gap-1 border-2 border-dashed text-sm"
                   >
                     <ImageUp className="size-6" />
-                    <span>Bild auswählen</span>
+                    <span>{dict.admin.chooseImage}</span>
                     <span className="text-muted-foreground text-xs">
-                      JPG, PNG, WEBP · max. 5 MB
+                      {dict.admin.imageFormats}
                     </span>
                   </Button>
                 )}
-                <p className="text-muted-foreground text-xs">
-                  Spieler sehen das Bild und müssen es per Prompt rekonstruieren.
-                </p>
+                <p className="text-muted-foreground text-xs">{dict.admin.imageTaskHint}</p>
               </div>
             ) : (
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <Label htmlFor="text_prompt">
-                  {kind === "video" ? "Video-Aufgabe" : "Text-Aufgabe"}
+                  {kind === "video" ? dict.admin.videoTaskLabel : dict.admin.textTaskLabel}
                 </Label>
                 <Textarea
                   id="text_prompt"
@@ -278,21 +276,19 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                   rows={3}
                   placeholder={
                     kind === "video"
-                      ? 'z. B. „Ein Pelikan auf einem Fahrrad bei Sonnenuntergang."'
-                      : 'z. B. „Generiere ein Bild von einem Pelikan auf einem Fahrrad."'
+                      ? dict.admin.videoTaskPlaceholder
+                      : dict.admin.textTaskPlaceholder
                   }
                 />
                 <p className="text-muted-foreground text-xs">
-                  {kind === "video"
-                    ? "Spieler:innen sehen die Beschreibung und müssen ein Video dazu prompten. Veo 3 generiert ein 8-Sekunden-Clip."
-                    : "Spieler:innen sehen die Beschreibung und müssen das Bild dazu prompten."}
+                  {kind === "video" ? dict.admin.videoTaskHint : dict.admin.textTaskHint}
                 </p>
               </div>
             )}
 
             <div className="sm:col-span-2">
               <Button type="submit" disabled={pending}>
-                {pending ? "Wird gespeichert…" : "Task hinzufügen"}
+                {pending ? dict.admin.savingTask : dict.admin.addTask}
               </Button>
             </div>
           </form>
@@ -322,18 +318,22 @@ function RoundSection({
   tasks: Task[];
   tournamentId: string;
 }) {
+  const { dict } = useI18n();
   const complete = tasks.length >= spec.matches;
 
   return (
     <section className="space-y-3">
       <header className="flex items-center justify-between">
-        <h3 className="text-base font-semibold">{spec.label}</h3>
+        <h3 className="text-base font-semibold">{dict.rounds[spec.round]}</h3>
         <Badge variant={complete ? "default" : "secondary"}>
-          {tasks.length} / {spec.matches} Tasks
+          {interpolate(dict.admin.tasksProgress, {
+            have: tasks.length,
+            need: spec.matches,
+          })}
         </Badge>
       </header>
       {tasks.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Noch keine Tasks für diese Runde.</p>
+        <p className="text-muted-foreground text-sm">{dict.admin.noTasksRound}</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {tasks.map((task) => (
@@ -346,6 +346,7 @@ function RoundSection({
 }
 
 function TaskCard({ task, tournamentId }: { task: Task; tournamentId: string }) {
+  const { dict } = useI18n();
   const boundDelete = deleteTaskAction.bind(null, task.id, tournamentId);
   const kind = taskKind(task);
   return (
@@ -355,14 +356,14 @@ function TaskCard({ task, tournamentId }: { task: Task; tournamentId: string }) 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={task.reference_image_url ?? ""}
-            alt={task.internal_label ?? "Referenzbild"}
+            alt={task.internal_label ?? dict.stage.referenceImage}
             className="h-full w-full object-cover"
           />
         </div>
       ) : (
         <div className="bg-muted/40 flex aspect-square flex-col items-start justify-between gap-2 overflow-hidden rounded-md border p-3">
           <Badge variant={kind === "video" ? "default" : "outline"} className="text-xs">
-            {kind === "video" ? "🎬 Video" : "Text"}
+            {kind === "video" ? dict.admin.videoBadge : dict.admin.textBadge}
           </Badge>
           <p className="text-foreground line-clamp-6 text-sm leading-snug">
             {task.text_prompt}
@@ -374,7 +375,7 @@ function TaskCard({ task, tournamentId }: { task: Task; tournamentId: string }) 
       )}
       <form action={boundDelete}>
         <Button type="submit" variant="ghost" size="sm" className="w-full">
-          Löschen
+          {dict.admin.deleteBtn}
         </Button>
       </form>
     </div>

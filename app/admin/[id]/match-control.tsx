@@ -5,10 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
-import { ROUND_LABELS } from "@/lib/rounds";
 import type {
   Match,
-  MatchStatus,
   Participant,
   PlayerCount,
   Tournament,
@@ -36,6 +34,7 @@ import {
   pollMatchVideosAction,
 } from "./generation-actions";
 import { RestartMatchDialog } from "./restart-match-dialog";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -45,17 +44,6 @@ interface Props {
   initialSkipGeneration: boolean;
   isTestMode: boolean;
 }
-
-const STATUS_LABEL: Record<MatchStatus, string> = {
-  pending: "Bereit",
-  preparing: "In Vorbereitung",
-  live: "Läuft",
-  locked: "Zeit abgelaufen",
-  generating: "Bilder werden generiert",
-  reveal: "Reveal",
-  voting: "Voting",
-  done: "Abgeschlossen",
-};
 
 const initial: MatchActionState = {};
 
@@ -67,6 +55,7 @@ export function MatchControl({
   initialSkipGeneration,
   isTestMode,
 }: Props) {
+  const { dict } = useI18n();
   const [skipGeneration, setSkipGeneration] = useState(initialSkipGeneration);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(
     initialCurrentMatchId,
@@ -184,24 +173,24 @@ export function MatchControl({
 
   useEffect(() => {
     if (prepareState.error) toast.error(prepareState.error);
-    if (prepareState.ok) toast.success("Match vorbereitet.");
-  }, [prepareState]);
+    if (prepareState.ok) toast.success(dict.admin.matchPrepared);
+  }, [prepareState, dict]);
   useEffect(() => {
     if (startState.error) toast.error(startState.error);
-    if (startState.ok) toast.success("Match gestartet.");
-  }, [startState]);
+    if (startState.ok) toast.success(dict.admin.matchStarted);
+  }, [startState, dict]);
   useEffect(() => {
     if (lockState.error) toast.error(lockState.error);
-    if (lockState.ok) toast.success("Match gesperrt.");
-  }, [lockState]);
+    if (lockState.ok) toast.success(dict.admin.matchLocked);
+  }, [lockState, dict]);
   useEffect(() => {
     if (replayState.error) toast.error(replayState.error);
-    if (replayState.ok) toast.success("Match neu gestartet.");
-  }, [replayState]);
+    if (replayState.ok) toast.success(dict.admin.matchRestarted);
+  }, [replayState, dict]);
   useEffect(() => {
     if (clearState.error) toast.error(clearState.error);
-    if (clearState.ok) toast.success("Bracket angezeigt.");
-  }, [clearState]);
+    if (clearState.ok) toast.success(dict.admin.bracketShown);
+  }, [clearState, dict]);
 
   // Auto-fire generation when the match enters the locked state. Server-side
   // atomic guard ensures only one trigger wins if multiple clients fan out.
@@ -251,7 +240,7 @@ export function MatchControl({
         new FormData(),
       );
       if (result.error) toast.error(result.error);
-      if (result.ok) toast.success("Sieger gespeichert.");
+      if (result.ok) toast.success(dict.admin.winnerSaved);
     });
   };
 
@@ -268,12 +257,12 @@ export function MatchControl({
 
   useEffect(() => {
     if (startVotingState.error) toast.error(startVotingState.error);
-    if (startVotingState.ok) toast.success("Voting gestartet.");
-  }, [startVotingState]);
+    if (startVotingState.ok) toast.success(dict.admin.votingStarted);
+  }, [startVotingState, dict]);
   useEffect(() => {
     if (endVotingState.error) toast.error(endVotingState.error);
-    if (endVotingState.ok) toast.success("Voting beendet.");
-  }, [endVotingState]);
+    if (endVotingState.ok) toast.success(dict.admin.votingEnded);
+  }, [endVotingState, dict]);
 
   // Poll the vote count while voting is open, so the admin sees activity
   // without leaking per-player breakdown to anyone (anon clients can't read votes).
@@ -315,7 +304,7 @@ export function MatchControl({
   if (!loaded) {
     return (
       <div className="rounded-md border p-4">
-        <p className="text-muted-foreground text-sm">Lade Match-Status…</p>
+        <p className="text-muted-foreground text-sm">{dict.admin.loadingMatchStatus}</p>
       </div>
     );
   }
@@ -333,9 +322,9 @@ export function MatchControl({
   return (
     <div className="space-y-4 rounded-md border p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">Match-Steuerung</h2>
+        <h2 className="text-base font-semibold">{dict.admin.matchControl}</h2>
         <p className="text-muted-foreground text-xs">
-          Rundenzeit: {roundTimeSeconds}s
+          {interpolate(dict.admin.roundTimeLabel, { n: roundTimeSeconds })}
         </p>
       </div>
 
@@ -348,11 +337,9 @@ export function MatchControl({
             className="mt-0.5"
           />
           <span>
-            <span className="font-semibold">Bildgenerierung überspringen (Test)</span>
+            <span className="font-semibold">{dict.admin.skipGenLabel}</span>
             <br />
-            <span className="text-muted-foreground text-xs">
-              Spart API-Kosten beim Testen. Reveal hat dann keine Bilder.
-            </span>
+            <span className="text-muted-foreground text-xs">{dict.admin.skipGenDesc}</span>
           </span>
         </label>
       )}
@@ -361,9 +348,12 @@ export function MatchControl({
         <div className="space-y-3 rounded-md border p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold">
-              {ROUND_LABELS[match.round]} – Match {match.bracket_position + 1}
+              {interpolate(dict.stage.roundMatch, {
+                round: dict.rounds[match.round],
+                n: match.bracket_position + 1,
+              })}
             </p>
-            <Badge variant="secondary">{STATUS_LABEL[match.status]}</Badge>
+            <Badge variant="secondary">{dict.admin.mStatus[match.status]}</Badge>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <PlayerCell
@@ -382,7 +372,7 @@ export function MatchControl({
             <div className="flex flex-wrap gap-2">
               <form action={lockAction}>
                 <Button type="submit" variant="outline" size="sm" disabled={lockPending}>
-                  {lockPending ? "Wird gesperrt…" : "Vorzeitig sperren"}
+                  {lockPending ? dict.admin.locking : dict.admin.lockEarly}
                 </Button>
               </form>
               <RestartMatchDialog matchId={match.id} />
@@ -402,7 +392,7 @@ export function MatchControl({
             isReadyVideoUrl(match.video_a_url) &&
             isReadyVideoUrl(match.video_b_url) && (
               <div className="space-y-2 rounded-md border border-amber-400/40 bg-amber-400/5 p-3">
-                <p className="text-sm font-semibold">🎬 Videos abspielen</p>
+                <p className="text-sm font-semibold">{dict.admin.playVideos}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -410,7 +400,9 @@ export function MatchControl({
                     onClick={() => playVideo("A")}
                     disabled={videoPending}
                   >
-                    Video „{nameById.get(match.player_a_id ?? "") ?? "?"}"
+                    {interpolate(dict.admin.videoOf, {
+                      name: nameById.get(match.player_a_id ?? "") ?? "?",
+                    })}
                   </Button>
                   <Button
                     type="button"
@@ -418,7 +410,9 @@ export function MatchControl({
                     onClick={() => playVideo("B")}
                     disabled={videoPending}
                   >
-                    Video „{nameById.get(match.player_b_id ?? "") ?? "?"}"
+                    {interpolate(dict.admin.videoOf, {
+                      name: nameById.get(match.player_b_id ?? "") ?? "?",
+                    })}
                   </Button>
                 </div>
                 <Button
@@ -429,7 +423,7 @@ export function MatchControl({
                   disabled={videoPending}
                   className="w-full"
                 >
-                  Zurück zum Reveal
+                  {dict.admin.backToReveal}
                 </Button>
               </div>
             )}
@@ -438,30 +432,33 @@ export function MatchControl({
             (!isReadyVideoUrl(match.video_a_url) ||
               !isReadyVideoUrl(match.video_b_url)) && (
               <p className="text-muted-foreground rounded-md border border-dashed p-3 text-xs">
-                🎬 Videos werden generiert… (60–120s)
+                {dict.admin.videosGenerating}
               </p>
             )}
           {match.status === "reveal" && (
             <form action={startVotingFormAction}>
               <Button type="submit" disabled={startVotingPending}>
-                {startVotingPending ? "Wird gestartet…" : "Voting starten"}
+                {startVotingPending ? dict.admin.starting : dict.admin.startVoting}
               </Button>
             </form>
           )}
           {match.status === "voting" && (
             <div className="space-y-2 rounded-md border border-dashed p-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold">Voting läuft</p>
+                <p className="text-sm font-semibold">{dict.stage.votingLive}</p>
                 <Badge variant="secondary">
-                  {voteCount} {voteCount === 1 ? "Stimme" : "Stimmen"}
+                  {interpolate(
+                    voteCount === 1
+                      ? dict.admin.voteCountOne
+                      : dict.admin.voteCountMany,
+                    { n: voteCount },
+                  )}
                 </Badge>
               </div>
-              <p className="text-muted-foreground text-xs">
-                Einzelstimmen werden absichtlich nicht angezeigt.
-              </p>
+              <p className="text-muted-foreground text-xs">{dict.admin.votesHidden}</p>
               <form action={endVotingFormAction}>
                 <Button type="submit" disabled={endVotingPending}>
-                  {endVotingPending ? "Wird beendet…" : "Voting beenden"}
+                  {endVotingPending ? dict.admin.ending : dict.admin.endVoting}
                 </Button>
               </form>
             </div>
@@ -471,9 +468,9 @@ export function MatchControl({
             match.player_b_id && (
               <div className="space-y-2 rounded-md border border-dashed p-3">
                 <p className="text-sm font-semibold">
-                  Sieger manuell wählen{" "}
+                  {dict.admin.pickWinnerManual}{" "}
                   <span className="text-muted-foreground text-xs font-normal">
-                    (überspringt das Voting)
+                    {dict.admin.skipsVoting}
                   </span>
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -499,14 +496,14 @@ export function MatchControl({
           {match.status === "done" && match.winner_id && (
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-sm">
-                Sieger:{" "}
+                {dict.admin.winnerLabel.split("{name}")[0]}
                 <span className="font-semibold">
                   {nameById.get(match.winner_id) ?? "?"}
                 </span>
               </p>
               <form action={clearAction}>
                 <Button type="submit" variant="outline" size="sm" disabled={clearPending}>
-                  {clearPending ? "Wechselt…" : "Zurück zum Bracket"}
+                  {clearPending ? dict.admin.switching : dict.admin.backToBracket}
                 </Button>
               </form>
             </div>
@@ -514,13 +511,13 @@ export function MatchControl({
           {isTestMode && match.status !== "live" && (
             <form action={replayAction}>
               <Button type="submit" size="sm" variant="outline" disabled={replayPending}>
-                {replayPending ? "Wird neu gestartet…" : "Match neu starten (Test)"}
+                {replayPending ? dict.admin.restarting : dict.admin.replayMatchTest}
               </Button>
             </form>
           )}
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm">Kein Match aktiv.</p>
+        <p className="text-muted-foreground text-sm">{dict.admin.noActiveMatch}</p>
       )}
 
       {/* Two-step flow: prepare → start.
@@ -529,14 +526,14 @@ export function MatchControl({
       {(!match || match.status === "done") && (
         <form action={prepareAction}>
           <Button type="submit" disabled={preparePending}>
-            {preparePending ? "Wird vorbereitet…" : "Match vorbereiten"}
+            {preparePending ? dict.admin.preparingMatch : dict.admin.prepareMatch}
           </Button>
         </form>
       )}
       {match && match.status === "preparing" && (
         <form action={startAction}>
           <Button type="submit" disabled={startPending}>
-            {startPending ? "Wird gestartet…" : "Match starten"}
+            {startPending ? dict.admin.starting : dict.admin.startMatch}
           </Button>
         </form>
       )}
@@ -556,17 +553,19 @@ function isReadyVideoUrl(url: string | null): url is string {
 }
 
 function PlayerCell({ name, prompt }: { name: string; prompt: string }) {
+  const { dict } = useI18n();
   return (
     <div className="bg-muted/40 space-y-1 rounded-md p-2">
       <p className="font-semibold">{name}</p>
       <p className="text-muted-foreground line-clamp-3 text-xs italic">
-        {prompt ? `"${prompt}"` : "(noch nichts geschrieben)"}
+        {prompt ? `"${prompt}"` : dict.admin.nothingWritten}
       </p>
     </div>
   );
 }
 
 function CountdownLine({ endTime }: { endTime: string | null }) {
+  const { dict } = useI18n();
   const [remaining, setRemaining] = useState<number>(() => calcRemaining(endTime));
   useEffect(() => {
     setRemaining(calcRemaining(endTime));
@@ -576,7 +575,7 @@ function CountdownLine({ endTime }: { endTime: string | null }) {
 
   return (
     <p className="text-sm">
-      Verbleibend:{" "}
+      {dict.admin.remainingLabel}{" "}
       <span className="font-mono font-semibold">{remaining.toFixed(1)}s</span>
     </p>
   );
