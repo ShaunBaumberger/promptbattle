@@ -12,15 +12,11 @@ import { TournamentSettings } from "./tournament-settings";
 import { DeleteTournamentDialog } from "./delete-tournament-dialog";
 import { copyTournamentAction } from "./actions";
 import type { PlayerCount, Round } from "@/lib/types/database";
+import { getServerDictionary } from "@/lib/i18n/server";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 // Image generation can take ~15-25s; allow headroom for the server action.
 export const maxDuration = 60;
-
-const STATUS_LABELS: Record<Tournament["status"], string> = {
-  setup: "In Vorbereitung",
-  live: "Läuft",
-  finished: "Beendet",
-};
 
 export default async function TournamentAdminPage({
   params,
@@ -30,6 +26,7 @@ export default async function TournamentAdminPage({
   const { id } = await params;
 
   const supabase = createServiceRoleClient();
+  const { dict } = await getServerDictionary();
 
   const [{ data: tournament }, { data: tasks }, { data: participants }] = await Promise.all([
     supabase.from("tournaments").select("*").eq("id", id).maybeSingle(),
@@ -56,22 +53,22 @@ export default async function TournamentAdminPage({
     <main className="mx-auto w-full max-w-5xl flex-1 space-y-8 p-6">
       <div className="flex items-center justify-between">
         <Link href="/admin" className="text-muted-foreground hover:text-foreground text-sm">
-          ← Zurück
+          ← {dict.admin.back}
         </Link>
         <Badge variant="secondary">
-          {STATUS_LABELS[tournament.status as Tournament["status"]]}
+          {dict.admin.tStatus[tournament.status as Tournament["status"]]}
         </Badge>
       </div>
 
       <header className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
         <p className="text-muted-foreground text-sm">
-          Beitritts-Code:{" "}
+          {dict.admin.joinCodeLabel}{" "}
           <span className="bg-muted rounded px-2 py-0.5 font-mono">{tournament.code}</span>
           {" · "}
-          {tournament.player_count} Spieler
+          {interpolate(dict.admin.playersN, { count: tournament.player_count })}
           {" · "}
-          {tournament.round_time_seconds}s pro Runde
+          {interpolate(dict.admin.perRound, { n: tournament.round_time_seconds })}
         </p>
         <div className="flex flex-wrap gap-2 pt-2">
           <a
@@ -80,7 +77,7 @@ export default async function TournamentAdminPage({
             rel="noreferrer"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Bühnen-Ansicht öffnen ↗
+            {dict.admin.openStage}
           </a>
         </div>
       </header>
@@ -107,7 +104,7 @@ export default async function TournamentAdminPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Tasks</h2>
+        <h2 className="text-xl font-semibold">{dict.admin.tasksHeading}</h2>
         <TaskManager
           tournamentId={tournament.id}
           playerCount={tournament.player_count as PlayerCount}
@@ -140,25 +137,18 @@ export default async function TournamentAdminPage({
       )}
 
       <section className="space-y-3 rounded-md border p-4">
-        <h2 className="text-base font-semibold">Turnier duplizieren</h2>
-        <p className="text-muted-foreground text-sm">
-          Erstellt ein neues Turnier mit demselben Setup (Modus, Rundenzeit,
-          Tasks). Bilder werden kopiert. Neuer Beitritts-Code wird automatisch
-          generiert.
-        </p>
+        <h2 className="text-base font-semibold">{dict.admin.duplicate}</h2>
+        <p className="text-muted-foreground text-sm">{dict.admin.duplicateHint}</p>
         <form action={copyTournamentAction.bind(null, tournament.id)}>
           <Button type="submit" variant="outline" size="sm">
-            Turnier kopieren
+            {dict.admin.copyTournament}
           </Button>
         </form>
       </section>
 
       <section className="border-destructive/50 space-y-3 rounded-md border p-4">
-        <h2 className="text-base font-semibold">Gefahrenzone</h2>
-        <p className="text-muted-foreground text-sm">
-          Löscht das Turnier unwiderruflich – inklusive aller Tasks, Bilder, Teilnehmer:innen und
-          Matches.
-        </p>
+        <h2 className="text-base font-semibold">{dict.admin.dangerZone}</h2>
+        <p className="text-muted-foreground text-sm">{dict.admin.dangerHint}</p>
         <DeleteTournamentDialog
           tournamentId={tournament.id}
           tournamentName={tournament.name}

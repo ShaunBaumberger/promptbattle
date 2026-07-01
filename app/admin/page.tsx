@@ -6,6 +6,8 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { logoutAction } from "./login/actions";
 import { CreateTournamentForm } from "./create-tournament-form";
 import type { Tournament } from "@/lib/types/database";
+import { getServerDictionary } from "@/lib/i18n/server";
+import { interpolate } from "@/lib/i18n/interpolate";
 
 export const metadata = { title: "Admin · Prompt Battle" };
 
@@ -14,14 +16,9 @@ export const metadata = { title: "Admin · Prompt Battle" };
 // that have since been deleted.
 export const dynamic = "force-dynamic";
 
-const STATUS_LABELS: Record<Tournament["status"], string> = {
-  setup: "In Vorbereitung",
-  live: "Läuft",
-  finished: "Beendet",
-};
-
 export default async function AdminDashboardPage() {
   const supabase = createServiceRoleClient();
+  const { locale, dict } = await getServerDictionary();
   const { data: tournaments } = await supabase
     .from("tournaments")
     .select("*")
@@ -30,17 +27,17 @@ export default async function AdminDashboardPage() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-8 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Admin</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{dict.admin.title}</h1>
         <form action={logoutAction}>
           <Button type="submit" variant="ghost">
-            Abmelden
+            {dict.admin.logout}
           </Button>
         </form>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle>Neues Turnier erstellen</CardTitle>
+          <CardTitle>{dict.admin.createTournament}</CardTitle>
         </CardHeader>
         <CardContent>
           <CreateTournamentForm />
@@ -48,9 +45,9 @@ export default async function AdminDashboardPage() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Bestehende Turniere</h2>
+        <h2 className="text-lg font-semibold">{dict.admin.existingTournaments}</h2>
         {!tournaments?.length && (
-          <p className="text-muted-foreground text-sm">Noch keine Turniere vorhanden.</p>
+          <p className="text-muted-foreground text-sm">{dict.admin.noTournaments}</p>
         )}
         <div className="grid gap-3">
           {tournaments?.map((t) => (
@@ -62,14 +59,17 @@ export default async function AdminDashboardPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{t.name}</span>
-                  <Badge variant="secondary">{STATUS_LABELS[t.status as Tournament["status"]]}</Badge>
+                  <Badge variant="secondary">
+                    {dict.admin.tStatus[t.status as Tournament["status"]]}
+                  </Badge>
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Code: <span className="font-mono">{t.code}</span> · {t.player_count} Spieler
+                  {dict.admin.code} <span className="font-mono">{t.code}</span> ·{" "}
+                  {interpolate(dict.admin.playersN, { count: t.player_count })}
                 </p>
               </div>
               <span className="text-muted-foreground text-xs">
-                {new Date(t.created_at).toLocaleString("de-DE")}
+                {new Date(t.created_at).toLocaleString(locale)}
               </span>
             </Link>
           ))}

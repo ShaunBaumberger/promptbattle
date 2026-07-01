@@ -5,16 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAction, type LoginState } from "./actions";
+import { useI18n } from "@/lib/i18n/context";
 
 const initialState: LoginState = {};
 
 export function LoginForm() {
+  const { dict } = useI18n();
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Host-Passwort</Label>
+        <Label htmlFor="password">{dict.admin.hostPassword}</Label>
         <Input
           id="password"
           name="password"
@@ -30,7 +32,7 @@ export function LoginForm() {
         </p>
       )}
       <Button type="submit" disabled={pending}>
-        {pending ? "Anmelden…" : "Anmelden"}
+        {pending ? dict.admin.loggingIn : dict.admin.loginButton}
       </Button>
     </form>
   );

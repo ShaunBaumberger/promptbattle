@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { deleteTournamentAction } from "./actions";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function DeleteTournamentDialog({ tournamentId, tournamentName }: Props) {
+  const { dict } = useI18n();
   const [pending, setPending] = useState(false);
   const boundDelete = deleteTournamentAction.bind(null, tournamentId);
 
@@ -28,24 +30,22 @@ export function DeleteTournamentDialog({ tournamentId, tournamentName }: Props) 
       <DialogTrigger
         render={
           <Button variant="destructive" size="sm">
-            Turnier löschen
+            {dict.admin.deleteTournament}
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Turnier wirklich löschen?</DialogTitle>
+          <DialogTitle>{dict.admin.deleteConfirmTitle}</DialogTitle>
           <DialogDescription>
-            <strong className="text-foreground">„{tournamentName}"</strong> wird unwiderruflich
-            gelöscht – inklusive aller Tasks, Bilder, Teilnehmer und Matches. Diese Aktion
-            kann nicht rückgängig gemacht werden.
+            {interpolate(dict.admin.deleteConfirmBody, { name: tournamentName })}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline">Abbrechen</Button>} />
+          <DialogClose render={<Button variant="outline">{dict.admin.cancel}</Button>} />
           <form action={boundDelete} onSubmit={() => setPending(true)}>
             <Button type="submit" variant="destructive" disabled={pending}>
-              {pending ? "Wird gelöscht…" : "Endgültig löschen"}
+              {pending ? dict.admin.deleting : dict.admin.deleteFinal}
             </Button>
           </form>
         </DialogFooter>

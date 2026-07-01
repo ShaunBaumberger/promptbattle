@@ -143,4 +143,82 @@ export interface Dictionary {
       done: string;
     };
   };
+  /** Host/admin console. */
+  admin: {
+    title: string;
+    logout: string;
+    cancel: string;
+    back: string;
+    /** Tournament status badge. */
+    tStatus: { setup: string; live: string; finished: string };
+    // dashboard
+    createTournament: string;
+    existingTournaments: string;
+    noTournaments: string;
+    code: string;
+    /** "{count}" */
+    playersN: string;
+    // create form
+    tournamentName: string;
+    tournamentNamePlaceholder: string;
+    mode: string;
+    modeOpt2: string;
+    modeOpt4: string;
+    modeOpt8: string;
+    modeOpt16: string;
+    modeOpt32: string;
+    modeOptTest: string;
+    testModeHint: string;
+    roundTimeSeconds: string;
+    creating: string;
+    createButton: string;
+    // login
+    hostLogin: string;
+    loginSubtitle: string;
+    hostPassword: string;
+    loginButton: string;
+    loggingIn: string;
+    // delete dialog
+    deleteTournament: string;
+    deleteConfirmTitle: string;
+    /** "{name}" */
+    deleteConfirmBody: string;
+    deleting: string;
+    deleteFinal: string;
+    // restart-match dialog
+    restartMatch: string;
+    restartConfirmTitle: string;
+    restartConfirmBody: string;
+    restarting: string;
+    restartYes: string;
+    matchRestarted: string;
+    // tournament [id] page chrome
+    joinCodeLabel: string;
+    /** "{n}" */
+    perRound: string;
+    openStage: string;
+    tasksHeading: string;
+    duplicate: string;
+    duplicateHint: string;
+    copyTournament: string;
+    dangerZone: string;
+    dangerHint: string;
+    // participants
+    participants: string;
+    /** "{total}", "{players}", "{viewers}" */
+    participantsSummary: string;
+    noParticipants: string;
+    playerBadge: string;
+    // start-bracket form
+    startTournament: string;
+    /** "{count}" */
+    startTournamentHint: string;
+    /** "{have}", "{need}" */
+    participantsProgress: string;
+    /** "{have}", "{need}" */
+    tasksProgress: string;
+    selectAndStart: string;
+    startingBracket: string;
+    tournamentStarted: string;
+  };
 }

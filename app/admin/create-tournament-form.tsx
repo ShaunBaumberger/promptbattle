@@ -5,21 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createTournamentAction, type CreateTournamentState } from "./actions";
+import { useI18n } from "@/lib/i18n/context";
 
 const initial: CreateTournamentState = {};
 
 export function CreateTournamentForm() {
+  const { dict } = useI18n();
   const [state, formAction, pending] = useActionState(createTournamentAction, initial);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Turnier-Name</Label>
-        <Input id="name" name="name" required placeholder="z. B. Prompt Battle 2026" />
+        <Label htmlFor="name">{dict.admin.tournamentName}</Label>
+        <Input
+          id="name"
+          name="name"
+          required
+          placeholder={dict.admin.tournamentNamePlaceholder}
+        />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="mode">Modus</Label>
+        <Label htmlFor="mode">{dict.admin.mode}</Label>
         <select
           id="mode"
           name="mode"
@@ -27,21 +34,18 @@ export function CreateTournamentForm() {
           defaultValue="8"
           className="border-input bg-background h-9 rounded-md border px-3 text-sm"
         >
-          <option value="2">2 Spieler (nur Finale)</option>
-          <option value="4">4 Spieler (Halbfinale → Finale)</option>
-          <option value="8">8 Spieler (Viertelfinale → Finale)</option>
-          <option value="16">16 Spieler (Achtelfinale → Finale)</option>
-          <option value="32">32 Spieler (Sechzehntelfinale → Finale)</option>
-          <option value="test">Test-Modus (Debug · 2 Spieler)</option>
+          <option value="2">{dict.admin.modeOpt2}</option>
+          <option value="4">{dict.admin.modeOpt4}</option>
+          <option value="8">{dict.admin.modeOpt8}</option>
+          <option value="16">{dict.admin.modeOpt16}</option>
+          <option value="32">{dict.admin.modeOpt32}</option>
+          <option value="test">{dict.admin.modeOptTest}</option>
         </select>
-        <p className="text-muted-foreground text-xs">
-          Test-Modus: Match-Wiederholung, Bildgenerierung-Skip, kein
-          automatisches Turnier-Ende.
-        </p>
+        <p className="text-muted-foreground text-xs">{dict.admin.testModeHint}</p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="round_time_seconds">Rundenzeit (Sekunden)</Label>
+        <Label htmlFor="round_time_seconds">{dict.admin.roundTimeSeconds}</Label>
         <Input
           id="round_time_seconds"
           name="round_time_seconds"
@@ -59,7 +63,7 @@ export function CreateTournamentForm() {
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? "Wird erstellt…" : "Turnier erstellen"}
+        {pending ? dict.admin.creating : dict.admin.createButton}
       </Button>
     </form>
   );

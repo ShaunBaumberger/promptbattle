@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import type { Participant } from "@/lib/types/database";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ParticipantsList({ tournamentId, initialParticipants }: Props) {
+  const { dict } = useI18n();
   const [participants, setParticipants] = useState<Participant[]>(initialParticipants);
 
   useEffect(() => {
@@ -68,14 +70,18 @@ export function ParticipantsList({ tournamentId, initialParticipants }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-xl font-semibold">Teilnehmer</h2>
+        <h2 className="text-xl font-semibold">{dict.admin.participants}</h2>
         <p className="text-muted-foreground text-sm">
-          {participants.length} insgesamt · {players.length} Spieler · {viewers.length} Zuschauer
+          {interpolate(dict.admin.participantsSummary, {
+            total: participants.length,
+            players: players.length,
+            viewers: viewers.length,
+          })}
         </p>
       </div>
 
       {participants.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Noch niemand beigetreten.</p>
+        <p className="text-muted-foreground text-sm">{dict.admin.noParticipants}</p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
           {participants.map((p) => (
@@ -86,7 +92,7 @@ export function ParticipantsList({ tournamentId, initialParticipants }: Props) {
               <span className="truncate">{p.name}</span>
               {p.is_player && (
                 <Badge variant="default" className="ml-2">
-                  Spieler
+                  {dict.admin.playerBadge}
                 </Badge>
               )}
             </li>

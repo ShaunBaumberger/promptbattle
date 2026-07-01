@@ -14,12 +14,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { restartLiveMatchAction } from "./match-actions";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Props {
   matchId: string;
 }
 
 export function RestartMatchDialog({ matchId }: Props) {
+  const { dict } = useI18n();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -29,7 +31,7 @@ export function RestartMatchDialog({ matchId }: Props) {
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Match neu gestartet.");
+        toast.success(dict.admin.matchRestarted);
         setOpen(false);
       }
     });
@@ -40,24 +42,19 @@ export function RestartMatchDialog({ matchId }: Props) {
       <DialogTrigger
         render={
           <Button variant="destructive" size="sm">
-            Match abbrechen & neu starten
+            {dict.admin.restartMatch}
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Match wirklich neu starten?</DialogTitle>
-          <DialogDescription>
-            Das laufende Match wird sofort gestoppt und mit den{" "}
-            <strong className="text-foreground">gleichen Spielern</strong> und der{" "}
-            <strong className="text-foreground">gleichen Aufgabe</strong> neu
-            gestartet. Bisherige Prompts und Ergebnisse gehen verloren.
-          </DialogDescription>
+          <DialogTitle>{dict.admin.restartConfirmTitle}</DialogTitle>
+          <DialogDescription>{dict.admin.restartConfirmBody}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline">Abbrechen</Button>} />
+          <DialogClose render={<Button variant="outline">{dict.admin.cancel}</Button>} />
           <Button variant="destructive" onClick={confirm} disabled={pending}>
-            {pending ? "Wird neu gestartet…" : "Ja, neu starten"}
+            {pending ? dict.admin.restarting : dict.admin.restartYes}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getRoundsForPlayerCount } from "@/lib/rounds";
 import type { PlayerCount, Round } from "@/lib/types/database";
 import { startBracketAction, type StartBracketState } from "./actions";
+import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
@@ -23,6 +24,7 @@ export function StartBracketForm({
   initialParticipantCount,
   initialTasksByRound,
 }: Props) {
+  const { dict } = useI18n();
   const rounds = getRoundsForPlayerCount(playerCount);
   const [participantCount, setParticipantCount] = useState(initialParticipantCount);
 
@@ -61,8 +63,8 @@ export function StartBracketForm({
 
   useEffect(() => {
     if (state.error) toast.error(state.error);
-    if (state.ok) toast.success("Turnier gestartet!");
-  }, [state]);
+    if (state.ok) toast.success(dict.admin.tournamentStarted);
+  }, [state, dict]);
 
   const enoughPlayers = participantCount >= playerCount;
   const tasksOk = rounds.every(
@@ -73,16 +75,19 @@ export function StartBracketForm({
   return (
     <div className="space-y-4 rounded-md border p-4">
       <div className="space-y-1">
-        <h2 className="text-base font-semibold">Turnier starten</h2>
+        <h2 className="text-base font-semibold">{dict.admin.startTournament}</h2>
         <p className="text-muted-foreground text-sm">
-          Wählt zufällig {playerCount} Spieler aus den Teilnehmern und erstellt den Bracket.
-          Nicht ausgewählte Personen werden zu Zuschauern.
+          {interpolate(dict.admin.startTournamentHint, { count: playerCount })}
         </p>
       </div>
 
       <ul className="space-y-1 text-sm">
         <li className={enoughPlayers ? "text-foreground" : "text-muted-foreground"}>
-          {enoughPlayers ? "✓" : "•"} Teilnehmer: {participantCount} / {playerCount}
+          {enoughPlayers ? "✓" : "•"}{" "}
+          {interpolate(dict.admin.participantsProgress, {
+            have: participantCount,
+            need: playerCount,
+          })}
         </li>
         {rounds.map((r) => {
           const have = initialTasksByRound[r.round] ?? 0;
@@ -92,7 +97,8 @@ export function StartBracketForm({
               key={r.round}
               className={ok ? "text-foreground" : "text-muted-foreground"}
             >
-              {ok ? "✓" : "•"} {r.label}: {have} / {r.matches} Tasks
+              {ok ? "✓" : "•"} {dict.rounds[r.round]}:{" "}
+              {interpolate(dict.admin.tasksProgress, { have, need: r.matches })}
             </li>
           );
         })}
@@ -100,7 +106,7 @@ export function StartBracketForm({
 
       <form action={formAction}>
         <Button type="submit" disabled={!ready || pending}>
-          {pending ? "Wird gestartet…" : "Spieler auswählen & starten"}
+          {pending ? dict.admin.startingBracket : dict.admin.selectAndStart}
         </Button>
       </form>
     </div>
