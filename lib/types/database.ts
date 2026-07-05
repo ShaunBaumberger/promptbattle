@@ -31,6 +31,9 @@ export interface Tournament {
   video_model: string | null;
   /** Set when the bracket goes live — powers the free-tier usage cap. */
   started_at: string | null;
+  /** 'onsite' = one room + projector; 'online' = remote players who watch
+   *  the stage view on their own devices. */
+  venue: "onsite" | "online";
   /** Test-mode: skip Gemini image generation. Only effective in test mode. */
   skip_image_generation: boolean;
   /** True for the dedicated debug-tournament mode (always 2 players, exposes test controls). */

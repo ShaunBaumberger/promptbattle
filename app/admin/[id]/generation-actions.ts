@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { generateImage } from "@/lib/gemini";
 import { startVideoGeneration, pollVideoGeneration } from "@/lib/veo";
+import { imageModelFor, videoModelFor, limitsFor, type Plan } from "@/lib/tiers";
 
 const STORAGE_BUCKET = "images";
 
@@ -49,10 +50,16 @@ export async function generateMatchImagesAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("skip_image_generation")
+    .select("skip_image_generation, plan, image_model")
     .eq("id", tournamentId)
     .maybeSingle();
   const skipGeneration = tournament?.skip_image_generation === true;
+  // Tier-resolved image model: free = cheap Flash, premium = Nano Banana
+  // Pro (or the per-tournament override).
+  const imageModel = imageModelFor(
+    (tournament?.plan as Plan) ?? "free",
+    (tournament?.image_model as string | null) ?? null,
+  );
 
   const { error: claimErr, data: claimed } = await supabase
     .from("matches")
@@ -86,8 +93,8 @@ export async function generateMatchImagesAction(
   const promptB = (claimed.prompt_b ?? "").trim();
 
   const [resultA, resultB] = await Promise.all([
-    generateAndUpload(promptA, tournamentId, matchId, "a"),
-    generateAndUpload(promptB, tournamentId, matchId, "b"),
+    generateAndUpload(promptA, tournamentId, matchId, "a", imageModel),
+    generateAndUpload(promptB, tournamentId, matchId, "b", imageModel),
   ]);
 
   await supabase
@@ -108,10 +115,12 @@ async function generateAndUpload(
   tournamentId: string,
   matchId: string,
   slot: "a" | "b",
+  /** Tier-resolved image model (see lib/tiers.ts). */
+  model?: string,
 ): Promise<string | null> {
   if (!prompt) return null;
   try {
-    const { bytes, mimeType } = await generateImage(prompt);
+    const { bytes, mimeType } = await generateImage(prompt, { model });
     const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
     const path = `tournaments/${tournamentId}/results/${matchId}/${slot}-${nanoid(6)}.${ext}`;
 
@@ -179,10 +188,25 @@ export async function generateMatchVideosAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("skip_image_generation")
+    .select("skip_image_generation, plan, image_model, video_model")
     .eq("id", tournamentId)
     .maybeSingle();
   const skipGeneration = tournament?.skip_image_generation === true;
+  const plan = (tournament?.plan as Plan) ?? "free";
+  // Defense in depth: free plans can't create video tasks (createTaskAction
+  // gate), so a video match on a free plan means the API was bypassed.
+  // Refuse before any Veo budget is burned.
+  if (!skipGeneration && !limitsFor(plan).videoTasks) {
+    return { ok: false, error: "Video generation requires Premium." };
+  }
+  const imageModel = imageModelFor(
+    plan,
+    (tournament?.image_model as string | null) ?? null,
+  );
+  const videoModel = videoModelFor(
+    plan,
+    (tournament?.video_model as string | null) ?? null,
+  );
 
   // Atomic status flip: only one caller succeeds.
   const { data: claimed, error: claimErr } = await supabase
@@ -234,10 +258,10 @@ export async function generateMatchVideosAction(
   // hiccup on one image) doesn't sink the others.
   console.log(`[video-gen ${matchId}] starting Veo + image kickoff in parallel`);
   const results = await Promise.allSettled([
-    kickoffVideo(promptA),
-    kickoffVideo(promptB),
-    generateAndUpload(promptA, tournamentId, matchId, "a"),
-    generateAndUpload(promptB, tournamentId, matchId, "b"),
+    kickoffVideo(promptA, videoModel),
+    kickoffVideo(promptB, videoModel),
+    generateAndUpload(promptA, tournamentId, matchId, "a", imageModel),
+    generateAndUpload(promptB, tournamentId, matchId, "b", imageModel),
   ]);
   const opA = results[0].status === "fulfilled" ? results[0].value : null;
   const opB = results[1].status === "fulfilled" ? results[1].value : null;
@@ -291,13 +315,17 @@ export async function generateMatchVideosAction(
  * Catches startup errors so a failed kick-off for one slot doesn't
  * abort the other.
  */
-async function kickoffVideo(prompt: string): Promise<string | null> {
+async function kickoffVideo(
+  prompt: string,
+  model?: string,
+): Promise<string | null> {
   if (!prompt) return null;
   try {
     const { operationName } = await startVideoGeneration(prompt, {
       durationSeconds: 8,
       aspectRatio: "16:9",
       resolution: "720p",
+      model,
     });
     return operationName;
   } catch (err) {

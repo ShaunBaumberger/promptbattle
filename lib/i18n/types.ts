@@ -82,6 +82,8 @@ export interface Dictionary {
     yourPrompt: string;
     emptyPrompt: string;
     votingOnStage: string;
+    /** Online-venue tournaments: link so remote players open the stage view. */
+    watchStage: string;
   };
   vote: {
     votingLive: string;
@@ -220,6 +222,18 @@ export interface Dictionary {
     selectAndStart: string;
     startingBracket: string;
     tournamentStarted: string;
+    // venue (onsite vs online tournaments)
+    venue: string;
+    venueOnsite: string;
+    venueOnline: string;
+    venueHint: string;
+    // tier / plan surface
+    premiumTag: string;
+    planFreeInfo: string;
+    /** "{n}", "{max}" */
+    freeGamesLeft: string;
+    /** "{usd}" */
+    estCost: string;
     // shared
     save: string;
     saving: string;
@@ -397,6 +411,11 @@ export interface Dictionary {
       wrongPassword: string;
       noVotesTie: string;
       tie: string;
+      playersNeedPremium: string;
+      videoNeedsPremium: string;
+      /** "{max}" */
+      quotaExhausted: string;
+      budgetPaused: string;
     };
   };
 }

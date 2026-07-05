@@ -29,10 +29,18 @@ export interface GeneratedImage {
  * Generate one image from a text prompt. Retries up to `maxRetries + 1` total
  * attempts on transient failures (network, 5xx, missing image part). Throws
  * the final error if all attempts fail.
+ *
+ * `model` overrides the env/default model — used by the tier system so
+ * free-plan tournaments run the cheap model while premium runs the default
+ * (see lib/tiers.ts).
  */
 export async function generateImage(
   prompt: string,
-  { maxRetries = 2, signal }: { maxRetries?: number; signal?: AbortSignal } = {},
+  {
+    maxRetries = 2,
+    signal,
+    model,
+  }: { maxRetries?: number; signal?: AbortSignal; model?: string } = {},
 ): Promise<GeneratedImage> {
   const ai = client();
   let lastErr: unknown;
@@ -40,7 +48,7 @@ export async function generateImage(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await ai.models.generateContent({
-        model: MODEL,
+        model: model?.trim() || MODEL,
         contents: [
           {
             role: "user",

@@ -16,7 +16,7 @@ export default async function PlayPage({
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, code, name, status, current_match_id")
+    .select("id, code, name, status, current_match_id, venue")
     .eq("code", normalized)
     .maybeSingle();
 
@@ -31,6 +31,7 @@ export default async function PlayPage({
       tournamentName={tournament.name}
       initialStatus={tournament.status}
       initialCurrentMatchId={tournament.current_match_id}
+      venue={(tournament.venue as "onsite" | "online") ?? "onsite"}
     />
   );
 }

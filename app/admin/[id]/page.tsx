@@ -15,6 +15,14 @@ import type { PlayerCount, Round } from "@/lib/types/database";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
 import { requireUser } from "@/lib/supabase/auth";
+import {
+  limitsFor,
+  estimateTournamentCostCents,
+  centsToUsd,
+  FREE_GAMES_PER_WINDOW,
+  quotaWindowStartIso,
+  type Plan,
+} from "@/lib/tiers";
 
 // Image generation can take ~15-25s; allow headroom for the server action.
 export const maxDuration = 60;
@@ -51,6 +59,40 @@ export default async function TournamentAdminPage({
   for (const t of (tasks ?? []) as Task[]) {
     tasksByRound[t.round] = (tasksByRound[t.round] ?? 0) + 1;
   }
+
+  const plan = (tournament.plan as Plan) ?? "free";
+  const skipGeneration =
+    tournament.skip_image_generation === true || tournament.is_test_mode === true;
+
+  // Pre-flight info for the start form: free games remaining in the
+  // rolling 30-day window + a worst-case cost estimate for this bracket.
+  // Caps only ever block BEFORE start — never mid-game.
+  let freeGamesLeft: number | null = null;
+  if (plan === "free" && !tournament.is_test_mode) {
+    const { count } = await supabase
+      .from("tournaments")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id)
+      .eq("plan", "free")
+      .eq("is_test_mode", false)
+      .gte("started_at", quotaWindowStartIso());
+    freeGamesLeft = Math.max(0, FREE_GAMES_PER_WINDOW - (count ?? 0));
+  }
+  // Estimate: N-1 matches, 2 images each; video-kind tasks add 2 clips.
+  // Task→match assignment happens at start, so approximate with each
+  // round's tasks in creation order (same pools the bracket draws from).
+  const matchTaskKinds = ((tasks ?? []) as Task[]).map((t) => t.kind);
+  const estCostUsd = centsToUsd(
+    estimateTournamentCostCents({
+      plan,
+      imageModelOverride: (tournament.image_model as string | null) ?? null,
+      matchTaskKinds: matchTaskKinds.slice(
+        0,
+        Math.max(0, (tournament.player_count as number) - 1),
+      ),
+      skipGeneration,
+    }),
+  );
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 space-y-8 p-6">
@@ -112,6 +154,7 @@ export default async function TournamentAdminPage({
           tournamentId={tournament.id}
           playerCount={tournament.player_count as PlayerCount}
           tasks={(tasks ?? []) as Task[]}
+          videoAllowed={limitsFor(plan).videoTasks}
         />
       </section>
 
@@ -122,6 +165,8 @@ export default async function TournamentAdminPage({
             playerCount={tournament.player_count as PlayerCount}
             initialParticipantCount={(participants ?? []).length}
             initialTasksByRound={tasksByRound}
+            freeGamesLeft={freeGamesLeft}
+            estCostUsd={skipGeneration ? null : estCostUsd}
           />
         </section>
       )}

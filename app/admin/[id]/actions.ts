@@ -4,12 +4,20 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/supabase/auth";
 import { shuffle } from "@/lib/bracket";
 import { getRoundsForPlayerCount } from "@/lib/rounds";
 import { generateJoinCode } from "@/lib/join-code";
-import type { PlayerCount, Round } from "@/lib/types/database";
+import type { PlayerCount, Round, TaskKind } from "@/lib/types/database";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
+import {
+  limitsFor,
+  estimateTournamentCostCents,
+  FREE_GAMES_PER_WINDOW,
+  quotaWindowStartIso,
+  type Plan,
+} from "@/lib/tiers";
 
 const VALID_ROUNDS: readonly Round[] = ["R32", "R16", "QF", "SF", "FINAL"] as const;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -33,6 +41,22 @@ export async function createTaskAction(
   if (!VALID_ROUNDS.includes(round)) return { error: dict.admin.err.invalidRound };
   if (kind !== "image" && kind !== "text" && kind !== "video") {
     return { error: dict.admin.err.invalidTaskType };
+  }
+
+  // Tier gate: video tasks (Veo, ~$1.60/match) are premium-only. Checked
+  // server-side against the tournament's plan so the disabled UI button
+  // isn't the only line of defense.
+  if (kind === "video") {
+    const supabaseGate = createServiceRoleClient();
+    const { data: t } = await supabaseGate
+      .from("tournaments")
+      .select("plan")
+      .eq("id", tournamentId)
+      .maybeSingle();
+    if (!t) return { error: dict.admin.err.tournamentNotFound };
+    if (!limitsFor((t.plan as Plan) ?? "free").videoTasks) {
+      return { error: dict.admin.err.videoNeedsPremium };
+    }
   }
 
   // Text and video tasks share the same input shape — a text prompt.
@@ -211,7 +235,7 @@ export async function updatePlayerCountAction(
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("status")
+    .select("status, plan")
     .eq("id", tournamentId)
     .maybeSingle();
   if (!tournament) return { ok: false, error: dict.admin.err.tournamentNotFound };
@@ -220,6 +244,10 @@ export async function updatePlayerCountAction(
       ok: false,
       error: dict.admin.err.playerCountLockedError,
     };
+  }
+  // Tier gate: free plan caps the bracket size.
+  if (newPlayerCount > limitsFor((tournament.plan as Plan) ?? "free").maxPlayers) {
+    return { ok: false, error: dict.admin.err.playersNeedPremium };
   }
   // Just update player_count — skip_image_generation is now driven by the
   // separate is_test_mode flag (which is set at creation), not by size.
@@ -244,12 +272,16 @@ export async function updatePlayerCountAction(
 export async function copyTournamentAction(sourceId: string) {
   const supabase = createServiceRoleClient();
 
+  // Multi-tenant guard: only the owner may duplicate their tournament.
+  const user = await getUser();
+  if (!user) return;
+
   const { data: source } = await supabase
     .from("tournaments")
     .select("*")
     .eq("id", sourceId)
     .maybeSingle();
-  if (!source) return;
+  if (!source || source.owner_id !== user.id) return;
 
   // Generate a unique join code (retry on the off-chance of a collision).
   let code = generateJoinCode();
@@ -272,17 +304,24 @@ export async function copyTournamentAction(sourceId: string) {
       round_time_seconds: source.round_time_seconds,
       is_test_mode: source.is_test_mode,
       skip_image_generation: source.skip_image_generation,
+      owner_id: user.id,
+      venue: source.venue ?? "onsite",
+      // Premium is paid per event — a copy always starts back on 'free'
+      // (and with started_at null, so it doesn't inherit quota usage).
+      plan: "free",
       // Defaults: status='setup', current_match_id=null
     })
     .select("id")
     .single();
   if (createErr || !created) return;
 
+  const copyPlanAllowsVideo = limitsFor("free").videoTasks;
+
   // Deep-copy tasks. Image binaries get re-uploaded to a new storage path so
   // the new tournament owns its assets independently.
   const { data: sourceTasks } = await supabase
     .from("tasks")
-    .select("round, internal_label, reference_image_url, text_prompt")
+    .select("round, internal_label, reference_image_url, text_prompt, kind")
     .eq("tournament_id", sourceId);
 
   const newTaskRows: Array<{
@@ -291,6 +330,7 @@ export async function copyTournamentAction(sourceId: string) {
     internal_label: string | null;
     reference_image_url: string | null;
     text_prompt: string | null;
+    kind: TaskKind;
   }> = [];
 
   for (const t of sourceTasks ?? []) {
@@ -320,12 +360,20 @@ export async function copyTournamentAction(sourceId: string) {
       }
     }
 
+    // Copies land on the free plan, which can't run video tasks — downgrade
+    // them to text tasks (same text prompt, image output) so the copied
+    // bracket stays startable without silently missing tasks.
+    const sourceKind = ((t.kind as TaskKind | null) ?? "image") as TaskKind;
+    const kind: TaskKind =
+      sourceKind === "video" && !copyPlanAllowsVideo ? "text" : sourceKind;
+
     newTaskRows.push({
       tournament_id: created.id,
       round: t.round as Round,
       internal_label: (t.internal_label as string | null) ?? null,
       reference_image_url: referenceImageUrl,
       text_prompt: (t.text_prompt as string | null) ?? null,
+      kind,
     });
   }
 
@@ -375,7 +423,9 @@ export async function startBracketAction(
 
   const { data: tournament, error: tErr } = await supabase
     .from("tournaments")
-    .select("id, status, player_count")
+    .select(
+      "id, status, player_count, plan, is_test_mode, skip_image_generation, image_model, owner_id",
+    )
     .eq("id", tournamentId)
     .maybeSingle();
 
@@ -384,12 +434,75 @@ export async function startBracketAction(
     return { error: dict.admin.err.tournamentAlreadyStarted };
   }
 
+  const plan = (tournament.plan as Plan) ?? "free";
+  const skipGeneration =
+    tournament.skip_image_generation === true || tournament.is_test_mode === true;
+
+  // ---- Cost-protection pre-flight -----------------------------------
+  // All caps are enforced HERE, before anything is mutated. A tournament
+  // that starts always finishes — no cap ever fires mid-game (that would
+  // strand players in the final). Test mode / skip-generation costs
+  // nothing and bypasses both checks.
+  if (plan === "free" && !skipGeneration) {
+    // 1. Per-account quota: N free game starts per rolling 30 days.
+    const { count: startsInWindow } = await supabase
+      .from("tournaments")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", tournament.owner_id)
+      .eq("plan", "free")
+      .eq("is_test_mode", false)
+      .gte("started_at", quotaWindowStartIso());
+    if ((startsInWindow ?? 0) >= FREE_GAMES_PER_WINDOW) {
+      return {
+        error: interpolate(dict.admin.err.quotaExhausted, {
+          max: FREE_GAMES_PER_WINDOW,
+        }),
+      };
+    }
+
+    // 2. Global backstop: platform-wide spend cap (~CHF 50). The window
+    //    self-resets after 30 days; the kill switch blocks new free
+    //    starts until then.
+    const { data: usage } = await supabase
+      .from("platform_usage")
+      .select("cents_spent, window_start, hard_cap_cents, kill_switch")
+      .eq("id", 1)
+      .maybeSingle();
+    if (usage) {
+      const windowExpired =
+        new Date(usage.window_start).getTime() <
+        Date.now() - 30 * 24 * 60 * 60 * 1000;
+      if (windowExpired) {
+        await supabase
+          .from("platform_usage")
+          .update({
+            cents_spent: 0,
+            window_start: new Date().toISOString(),
+            kill_switch: false,
+          })
+          .eq("id", 1);
+      } else if (usage.kill_switch || usage.cents_spent >= usage.hard_cap_cents) {
+        if (!usage.kill_switch) {
+          await supabase
+            .from("platform_usage")
+            .update({ kill_switch: true })
+            .eq("id", 1);
+        }
+        return { error: dict.admin.err.budgetPaused };
+      }
+    }
+  }
+  // --------------------------------------------------------------------
+
   const playerCount = tournament.player_count as PlayerCount;
   const rounds = getRoundsForPlayerCount(playerCount);
 
   const [{ data: participants }, { data: tasks }] = await Promise.all([
     supabase.from("participants").select("id").eq("tournament_id", tournamentId),
-    supabase.from("tasks").select("id, round").eq("tournament_id", tournamentId),
+    supabase
+      .from("tasks")
+      .select("id, round, kind")
+      .eq("tournament_id", tournamentId),
   ]);
 
   if (!participants || participants.length < playerCount) {
@@ -402,10 +515,12 @@ export async function startBracketAction(
   }
 
   const tasksByRound = new Map<Round, string[]>();
+  const taskKindById = new Map<string, TaskKind>();
   for (const t of tasks ?? []) {
     const arr = tasksByRound.get(t.round as Round) ?? [];
     arr.push(t.id);
     tasksByRound.set(t.round as Round, arr);
+    taskKindById.set(t.id, (t.kind as TaskKind) ?? "image");
   }
 
   for (const spec of rounds) {
@@ -496,15 +611,41 @@ export async function startBracketAction(
     ),
   );
 
+  // `started_at` marks this game against the free-tier quota window.
   const { error: statusErr } = await supabase
     .from("tournaments")
-    .update({ status: "live" })
+    .update({ status: "live", started_at: new Date().toISOString() })
     .eq("id", tournamentId);
 
   if (statusErr) {
     return {
       error: interpolate(dict.admin.err.statusUpdateFailed, { msg: statusErr.message }),
     };
+  }
+
+  // Record this tournament's worst-case generation cost against the
+  // global backstop. Read-modify-write is fine at this scale; the cap is
+  // a coarse safety net, not billing.
+  const estimatedCents = estimateTournamentCostCents({
+    plan,
+    imageModelOverride: (tournament.image_model as string | null) ?? null,
+    matchTaskKinds: matchRows.map(
+      (m) => taskKindById.get(m.task_id) ?? null,
+    ),
+    skipGeneration,
+  });
+  if (estimatedCents > 0) {
+    const { data: usageRow } = await supabase
+      .from("platform_usage")
+      .select("cents_spent")
+      .eq("id", 1)
+      .maybeSingle();
+    if (usageRow) {
+      await supabase
+        .from("platform_usage")
+        .update({ cents_spent: usageRow.cents_spent + estimatedCents })
+        .eq("id", 1);
+    }
   }
 
   revalidatePath(`/admin/${tournamentId}`);

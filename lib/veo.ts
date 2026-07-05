@@ -25,6 +25,8 @@ export interface VideoOptions {
   aspectRatio?: string;
   /** "720p" ($0.10/s) or "1080p" ($0.12/s). */
   resolution?: string;
+  /** Model override (per-tournament / tier); falls back to env default. */
+  model?: string;
 }
 
 /**
@@ -40,7 +42,7 @@ export async function startVideoGeneration(
   if (!prompt) throw new Error("startVideoGeneration: empty prompt");
   const ai = client();
   const operation = await ai.models.generateVideos({
-    model: MODEL,
+    model: opts.model?.trim() || MODEL,
     source: { prompt },
     config: {
       durationSeconds: opts.durationSeconds ?? 8,

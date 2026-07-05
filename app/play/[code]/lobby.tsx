@@ -22,6 +22,9 @@ interface Props {
   tournamentName: string;
   initialStatus: TournamentStatus;
   initialCurrentMatchId: string | null;
+  /** 'online' tournaments show a "watch the stage" link so remote
+   *  participants can follow the projector view on their own device. */
+  venue: "onsite" | "online";
 }
 
 export function Lobby({
@@ -30,6 +33,7 @@ export function Lobby({
   tournamentName,
   initialStatus,
   initialCurrentMatchId,
+  venue,
 }: Props) {
   const { dict } = useI18n();
   const router = useRouter();
@@ -343,6 +347,20 @@ export function Lobby({
             {dict.lobby.stayInApp}
           </span>
         </div>
+      )}
+
+      {/* Online tournaments: remote participants open the stage view on
+          their own device (bracket, reveals, voting) — the equivalent of
+          looking up at the projector in an onsite event. */}
+      {venue === "online" && (
+        <a
+          href={`/stage/${tournamentCode}`}
+          target="_blank"
+          rel="noreferrer"
+          className="bg-white/10 text-white hover:bg-white/15 inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium backdrop-blur transition-colors"
+        >
+          📺 {dict.play.watchStage} ↗
+        </a>
       )}
     </main>
   );
