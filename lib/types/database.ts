@@ -34,6 +34,9 @@ export interface Tournament {
   /** 'onsite' = one room + projector; 'online' = remote players who watch
    *  the stage view on their own devices. */
   venue: "onsite" | "online";
+  /** True when a BYO Gemini key is stored (tournament_secrets) — unlocks
+   *  premium features; generation bills the key owner, not the platform. */
+  byo_key: boolean;
   /** Test-mode: skip Gemini image generation. Only effective in test mode. */
   skip_image_generation: boolean;
   /** True for the dedicated debug-tournament mode (always 2 players, exposes test controls). */

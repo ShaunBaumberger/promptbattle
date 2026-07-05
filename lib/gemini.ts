@@ -12,11 +12,17 @@ const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE?.trim() || "1K"; // "1K" | "2K"
 
 let cached: GoogleGenAI | null = null;
 
-function client(): GoogleGenAI {
+/**
+ * Platform client by default; a fresh client when a per-tournament BYO
+ * key is supplied (not cached — keys vary per tournament and clients are
+ * cheap to construct).
+ */
+function client(apiKey?: string): GoogleGenAI {
+  if (apiKey) return new GoogleGenAI({ apiKey });
   if (cached) return cached;
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
-  cached = new GoogleGenAI({ apiKey });
+  const envKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!envKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
+  cached = new GoogleGenAI({ apiKey: envKey });
   return cached;
 }
 
@@ -40,9 +46,16 @@ export async function generateImage(
     maxRetries = 2,
     signal,
     model,
-  }: { maxRetries?: number; signal?: AbortSignal; model?: string } = {},
+    apiKey,
+  }: {
+    maxRetries?: number;
+    signal?: AbortSignal;
+    model?: string;
+    /** BYO: bill this call to the tournament owner's key instead of the platform. */
+    apiKey?: string;
+  } = {},
 ): Promise<GeneratedImage> {
-  const ai = client();
+  const ai = client(apiKey);
   let lastErr: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {

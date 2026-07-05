@@ -13,6 +13,7 @@ import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
 import {
   limitsFor,
+  effectivePlan,
   estimateTournamentCostCents,
   FREE_GAMES_PER_WINDOW,
   quotaWindowStartIso,
@@ -50,11 +51,12 @@ export async function createTaskAction(
     const supabaseGate = createServiceRoleClient();
     const { data: t } = await supabaseGate
       .from("tournaments")
-      .select("plan")
+      .select("plan, byo_key")
       .eq("id", tournamentId)
       .maybeSingle();
     if (!t) return { error: dict.admin.err.tournamentNotFound };
-    if (!limitsFor((t.plan as Plan) ?? "free").videoTasks) {
+    const ePlan = effectivePlan((t.plan as Plan) ?? "free", t.byo_key === true);
+    if (!limitsFor(ePlan).videoTasks) {
       return { error: dict.admin.err.videoNeedsPremium };
     }
   }
@@ -235,7 +237,7 @@ export async function updatePlayerCountAction(
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("status, plan")
+    .select("status, plan, byo_key")
     .eq("id", tournamentId)
     .maybeSingle();
   if (!tournament) return { ok: false, error: dict.admin.err.tournamentNotFound };
@@ -245,8 +247,12 @@ export async function updatePlayerCountAction(
       error: dict.admin.err.playerCountLockedError,
     };
   }
-  // Tier gate: free plan caps the bracket size.
-  if (newPlayerCount > limitsFor((tournament.plan as Plan) ?? "free").maxPlayers) {
+  // Tier gate: free plan caps the bracket size (BYO key lifts it).
+  const pcPlan = effectivePlan(
+    (tournament.plan as Plan) ?? "free",
+    tournament.byo_key === true,
+  );
+  if (newPlayerCount > limitsFor(pcPlan).maxPlayers) {
     return { ok: false, error: dict.admin.err.playersNeedPremium };
   }
   // Just update player_count — skip_image_generation is now driven by the
@@ -424,7 +430,7 @@ export async function startBracketAction(
   const { data: tournament, error: tErr } = await supabase
     .from("tournaments")
     .select(
-      "id, status, player_count, plan, is_test_mode, skip_image_generation, image_model, owner_id",
+      "id, status, player_count, plan, is_test_mode, skip_image_generation, image_model, owner_id, byo_key",
     )
     .eq("id", tournamentId)
     .maybeSingle();
@@ -434,7 +440,8 @@ export async function startBracketAction(
     return { error: dict.admin.err.tournamentAlreadyStarted };
   }
 
-  const plan = (tournament.plan as Plan) ?? "free";
+  const byo = tournament.byo_key === true;
+  const plan = effectivePlan((tournament.plan as Plan) ?? "free", byo);
   const skipGeneration =
     tournament.skip_image_generation === true || tournament.is_test_mode === true;
 
@@ -442,7 +449,7 @@ export async function startBracketAction(
   // All caps are enforced HERE, before anything is mutated. A tournament
   // that starts always finishes — no cap ever fires mid-game (that would
   // strand players in the final). Test mode / skip-generation costs
-  // nothing and bypasses both checks.
+  // nothing; BYO tournaments bill their own key — both bypass the caps.
   if (plan === "free" && !skipGeneration) {
     // 1. Per-account quota: N free game starts per rolling 30 days.
     const { count: startsInWindow } = await supabase
@@ -450,6 +457,7 @@ export async function startBracketAction(
       .select("id", { count: "exact", head: true })
       .eq("owner_id", tournament.owner_id)
       .eq("plan", "free")
+      .eq("byo_key", false) // BYO games cost the platform nothing
       .eq("is_test_mode", false)
       .gte("started_at", quotaWindowStartIso());
     if ((startsInWindow ?? 0) >= FREE_GAMES_PER_WINDOW) {
@@ -625,7 +633,8 @@ export async function startBracketAction(
 
   // Record this tournament's worst-case generation cost against the
   // global backstop. Read-modify-write is fine at this scale; the cap is
-  // a coarse safety net, not billing.
+  // a coarse safety net, not billing. BYO tournaments bill the owner's
+  // own key — nothing to record.
   const estimatedCents = estimateTournamentCostCents({
     plan,
     imageModelOverride: (tournament.image_model as string | null) ?? null,
@@ -634,7 +643,7 @@ export async function startBracketAction(
     ),
     skipGeneration,
   });
-  if (estimatedCents > 0) {
+  if (estimatedCents > 0 && !byo) {
     const { data: usageRow } = await supabase
       .from("platform_usage")
       .select("cents_spent")

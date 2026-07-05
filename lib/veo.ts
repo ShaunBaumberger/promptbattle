@@ -10,11 +10,13 @@ const MODEL = process.env.VEO_MODEL?.trim() || "veo-3.0-fast-generate-001";
 
 let cached: GoogleGenAI | null = null;
 
-function client(): GoogleGenAI {
+/** Platform client by default; fresh client for per-tournament BYO keys. */
+function client(apiKey?: string): GoogleGenAI {
+  if (apiKey) return new GoogleGenAI({ apiKey });
   if (cached) return cached;
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
-  cached = new GoogleGenAI({ apiKey });
+  const envKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!envKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
+  cached = new GoogleGenAI({ apiKey: envKey });
   return cached;
 }
 
@@ -27,6 +29,8 @@ export interface VideoOptions {
   resolution?: string;
   /** Model override (per-tournament / tier); falls back to env default. */
   model?: string;
+  /** BYO: bill this job to the tournament owner's key instead of the platform. */
+  apiKey?: string;
 }
 
 /**
@@ -40,7 +44,7 @@ export async function startVideoGeneration(
   opts: VideoOptions = {},
 ): Promise<{ operationName: string }> {
   if (!prompt) throw new Error("startVideoGeneration: empty prompt");
-  const ai = client();
+  const ai = client(opts.apiKey);
   const operation = await ai.models.generateVideos({
     model: opts.model?.trim() || MODEL,
     source: { prompt },
@@ -72,8 +76,12 @@ export type VideoPollResult =
  */
 export async function pollVideoGeneration(
   operationName: string,
+  opts: { apiKey?: string } = {},
 ): Promise<VideoPollResult> {
-  const ai = client();
+  // ⚠️ Polling must use the SAME key that started the job — Veo operations
+  // are scoped to the key's project, so a BYO-started job is invisible to
+  // the platform key (and vice versa).
+  const ai = client(opts.apiKey);
 
   // ⚠️ The SDK calls `operation._fromAPIResponse(...)` on whatever we pass
   // in as `parameters.operation`. A plain object like `{ name }` doesn't
@@ -120,7 +128,7 @@ export async function pollVideoGeneration(
     return { status: "error", error: "no bytes or URI in response" };
   }
 
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY!;
+  const apiKey = opts.apiKey ?? process.env.GOOGLE_GEMINI_API_KEY!;
   const downloadUrl = uri.includes("?")
     ? `${uri}&key=${apiKey}`
     : `${uri}?key=${apiKey}`;

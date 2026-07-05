@@ -5,7 +5,14 @@ import { nanoid } from "nanoid";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { generateImage } from "@/lib/gemini";
 import { startVideoGeneration, pollVideoGeneration } from "@/lib/veo";
-import { imageModelFor, videoModelFor, limitsFor, type Plan } from "@/lib/tiers";
+import {
+  imageModelFor,
+  videoModelFor,
+  limitsFor,
+  effectivePlan,
+  type Plan,
+} from "@/lib/tiers";
+import { getByoGeminiKey } from "@/lib/byo-key";
 
 const STORAGE_BUCKET = "images";
 
@@ -50,14 +57,20 @@ export async function generateMatchImagesAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("skip_image_generation, plan, image_model")
+    .select("skip_image_generation, plan, image_model, byo_key")
     .eq("id", tournamentId)
     .maybeSingle();
   const skipGeneration = tournament?.skip_image_generation === true;
-  // Tier-resolved image model: free = cheap Flash, premium = Nano Banana
-  // Pro (or the per-tournament override).
+  const byo = tournament?.byo_key === true;
+  // BYO tournaments generate on the owner's key with premium-tier models.
+  // A byo flag without a decryptable key must NOT fall back to the
+  // platform key (that would silently bill the platform) — treated below
+  // like a failed generation instead.
+  const byoApiKey = byo && !skipGeneration ? await getByoGeminiKey(tournamentId) : null;
+  const byoKeyMissing = byo && !skipGeneration && !byoApiKey;
+  const ePlan = effectivePlan((tournament?.plan as Plan) ?? "free", byo);
   const imageModel = imageModelFor(
-    (tournament?.plan as Plan) ?? "free",
+    ePlan,
     (tournament?.image_model as string | null) ?? null,
   );
 
@@ -79,8 +92,13 @@ export async function generateMatchImagesAction(
 
   revalidatePath(`/admin/${tournamentId}`);
 
-  if (skipGeneration) {
-    // Test-mode short-circuit: jump straight to reveal with no images.
+  if (skipGeneration || byoKeyMissing) {
+    // Test-mode short-circuit — or a BYO tournament whose key can't be
+    // decrypted (rotated SECRETS_ENCRYPTION_KEY): reveal with no images
+    // rather than billing the platform.
+    if (byoKeyMissing) {
+      console.error(`[gen ${matchId}] BYO key set but not decryptable — skipping generation`);
+    }
     await supabase
       .from("matches")
       .update({ status: "reveal", result_a_url: null, result_b_url: null })
@@ -93,8 +111,8 @@ export async function generateMatchImagesAction(
   const promptB = (claimed.prompt_b ?? "").trim();
 
   const [resultA, resultB] = await Promise.all([
-    generateAndUpload(promptA, tournamentId, matchId, "a", imageModel),
-    generateAndUpload(promptB, tournamentId, matchId, "b", imageModel),
+    generateAndUpload(promptA, tournamentId, matchId, "a", imageModel, byoApiKey ?? undefined),
+    generateAndUpload(promptB, tournamentId, matchId, "b", imageModel, byoApiKey ?? undefined),
   ]);
 
   await supabase
@@ -117,10 +135,12 @@ async function generateAndUpload(
   slot: "a" | "b",
   /** Tier-resolved image model (see lib/tiers.ts). */
   model?: string,
+  /** BYO key — bills the tournament owner's Google account. */
+  apiKey?: string,
 ): Promise<string | null> {
   if (!prompt) return null;
   try {
-    const { bytes, mimeType } = await generateImage(prompt, { model });
+    const { bytes, mimeType } = await generateImage(prompt, { model, apiKey });
     const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
     const path = `tournaments/${tournamentId}/results/${matchId}/${slot}-${nanoid(6)}.${ext}`;
 
@@ -188,23 +208,29 @@ export async function generateMatchVideosAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("skip_image_generation, plan, image_model, video_model")
+    .select("skip_image_generation, plan, image_model, video_model, byo_key")
     .eq("id", tournamentId)
     .maybeSingle();
   const skipGeneration = tournament?.skip_image_generation === true;
-  const plan = (tournament?.plan as Plan) ?? "free";
-  // Defense in depth: free plans can't create video tasks (createTaskAction
-  // gate), so a video match on a free plan means the API was bypassed.
-  // Refuse before any Veo budget is burned.
-  if (!skipGeneration && !limitsFor(plan).videoTasks) {
+  const byo = tournament?.byo_key === true;
+  const ePlan = effectivePlan((tournament?.plan as Plan) ?? "free", byo);
+  // Defense in depth: plans without video access can't create video tasks
+  // (createTaskAction gate), so a video match here means the API was
+  // bypassed. Refuse before any Veo budget is burned.
+  if (!skipGeneration && !limitsFor(ePlan).videoTasks) {
     return { ok: false, error: "Video generation requires Premium." };
   }
+  // BYO: generation runs on the owner's key. A byo flag without a
+  // decryptable key must not fall back to the platform key — handled as
+  // a skipped generation below.
+  const byoApiKey = byo && !skipGeneration ? await getByoGeminiKey(tournamentId) : null;
+  const byoKeyMissing = byo && !skipGeneration && !byoApiKey;
   const imageModel = imageModelFor(
-    plan,
+    ePlan,
     (tournament?.image_model as string | null) ?? null,
   );
   const videoModel = videoModelFor(
-    plan,
+    ePlan,
     (tournament?.video_model as string | null) ?? null,
   );
 
@@ -227,8 +253,12 @@ export async function generateMatchVideosAction(
   const promptA = (claimed.prompt_a ?? "").trim();
   const promptB = (claimed.prompt_b ?? "").trim();
 
-  // Test-Modus short-circuit.
-  if (skipGeneration) {
+  // Test-Modus short-circuit — or BYO tournament whose key can't be
+  // decrypted (never fall back to the platform key).
+  if (skipGeneration || byoKeyMissing) {
+    if (byoKeyMissing) {
+      console.error(`[video-gen ${matchId}] BYO key set but not decryptable — skipping generation`);
+    }
     await supabase
       .from("matches")
       .update({
@@ -257,11 +287,12 @@ export async function generateMatchVideosAction(
   // single bad call (e.g. Veo RAI block on one prompt, or Nano Banana
   // hiccup on one image) doesn't sink the others.
   console.log(`[video-gen ${matchId}] starting Veo + image kickoff in parallel`);
+  const byoKey = byoApiKey ?? undefined;
   const results = await Promise.allSettled([
-    kickoffVideo(promptA, videoModel),
-    kickoffVideo(promptB, videoModel),
-    generateAndUpload(promptA, tournamentId, matchId, "a", imageModel),
-    generateAndUpload(promptB, tournamentId, matchId, "b", imageModel),
+    kickoffVideo(promptA, videoModel, byoKey),
+    kickoffVideo(promptB, videoModel, byoKey),
+    generateAndUpload(promptA, tournamentId, matchId, "a", imageModel, byoKey),
+    generateAndUpload(promptB, tournamentId, matchId, "b", imageModel, byoKey),
   ]);
   const opA = results[0].status === "fulfilled" ? results[0].value : null;
   const opB = results[1].status === "fulfilled" ? results[1].value : null;
@@ -318,6 +349,7 @@ export async function generateMatchVideosAction(
 async function kickoffVideo(
   prompt: string,
   model?: string,
+  apiKey?: string,
 ): Promise<string | null> {
   if (!prompt) return null;
   try {
@@ -326,6 +358,7 @@ async function kickoffVideo(
       aspectRatio: "16:9",
       resolution: "720p",
       model,
+      apiKey,
     });
     return operationName;
   } catch (err) {
@@ -366,9 +399,21 @@ export async function pollMatchVideosAction(
     return { ok: false, aPending: false, bPending: false };
   }
 
+  // Veo operations are scoped to the API key's Google project — a BYO-
+  // started job can only be polled with the same BYO key.
+  const { data: t } = await supabase
+    .from("tournaments")
+    .select("byo_key")
+    .eq("id", match.tournament_id)
+    .maybeSingle();
+  const byoApiKey =
+    t?.byo_key === true
+      ? await getByoGeminiKey(match.tournament_id as string)
+      : null;
+
   await Promise.all([
-    pollOneSlot(matchId, "a", match.video_a_url, match.video_a_operation),
-    pollOneSlot(matchId, "b", match.video_b_url, match.video_b_operation),
+    pollOneSlot(matchId, "a", match.video_a_url, match.video_a_operation, byoApiKey ?? undefined),
+    pollOneSlot(matchId, "b", match.video_b_url, match.video_b_operation, byoApiKey ?? undefined),
   ]);
 
   // Re-read for the freshest pending state to return to the client.
@@ -393,6 +438,7 @@ async function pollOneSlot(
   slot: "a" | "b",
   currentUrl: string | null,
   operationName: string | null,
+  apiKey?: string,
 ): Promise<void> {
   if (currentUrl !== "pending") return;
   if (!operationName) {
@@ -403,7 +449,7 @@ async function pollOneSlot(
 
   let result;
   try {
-    result = await pollVideoGeneration(operationName);
+    result = await pollVideoGeneration(operationName, { apiKey });
   } catch (err) {
     console.error(`Veo poll failed for ${slot}:`, err);
     return; // transient — try again next tick

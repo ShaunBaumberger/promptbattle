@@ -53,6 +53,16 @@ export function limitsFor(plan: Plan): TierLimits {
   return TIER_LIMITS[plan] ?? TIER_LIMITS.free;
 }
 
+/**
+ * The plan whose limits actually apply. A tournament running on its own
+ * Gemini key (BYO) gets premium features regardless of what was paid —
+ * generation costs land on the key owner's Google account, so there is
+ * nothing for the platform to protect.
+ */
+export function effectivePlan(plan: Plan, byoKey: boolean): Plan {
+  return byoKey ? "premium" : plan;
+}
+
 /** Player-count options a plan may pick (create form + server validation). */
 export function allowedPlayerCounts(plan: Plan): PlayerCount[] {
   const all: PlayerCount[] = [2, 4, 8, 16, 32];

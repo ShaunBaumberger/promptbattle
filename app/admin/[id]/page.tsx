@@ -17,12 +17,15 @@ import { interpolate } from "@/lib/i18n/interpolate";
 import { requireUser } from "@/lib/supabase/auth";
 import {
   limitsFor,
+  effectivePlan,
   estimateTournamentCostCents,
   centsToUsd,
   FREE_GAMES_PER_WINDOW,
   quotaWindowStartIso,
   type Plan,
 } from "@/lib/tiers";
+import { encryptionConfigured } from "@/lib/crypto";
+import { ByoKeyCard } from "./byo-key-card";
 import {
   stripeConfigured,
   premiumPriceDisplay,
@@ -78,7 +81,9 @@ export default async function TournamentAdminPage({
     tasksByRound[t.round] = (tasksByRound[t.round] ?? 0) + 1;
   }
 
-  const plan = (tournament.plan as Plan) ?? "free";
+  const byoKeySet = tournament.byo_key === true;
+  // BYO key ⇒ premium features; every prop below derives from this.
+  const plan = effectivePlan((tournament.plan as Plan) ?? "free", byoKeySet);
   const skipGeneration =
     tournament.skip_image_generation === true || tournament.is_test_mode === true;
 
@@ -92,6 +97,7 @@ export default async function TournamentAdminPage({
       .select("id", { count: "exact", head: true })
       .eq("owner_id", user.id)
       .eq("plan", "free")
+      .eq("byo_key", false) // mirror the enforcement query exactly
       .eq("is_test_mode", false)
       .gte("started_at", quotaWindowStartIso());
     freeGamesLeft = Math.max(0, FREE_GAMES_PER_WINDOW - (count ?? 0));
@@ -119,7 +125,12 @@ export default async function TournamentAdminPage({
           ← {dict.admin.back}
         </Link>
         <div className="flex items-center gap-2">
-          {plan === "premium" && (
+          {byoKeySet && (
+            <Badge className="border-sky-500/50 bg-sky-500/15 text-sky-600">
+              🔑 {dict.admin.byoBadge}
+            </Badge>
+          )}
+          {tournament.plan === "premium" && (
             <Badge className="border-amber-500/50 bg-amber-500/15 text-amber-600">
               ✨ {dict.admin.premiumBadge}
             </Badge>
@@ -180,7 +191,8 @@ export default async function TournamentAdminPage({
 
       {/* Pay-per-event upgrade — only while free, in setup, not a test
           tournament, and Stripe is configured. Upgrading is locked once
-          the bracket starts (models/limits must not change mid-game). */}
+          the bracket starts (models/limits must not change mid-game).
+          Hidden when a BYO key is set (premium is already unlocked). */}
       {plan === "free" &&
         tournament.status === "setup" &&
         !tournament.is_test_mode &&
@@ -190,6 +202,17 @@ export default async function TournamentAdminPage({
               tournamentId={tournament.id}
               priceDisplay={premiumPriceDisplay(locale)}
             />
+          </section>
+        )}
+
+      {/* BYO key — the third path: premium features on the host's own
+          Gemini key, zero platform cost. Setup-only for the same
+          "nothing changes mid-game" reason as the upgrade. */}
+      {tournament.status === "setup" &&
+        !tournament.is_test_mode &&
+        encryptionConfigured() && (
+          <section>
+            <ByoKeyCard tournamentId={tournament.id} keySet={byoKeySet} />
           </section>
         )}
 

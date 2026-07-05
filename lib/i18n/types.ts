@@ -245,6 +245,18 @@ export interface Dictionary {
     upgradeSuccess: string;
     upgradeCancelled: string;
     upgradeHint: string;
+    // BYO Gemini key
+    byoTitle: string;
+    byoDesc: string;
+    byoKeyLabel: string;
+    byoSave: string;
+    byoSaving: string;
+    byoSet: string;
+    byoRemove: string;
+    byoRemoved: string;
+    byoSaved: string;
+    byoGetKeyHint: string;
+    byoBadge: string;
     // shared
     save: string;
     saving: string;
@@ -431,6 +443,8 @@ export interface Dictionary {
       paymentInit: string;
       upgradeSetupOnly: string;
       alreadyPremium: string;
+      byoInvalidKey: string;
+      byoNotConfigured: string;
     };
   };
 }
