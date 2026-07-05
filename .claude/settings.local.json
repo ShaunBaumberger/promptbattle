@@ -17,7 +17,8 @@
       "Bash(curl -s https://promptbattle-orpin.vercel.app/stage/ZUT7PN)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

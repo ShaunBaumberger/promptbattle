@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/auth";
 import { logoutAction } from "./login/actions";
 import { CreateTournamentForm } from "./create-tournament-form";
 import type { Tournament } from "@/lib/types/database";
@@ -17,11 +18,14 @@ export const metadata = { title: "Admin · Prompt Battle" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  const user = await requireUser();
   const supabase = createServiceRoleClient();
   const { locale, dict } = await getServerDictionary();
+  // Multi-tenant: a host only sees the tournaments they own.
   const { data: tournaments } = await supabase
     .from("tournaments")
     .select("*")
+    .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
 
   return (

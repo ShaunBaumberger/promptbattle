@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/supabase/auth";
 import { generateJoinCode } from "@/lib/join-code";
 
 export type CreateTournamentState = { error?: string };
@@ -10,6 +11,9 @@ export async function createTournamentAction(
   _prev: CreateTournamentState,
   formData: FormData,
 ): Promise<CreateTournamentState> {
+  const user = await getUser();
+  if (!user) return { error: "Not signed in." };
+
   const name = String(formData.get("name") ?? "").trim();
   const rawMode = String(formData.get("mode") ?? "");
   const roundTime = Number(formData.get("round_time_seconds")) || 60;
@@ -53,6 +57,7 @@ export async function createTournamentAction(
       is_test_mode: isTestMode,
       // Skip Gemini by default only in test mode — real tournaments generate.
       skip_image_generation: isTestMode,
+      owner_id: user.id,
     })
     .select("id")
     .single();

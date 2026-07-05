@@ -22,6 +22,15 @@ export interface Tournament {
   round_time_seconds: number;
   status: TournamentStatus;
   current_match_id: string | null;
+  /** Supabase Auth user who owns this tournament (multi-tenant). */
+  owner_id: string;
+  /** Tier: 'free' (platform-funded, feature-gated) or 'premium' (paid). */
+  plan: "free" | "premium";
+  /** Per-tournament model overrides; null = tier default. */
+  image_model: string | null;
+  video_model: string | null;
+  /** Set when the bracket goes live — powers the free-tier usage cap. */
+  started_at: string | null;
   /** Test-mode: skip Gemini image generation. Only effective in test mode. */
   skip_image_generation: boolean;
   /** True for the dedicated debug-tournament mode (always 2 players, exposes test controls). */

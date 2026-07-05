@@ -14,6 +14,7 @@ import { copyTournamentAction } from "./actions";
 import type { PlayerCount, Round } from "@/lib/types/database";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
+import { requireUser } from "@/lib/supabase/auth";
 
 // Image generation can take ~15-25s; allow headroom for the server action.
 export const maxDuration = 60;
@@ -25,6 +26,7 @@ export default async function TournamentAdminPage({
 }) {
   const { id } = await params;
 
+  const user = await requireUser();
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -42,7 +44,8 @@ export default async function TournamentAdminPage({
       .order("joined_at", { ascending: true }),
   ]);
 
-  if (!tournament) notFound();
+  // Multi-tenant guard: only the owner may open a tournament's admin page.
+  if (!tournament || tournament.owner_id !== user.id) notFound();
 
   const tasksByRound: Record<Round, number> = { R32: 0, R16: 0, QF: 0, SF: 0, FINAL: 0 };
   for (const t of (tasks ?? []) as Task[]) {
