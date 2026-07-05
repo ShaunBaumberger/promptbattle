@@ -22,6 +22,10 @@ interface Props {
   initialRoundTimeOverrides: Partial<Record<Round, number>>;
   initialSkipGeneration: boolean;
   status: TournamentStatus;
+  /** Largest bracket the tournament's plan allows (free 8 / premium 32).
+   *  Bigger options render disabled with a premium tag; the server
+   *  enforces the same limit. */
+  maxPlayers: PlayerCount;
 }
 
 const PLAYER_COUNT_VALUES: PlayerCount[] = [2, 4, 8, 16, 32];
@@ -33,6 +37,7 @@ export function TournamentSettings({
   initialRoundTimeOverrides,
   initialSkipGeneration,
   status,
+  maxPlayers,
 }: Props) {
   const { dict } = useI18n();
   const [playerCount, setPlayerCount] = useState<PlayerCount>(initialPlayerCount);
@@ -130,8 +135,9 @@ export function TournamentSettings({
             className="border-input bg-background h-9 rounded-md border px-3 text-sm disabled:opacity-60"
           >
             {PLAYER_COUNT_VALUES.map((value) => (
-              <option key={value} value={value}>
+              <option key={value} value={value} disabled={value > maxPlayers}>
                 {interpolate(dict.admin.playersN, { count: value })}
+                {value > maxPlayers && ` ${dict.admin.premiumTag}`}
               </option>
             ))}
           </select>

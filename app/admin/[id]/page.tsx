@@ -23,20 +23,38 @@ import {
   quotaWindowStartIso,
   type Plan,
 } from "@/lib/tiers";
+import {
+  stripeConfigured,
+  premiumPriceDisplay,
+  fulfillCheckoutSession,
+} from "@/lib/stripe";
+import { UpgradeCard } from "./upgrade-card";
 
 // Image generation can take ~15-25s; allow headroom for the server action.
 export const maxDuration = 60;
 
 export default async function TournamentAdminPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ upgrade?: string; session_id?: string }>;
 }) {
   const { id } = await params;
+  const { upgrade, session_id: checkoutSessionId } = await searchParams;
 
   const user = await requireUser();
   const supabase = createServiceRoleClient();
-  const { dict } = await getServerDictionary();
+  const { locale, dict } = await getServerDictionary();
+
+  // Returning from Stripe Checkout: verify + fulfill BEFORE fetching the
+  // tournament so this render already shows the premium state. Idempotent
+  // (the webhook may have fulfilled first) and forgery-proof (the session
+  // is verified against the Stripe API; the upgraded tournament comes
+  // from the session's own metadata).
+  if (upgrade === "success" && checkoutSessionId) {
+    await fulfillCheckoutSession(checkoutSessionId);
+  }
 
   const [{ data: tournament }, { data: tasks }, { data: participants }] = await Promise.all([
     supabase.from("tournaments").select("*").eq("id", id).maybeSingle(),
@@ -100,10 +118,28 @@ export default async function TournamentAdminPage({
         <Link href="/admin" className="text-muted-foreground hover:text-foreground text-sm">
           ← {dict.admin.back}
         </Link>
-        <Badge variant="secondary">
-          {dict.admin.tStatus[tournament.status as Tournament["status"]]}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {plan === "premium" && (
+            <Badge className="border-amber-500/50 bg-amber-500/15 text-amber-600">
+              ✨ {dict.admin.premiumBadge}
+            </Badge>
+          )}
+          <Badge variant="secondary">
+            {dict.admin.tStatus[tournament.status as Tournament["status"]]}
+          </Badge>
+        </div>
       </div>
+
+      {upgrade === "success" && plan === "premium" && (
+        <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">
+          ✅ {dict.admin.upgradeSuccess}
+        </div>
+      )}
+      {upgrade === "cancelled" && (
+        <div className="text-muted-foreground rounded-md border border-dashed p-3 text-sm">
+          {dict.admin.upgradeCancelled}
+        </div>
+      )}
 
       <header className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
@@ -138,8 +174,24 @@ export default async function TournamentAdminPage({
           }
           initialSkipGeneration={tournament.skip_image_generation === true}
           status={tournament.status as Tournament["status"]}
+          maxPlayers={limitsFor(plan).maxPlayers}
         />
       </section>
+
+      {/* Pay-per-event upgrade — only while free, in setup, not a test
+          tournament, and Stripe is configured. Upgrading is locked once
+          the bracket starts (models/limits must not change mid-game). */}
+      {plan === "free" &&
+        tournament.status === "setup" &&
+        !tournament.is_test_mode &&
+        stripeConfigured() && (
+          <section>
+            <UpgradeCard
+              tournamentId={tournament.id}
+              priceDisplay={premiumPriceDisplay(locale)}
+            />
+          </section>
+        )}
 
       <section>
         <ParticipantsList

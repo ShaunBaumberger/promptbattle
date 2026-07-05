@@ -234,6 +234,17 @@ export interface Dictionary {
     freeGamesLeft: string;
     /** "{usd}" */
     estCost: string;
+    // Stripe pay-per-event upgrade
+    upgradeTitle: string;
+    upgradeDesc: string;
+    paymentMethodsNote: string;
+    /** "{price}" */
+    upgradeButton: string;
+    upgradeRedirecting: string;
+    premiumBadge: string;
+    upgradeSuccess: string;
+    upgradeCancelled: string;
+    upgradeHint: string;
     // shared
     save: string;
     saving: string;
@@ -416,6 +427,10 @@ export interface Dictionary {
       /** "{max}" */
       quotaExhausted: string;
       budgetPaused: string;
+      /** "{msg}" */
+      paymentInit: string;
+      upgradeSetupOnly: string;
+      alreadyPremium: string;
     };
   };
 }

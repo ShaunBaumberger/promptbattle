@@ -49,6 +49,7 @@ export function CreateTournamentForm() {
           <option value="test">{dict.admin.modeOptTest}</option>
         </select>
         <p className="text-muted-foreground text-xs">{dict.admin.planFreeInfo}</p>
+        <p className="text-muted-foreground text-xs">{dict.admin.upgradeHint}</p>
         <p className="text-muted-foreground text-xs">{dict.admin.testModeHint}</p>
       </div>
 
