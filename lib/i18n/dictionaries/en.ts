@@ -174,6 +174,8 @@ export const en: Dictionary = {
     duplicateHint:
       "Creates a new tournament with the same setup (mode, round time, tasks). Images are copied. A new join code is generated automatically.",
     copyTournament: "Copy tournament",
+    copied: "Tournament copied.",
+    nameUpdated: "Name updated.",
     dangerZone: "Danger zone",
     dangerHint:
       "Permanently deletes the tournament — including all tasks, images, participants and matches.",

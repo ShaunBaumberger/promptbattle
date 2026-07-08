@@ -175,6 +175,8 @@ export const ja: Dictionary = {
     duplicateHint:
       "同じ設定（モード・時間・お題）で新しい大会を作成します。画像はコピーされ、新しい参加コードが自動生成されます。",
     copyTournament: "大会をコピー",
+    copied: "大会をコピーしました。",
+    nameUpdated: "名前を更新しました。",
     dangerZone: "危険な操作",
     dangerHint: "大会をすべてのお題・画像・参加者・対戦ごと完全に削除します。",
     participants: "参加者",

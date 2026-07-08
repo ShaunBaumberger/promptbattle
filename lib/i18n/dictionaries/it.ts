@@ -174,6 +174,8 @@ export const it: Dictionary = {
     duplicateHint:
       "Crea un nuovo torneo con la stessa configurazione (modalità, tempo, compiti). Le immagini vengono copiate. Viene generato automaticamente un nuovo codice d'accesso.",
     copyTournament: "Copia torneo",
+    copied: "Torneo copiato.",
+    nameUpdated: "Nome aggiornato.",
     dangerZone: "Zona pericolosa",
     dangerHint:
       "Elimina definitivamente il torneo — inclusi tutti i compiti, le immagini, i partecipanti e le sfide.",

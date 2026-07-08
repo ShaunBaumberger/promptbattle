@@ -11,12 +11,14 @@ import {
   updatePlayerCountAction,
   updateRoundTimeAction,
   updateRoundTimeOverrideAction,
+  updateTournamentNameAction,
 } from "./actions";
 import { setSkipGenerationAction } from "./match-actions";
 import { useI18n, interpolate } from "@/lib/i18n/context";
 
 interface Props {
   tournamentId: string;
+  initialName: string;
   initialPlayerCount: PlayerCount;
   initialRoundTime: number;
   initialRoundTimeOverrides: Partial<Record<Round, number>>;
@@ -32,6 +34,7 @@ const PLAYER_COUNT_VALUES: PlayerCount[] = [2, 4, 8, 16, 32];
 
 export function TournamentSettings({
   tournamentId,
+  initialName,
   initialPlayerCount,
   initialRoundTime,
   initialRoundTimeOverrides,
@@ -40,12 +43,23 @@ export function TournamentSettings({
   maxPlayers,
 }: Props) {
   const { dict } = useI18n();
+  const [name, setName] = useState<string>(initialName);
   const [playerCount, setPlayerCount] = useState<PlayerCount>(initialPlayerCount);
   const [roundTime, setRoundTime] = useState<number>(initialRoundTime);
   const [skipGeneration, setSkipGeneration] = useState<boolean>(initialSkipGeneration);
+  const [namePending, startNameTransition] = useTransition();
   const [pcPending, startPcTransition] = useTransition();
   const [rtPending, startRtTransition] = useTransition();
   const [modePending, startModeTransition] = useTransition();
+
+  const saveName = () => {
+    if (name.trim() === initialName || !name.trim()) return;
+    startNameTransition(async () => {
+      const result = await updateTournamentNameAction(tournamentId, name);
+      if (result.error) toast.error(result.error);
+      else toast.success(dict.admin.nameUpdated);
+    });
+  };
 
   const playerCountLocked = status !== "setup";
 
@@ -96,6 +110,27 @@ export function TournamentSettings({
   return (
     <div className="space-y-4 rounded-md border p-4">
       <h2 className="text-base font-semibold">{dict.admin.settings}</h2>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="tournament_name_setting">{dict.admin.tournamentName}</Label>
+        <div className="flex gap-2">
+          <Input
+            id="tournament_name_setting"
+            value={name}
+            maxLength={100}
+            onChange={(e) => setName(e.target.value)}
+            className="max-w-sm"
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={saveName}
+            disabled={namePending || !name.trim() || name.trim() === initialName}
+          >
+            {namePending ? dict.admin.saving : dict.admin.save}
+          </Button>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-2">
         <Label>{dict.admin.mode}</Label>

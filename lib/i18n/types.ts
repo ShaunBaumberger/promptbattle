@@ -203,6 +203,10 @@ export interface Dictionary {
     duplicate: string;
     duplicateHint: string;
     copyTournament: string;
+    /** Toast after a successful tournament copy. */
+    copied: string;
+    /** Toast after renaming a tournament. */
+    nameUpdated: string;
     dangerZone: string;
     dangerHint: string;
     // participants

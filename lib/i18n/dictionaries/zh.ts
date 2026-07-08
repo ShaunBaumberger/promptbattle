@@ -173,6 +173,8 @@ export const zh: Dictionary = {
     duplicateHint:
       "用相同设置（模式、时间、任务）创建一场新比赛。图片会被复制，并自动生成新的加入代码。",
     copyTournament: "复制比赛",
+    copied: "比赛已复制。",
+    nameUpdated: "名称已更新。",
     dangerZone: "危险区域",
     dangerHint: "永久删除该比赛——包括所有任务、图片、参与者和对决。",
     participants: "参与者",

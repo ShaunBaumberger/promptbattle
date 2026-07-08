@@ -174,6 +174,8 @@ export const fr: Dictionary = {
     duplicateHint:
       "Crée un nouveau tournoi avec la même configuration (mode, durée, tâches). Les images sont copiées. Un nouveau code d'accès est généré automatiquement.",
     copyTournament: "Copier le tournoi",
+    copied: "Tournoi copié.",
+    nameUpdated: "Nom mis à jour.",
     dangerZone: "Zone de danger",
     dangerHint:
       "Supprime définitivement le tournoi — y compris toutes les tâches, images, participants et matchs.",

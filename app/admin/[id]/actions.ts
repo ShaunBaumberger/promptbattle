@@ -387,7 +387,8 @@ export async function copyTournamentAction(sourceId: string) {
     await supabase.from("tasks").insert(newTaskRows);
   }
 
-  redirect(`/admin/${created.id}`);
+  // ?copied=1 → the destination page fires a success toast (FlashToast).
+  redirect(`/admin/${created.id}?copied=1`);
 }
 
 function appendCopySuffix(name: string): string {
@@ -402,6 +403,16 @@ function appendCopySuffix(name: string): string {
 export async function deleteTournamentAction(tournamentId: string) {
   const supabase = createServiceRoleClient();
 
+  // Multi-tenant guard: destructive — only the owner may delete.
+  const user = await getUser();
+  if (!user) redirect("/admin/login");
+  const { data: t } = await supabase
+    .from("tournaments")
+    .select("owner_id")
+    .eq("id", tournamentId)
+    .maybeSingle();
+  if (!t || t.owner_id !== user.id) redirect("/admin");
+
   const { data: files } = await supabase.storage
     .from(STORAGE_BUCKET)
     .list(`tournaments/${tournamentId}/tasks`);
@@ -415,6 +426,42 @@ export async function deleteTournamentAction(tournamentId: string) {
   await supabase.from("tournaments").delete().eq("id", tournamentId);
 
   redirect("/admin");
+}
+
+/**
+ * Rename a tournament. Allowed at any point in the lifecycle — the name
+ * is display-only (stage header, dashboard, checkout line item).
+ */
+export async function updateTournamentNameAction(
+  tournamentId: string,
+  name: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { dict } = await getServerDictionary();
+  const user = await getUser();
+  if (!user) return { ok: false, error: dict.admin.err.tournamentNotFound };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: dict.join.errNameRequired };
+  if (trimmed.length > 100) return { ok: false, error: dict.join.errNameTooLong };
+
+  const supabase = createServiceRoleClient();
+  const { data: t } = await supabase
+    .from("tournaments")
+    .select("owner_id")
+    .eq("id", tournamentId)
+    .maybeSingle();
+  if (!t || t.owner_id !== user.id) {
+    return { ok: false, error: dict.admin.err.tournamentNotFound };
+  }
+
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ name: trimmed })
+    .eq("id", tournamentId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/admin/${tournamentId}`);
+  return { ok: true };
 }
 
 export type StartBracketState = { error?: string; ok?: boolean };

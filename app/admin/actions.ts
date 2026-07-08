@@ -19,36 +19,20 @@ export async function createTournamentAction(
   const { dict } = await getServerDictionary();
 
   const name = String(formData.get("name") ?? "").trim();
-  const rawMode = String(formData.get("mode") ?? "");
-  const roundTime = Number(formData.get("round_time_seconds")) || 60;
   const rawVenue = String(formData.get("venue") ?? "onsite");
   const venue = rawVenue === "online" ? "online" : "onsite";
 
   if (!name) return { error: dict.join.errNameRequired };
 
-  // Every tournament starts on the free plan; premium (paid per event)
-  // arrives with the Stripe build. The gate below is plan-aware so it
-  // needs no rewiring once premium is purchasable.
+  // The create form is intentionally minimal: name + venue. Everything
+  // else (player count, round times, test/live mode) is configured in
+  // the tournament's settings afterwards. Defaults below; every
+  // tournament starts on the free plan — premium is a per-event upgrade
+  // (Stripe) or a BYO key on the tournament page.
   const plan: Plan = "free";
-
-  // `mode` is either "test" (debug session, 2 players, skip default ON)
-  // or a numeric string for the real bracket size.
-  let isTestMode = false;
-  let playerCount: number;
-  if (rawMode === "test") {
-    isTestMode = true;
-    playerCount = 2;
-  } else {
-    playerCount = Number(rawMode);
-    if (![2, 4, 8, 16, 32].includes(playerCount)) {
-      return { error: dict.admin.err.invalidChoice };
-    }
-    // Tier gate — enforced server-side so a hand-crafted POST can't
-    // bypass the disabled options in the create form.
-    if (playerCount > limitsFor(plan).maxPlayers) {
-      return { error: dict.admin.err.playersNeedPremium };
-    }
-  }
+  const playerCount = Math.min(8, limitsFor(plan).maxPlayers);
+  const roundTime = 60;
+  const isTestMode = false;
 
   const supabase = createServiceRoleClient();
 

@@ -26,6 +26,7 @@ import {
 } from "@/lib/tiers";
 import { encryptionConfigured } from "@/lib/crypto";
 import { ByoKeyCard } from "./byo-key-card";
+import { FlashToast } from "@/components/flash-toast";
 import {
   stripeConfigured,
   premiumPriceDisplay,
@@ -41,10 +42,10 @@ export default async function TournamentAdminPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ upgrade?: string; session_id?: string }>;
+  searchParams: Promise<{ upgrade?: string; session_id?: string; copied?: string }>;
 }) {
   const { id } = await params;
-  const { upgrade, session_id: checkoutSessionId } = await searchParams;
+  const { upgrade, session_id: checkoutSessionId, copied } = await searchParams;
 
   const user = await requireUser();
   const supabase = createServiceRoleClient();
@@ -120,6 +121,7 @@ export default async function TournamentAdminPage({
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 space-y-8 p-6">
+      {copied === "1" && <FlashToast message={dict.admin.copied} />}
       <div className="flex items-center justify-between">
         <Link href="/admin" className="text-muted-foreground hover:text-foreground text-sm">
           ← {dict.admin.back}
@@ -177,6 +179,7 @@ export default async function TournamentAdminPage({
       <section>
         <TournamentSettings
           tournamentId={tournament.id}
+          initialName={tournament.name}
           initialPlayerCount={tournament.player_count as PlayerCount}
           initialRoundTime={tournament.round_time_seconds}
           initialRoundTimeOverrides={

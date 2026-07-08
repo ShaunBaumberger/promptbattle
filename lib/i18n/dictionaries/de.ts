@@ -174,6 +174,8 @@ export const de: Dictionary = {
     duplicateHint:
       "Erstellt ein neues Turnier mit demselben Setup (Modus, Rundenzeit, Tasks). Bilder werden kopiert. Neuer Beitritts-Code wird automatisch generiert.",
     copyTournament: "Turnier kopieren",
+    copied: "Turnier kopiert.",
+    nameUpdated: "Name aktualisiert.",
     dangerZone: "Gefahrenzone",
     dangerHint:
       "Löscht das Turnier unwiderruflich – inklusive aller Tasks, Bilder, Teilnehmer:innen und Matches.",
