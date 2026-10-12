@@ -30,18 +30,21 @@ other's prompts until the reveal.
 
 - **Next.js 16** (App Router, Server Actions) + **React 19** + **Tailwind v4**
 - **Supabase** — Postgres, Realtime (live sync across all three views), Storage
-- **Google Gemini** — images (Nano Banana Pro) and video (Veo 3 Fast)
+- **Pluggable AI models** — Google (Gemini / Nano Banana Pro, Veo), OpenAI
+  (GPT Image, Sora) and Replicate (FLUX, Kling, Seedance and thousands more)
 - Deploys cleanly to **Vercel** (Hobby tier is enough for a single event)
 
 ## Bring your own keys
 
 This is **self-hosted and bring-your-own-key**: you run it on your own Supabase
-project and your own Google Gemini key, so **you** control (and pay for) the
-generations your tournaments produce. Nothing phones home.
+project and your own AI provider keys (Google, OpenAI and/or Replicate), so
+**you** control (and pay for) the generations your tournaments produce. Nothing
+phones home.
 
-You can also **choose your models** — image quality/cost and video model are
-configurable via environment variables. See [`.env.local.example`](.env.local.example)
-for the menu and pricing notes.
+You can also **choose your models** — any image or video model of those
+providers, addressed as `<provider>:<model id>` (e.g. `openai:gpt-image-1`,
+`replicate:black-forest-labs/flux-1.1-pro`, `google:veo-3.0-fast-generate-001`).
+See [`.env.local.example`](.env.local.example) for the menu and pricing notes.
 
 ## Setup
 
@@ -49,8 +52,10 @@ for the menu and pricing notes.
 
 - Node.js 20+
 - A free [Supabase](https://supabase.com) project
-- A [Google Gemini API key](https://aistudio.google.com) (only needed for real
-  generation — there's a Test Mode that skips all API calls)
+- An API key for at least one AI provider — [Google Gemini](https://aistudio.google.com/apikey)
+  (default models), [OpenAI](https://platform.openai.com/api-keys) or
+  [Replicate](https://replicate.com/account/api-tokens). Only needed for real
+  generation — there's a Test Mode that skips all API calls.
 
 ### 1. Install
 
@@ -104,7 +109,7 @@ Open <http://localhost:3000>. The host area is at `/admin` (log in with
 5. **Host:** start the tournament, then run each match: *prepare → start →*
    (players prompt) *→ generate → reveal → vote → next.*
 
-**Test Mode** (in tournament settings) skips all Gemini/Veo calls so you can
+**Test Mode** (in tournament settings) skips all AI API calls so you can
 rehearse the whole flow for free.
 
 ## Deploying to Vercel
@@ -113,7 +118,7 @@ Import the repo on [Vercel](https://vercel.com/new), add the same environment
 variables, and deploy. Notes:
 
 - Server actions that generate images/videos set `maxDuration = 60` to fit
-  Vercel's function budget. Veo renders longer than that, so video generation
+  Vercel's function budget. Video models render longer than that, so video generation
   uses a **polling architecture** (kick off the job, then short poll calls pick
   up the result) — no single function blocks on the render.
 - Vercel caps request bodies at **4.5 MB**. Reference-image uploads are resized
@@ -121,14 +126,15 @@ variables, and deploy. Notes:
 
 ## Cost
 
-You pay Google directly for generations on your key. Ballpark per match (two
-players, default models):
+You pay your AI provider directly for generations on your key. Ballpark per
+match (two players, default Google models):
 
 - **Image task:** ~$0.27
 - **Video task:** ~$1.60 (two 8-second Veo clips) + ~$0.27 for backup images
 
 Image-only tournaments are cheap. Video is the expensive option — use it
-sparingly (e.g. only the final). Cheaper models are available via env vars.
+sparingly (e.g. only the final). Cheaper models (e.g. Gemini 2.5 Flash Image at
+~$0.04, FLUX Schnell at ~$0.01 per image) are one setting away.
 
 ## Roadmap
 
@@ -136,7 +142,7 @@ Things that would help this go wider — PRs welcome:
 
 - **i18n** — the UI is German-only today; an English locale + i18n layer
 - **Automated migrations** — a setup script instead of manual SQL paste
-- **Multi-provider** — abstract the model layer to support non-Gemini providers
+- **More providers** — e.g. Stability, fal.ai, local models via ComfyUI
 - **Multi-tenant / hosted mode** — real accounts + per-org isolation (today's
   auth is a single shared host password, perfect for one organizer, not for a
   shared instance)

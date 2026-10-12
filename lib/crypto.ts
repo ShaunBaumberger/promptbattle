@@ -3,7 +3,7 @@ import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 /**
- * AES-256-GCM encryption for stored secrets (BYO Gemini keys). The data
+ * AES-256-GCM encryption for stored secrets (BYO AI provider keys). The data
  * key comes from SECRETS_ENCRYPTION_KEY — 32 random bytes, base64:
  *
  *   openssl rand -base64 32

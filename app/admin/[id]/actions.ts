@@ -15,10 +15,17 @@ import {
   limitsFor,
   effectivePlan,
   estimateTournamentCostCents,
+  imageModelFor,
+  videoModelFor,
+  centsToUsd,
+  PREMIUM_MAX_COST_CENTS,
   FREE_GAMES_PER_WINDOW,
   quotaWindowStartIso,
   type Plan,
 } from "@/lib/tiers";
+import { getByoProviders } from "@/lib/byo-key";
+import { platformKey } from "@/lib/ai";
+import { PROVIDER_LABELS, parseModelRef, type Provider } from "@/lib/ai/models";
 
 const VALID_ROUNDS: readonly Round[] = ["R32", "R16", "QF", "SF", "FINAL"] as const;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -477,7 +484,7 @@ export async function startBracketAction(
   const { data: tournament, error: tErr } = await supabase
     .from("tournaments")
     .select(
-      "id, status, player_count, plan, is_test_mode, skip_image_generation, image_model, owner_id, byo_key",
+      "id, status, player_count, plan, is_test_mode, skip_image_generation, image_model, video_model, owner_id, byo_key",
     )
     .eq("id", tournamentId)
     .maybeSingle();
@@ -591,6 +598,74 @@ export async function startBracketAction(
     }
   }
 
+  // ---- Model / key / cost pre-flight (still before ANY mutation) ----
+  // Same principle as the quota: everything that could stop generation
+  // is checked here, so a started bracket always runs to the end.
+  if (!skipGeneration) {
+    const imageRef = imageModelFor(plan, (tournament.image_model as string | null) ?? null);
+    const videoRef = videoModelFor(plan, (tournament.video_model as string | null) ?? null);
+
+    // Worst case per round: as many video matches as that round's task
+    // pool can supply (tasks are drawn at random below).
+    const worstKinds: TaskKind[] = [];
+    let anyVideo = false;
+    for (const spec of rounds) {
+      const pool = tasksByRound.get(spec.round) ?? [];
+      const videos = Math.min(
+        pool.filter((id) => taskKindById.get(id) === "video").length,
+        spec.matches,
+      );
+      if (videos > 0) anyVideo = true;
+      for (let i = 0; i < spec.matches; i++) worstKinds.push(i < videos ? "video" : "image");
+    }
+
+    const providersUsed = new Set<Provider>([parseModelRef(imageRef).provider]);
+    if (anyVideo) providersUsed.add(parseModelRef(videoRef).provider);
+
+    if (byo) {
+      // Own keys: every provider in use needs a stored key.
+      const keyed = await getByoProviders(tournamentId);
+      for (const p of providersUsed) {
+        if (!keyed.includes(p)) {
+          return {
+            error: interpolate(dict.admin.err.providerKeyMissing, {
+              provider: PROVIDER_LABELS[p],
+            }),
+          };
+        }
+      }
+    } else {
+      for (const p of providersUsed) {
+        if (!platformKey(p)) {
+          return {
+            error: interpolate(dict.admin.err.platformProviderUnavailable, {
+              provider: PROVIDER_LABELS[p],
+            }),
+          };
+        }
+      }
+      // Paid plan: one flat fee covers a bounded generation cost.
+      if (plan === "premium") {
+        const worstCents = estimateTournamentCostCents({
+          plan,
+          imageModelOverride: (tournament.image_model as string | null) ?? null,
+          videoModelOverride: (tournament.video_model as string | null) ?? null,
+          matchTaskKinds: worstKinds,
+          skipGeneration: false,
+        });
+        if (worstCents > PREMIUM_MAX_COST_CENTS) {
+          return {
+            error: interpolate(dict.admin.err.premiumBudgetExceeded, {
+              usd: centsToUsd(worstCents),
+              max: centsToUsd(PREMIUM_MAX_COST_CENTS),
+            }),
+          };
+        }
+      }
+    }
+  }
+  // --------------------------------------------------------------------
+
   const selectedIds = shuffle(participants.map((p) => p.id)).slice(0, playerCount);
 
   const { error: updateErr } = await supabase
@@ -685,6 +760,7 @@ export async function startBracketAction(
   const estimatedCents = estimateTournamentCostCents({
     plan,
     imageModelOverride: (tournament.image_model as string | null) ?? null,
+    videoModelOverride: (tournament.video_model as string | null) ?? null,
     matchTaskKinds: matchRows.map(
       (m) => taskKindById.get(m.task_id) ?? null,
     ),

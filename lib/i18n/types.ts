@@ -249,7 +249,7 @@ export interface Dictionary {
     upgradeSuccess: string;
     upgradeCancelled: string;
     upgradeHint: string;
-    // BYO Gemini key
+    // BYO AI provider keys
     byoTitle: string;
     byoDesc: string;
     byoKeyLabel: string;
@@ -261,6 +261,20 @@ export interface Dictionary {
     byoSaved: string;
     byoGetKeyHint: string;
     byoBadge: string;
+    byoProviderLabel: string;
+    byoStoredKeys: string;
+    /** "{url}" */
+    byoGetKeyAt: string;
+    // AI model choice
+    modelsTitle: string;
+    modelsDesc: string;
+    /** "{model}" */
+    modelsFreeInfo: string;
+    imageModelLabel: string;
+    videoModelLabel: string;
+    modelIdLabel: string;
+    modelIdHint: string;
+    modelsSaved: string;
     // shared
     save: string;
     saving: string;
@@ -449,6 +463,14 @@ export interface Dictionary {
       alreadyPremium: string;
       byoInvalidKey: string;
       byoNotConfigured: string;
+      modelNotAllowed: string;
+      invalidModelId: string;
+      /** "{provider}" */
+      providerKeyMissing: string;
+      /** "{provider}" */
+      platformProviderUnavailable: string;
+      /** "{usd}", "{max}" */
+      premiumBudgetExceeded: string;
     };
   };
 }

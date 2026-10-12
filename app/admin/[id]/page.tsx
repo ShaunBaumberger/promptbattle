@@ -22,10 +22,15 @@ import {
   centsToUsd,
   FREE_GAMES_PER_WINDOW,
   quotaWindowStartIso,
+  imageModelFor,
+  videoModelFor,
   type Plan,
 } from "@/lib/tiers";
 import { encryptionConfigured } from "@/lib/crypto";
+import { getByoProviders } from "@/lib/byo-key";
+import { platformProviders } from "@/lib/ai";
 import { ByoKeyCard } from "./byo-key-card";
+import { ModelSettingsCard } from "./model-settings-card";
 import { FlashToast } from "@/components/flash-toast";
 import {
   stripeConfigured,
@@ -87,6 +92,12 @@ export default async function TournamentAdminPage({
   const plan = effectivePlan((tournament.plan as Plan) ?? "free", byoKeySet);
   const skipGeneration =
     tournament.skip_image_generation === true || tournament.is_test_mode === true;
+  const byoProviders = byoKeySet ? await getByoProviders(tournament.id) : [];
+  const imageOverride = (tournament.image_model as string | null) ?? null;
+  const videoOverride = (tournament.video_model as string | null) ?? null;
+  const imageRef = imageModelFor(plan, imageOverride);
+  const videoRef = videoModelFor(plan, videoOverride);
+  const modelMode = byoKeySet ? "byo" : plan === "free" ? "free" : "platform";
 
   // Pre-flight info for the start form: free games remaining in the
   // rolling 30-day window + a worst-case cost estimate for this bracket.
@@ -110,7 +121,8 @@ export default async function TournamentAdminPage({
   const estCostUsd = centsToUsd(
     estimateTournamentCostCents({
       plan,
-      imageModelOverride: (tournament.image_model as string | null) ?? null,
+      imageModelOverride: imageOverride,
+      videoModelOverride: videoOverride,
       matchTaskKinds: matchTaskKinds.slice(
         0,
         Math.max(0, (tournament.player_count as number) - 1),
@@ -208,16 +220,30 @@ export default async function TournamentAdminPage({
           </section>
         )}
 
-      {/* BYO key — the third path: premium features on the host's own
-          Gemini key, zero platform cost. Setup-only for the same
+      {/* BYO keys — the third path: premium features on the host's own
+          AI provider keys, zero platform cost. Setup-only for the same
           "nothing changes mid-game" reason as the upgrade. */}
       {tournament.status === "setup" &&
         !tournament.is_test_mode &&
         encryptionConfigured() && (
           <section>
-            <ByoKeyCard tournamentId={tournament.id} keySet={byoKeySet} />
+            <ByoKeyCard tournamentId={tournament.id} storedProviders={byoProviders} />
           </section>
         )}
+
+      {tournament.status === "setup" && !tournament.is_test_mode && (
+        <section>
+          <ModelSettingsCard
+            // Remount when the server changes the models (e.g. a new key).
+            key={`${modelMode}|${imageRef}|${videoRef}|${byoProviders.join(",")}`}
+            tournamentId={tournament.id}
+            mode={modelMode}
+            imageRef={imageRef}
+            videoRef={videoRef}
+            providers={modelMode === "byo" ? byoProviders : platformProviders()}
+          />
+        </section>
+      )}
 
       <section>
         <ParticipantsList
