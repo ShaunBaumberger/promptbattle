@@ -1,7 +1,7 @@
 import { LoginForm } from "./login-form";
 import { getServerDictionary } from "@/lib/i18n/server";
 
-export const metadata = { title: "Host-Login · Prompt Battle" };
+export const metadata = { title: "Host login", robots: { index: false } };
 
 export default async function LoginPage() {
   const { dict } = await getServerDictionary();

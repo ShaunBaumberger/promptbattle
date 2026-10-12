@@ -45,3 +45,7 @@ next-env.d.ts
 # tournaments. Never commit (this repo is public; these are private).
 /Promptbattle images/
 
+
+# Claude Code local config
+/.claude/settings.local.json
+/.claude/launch.json

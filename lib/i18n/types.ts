@@ -473,4 +473,28 @@ export interface Dictionary {
       premiumBudgetExceeded: string;
     };
   };
+  auth: {
+    continueGoogle: string;
+    continueMicrosoft: string;
+    or: string;
+    email: string;
+    password: string;
+    signIn: string;
+    createAccount: string;
+    toSignup: string;
+    toSignin: string;
+    magicLink: string;
+    enterEmailFirst: string;
+    checkEmail: string;
+    accountCreated: string;
+    /** "{terms}", "{privacy}" — rendered as links */
+    agree: string;
+  };
+  legal: {
+    imprint: string;
+    privacy: string;
+    terms: string;
+    sourceCode: string;
+    onlyDeEn: string;
+  };
 }

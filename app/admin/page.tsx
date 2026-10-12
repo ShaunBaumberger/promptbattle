@@ -13,7 +13,7 @@ import type { Tournament } from "@/lib/types/database";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
 
-export const metadata = { title: "Admin · Prompt Battle" };
+export const metadata = { title: "Admin", robots: { index: false } };
 
 // Tournament list must reflect real-time DB state — without this, Next.js
 // caches the snapshot at build time and shows ghost rows for tournaments

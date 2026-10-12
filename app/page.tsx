@@ -4,6 +4,8 @@ import { interpolate } from "@/lib/i18n/interpolate";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { JoinFlow } from "./join/join-flow";
 
+export const metadata = { alternates: { canonical: "/" } };
+
 export default async function Home({
   searchParams,
 }: {
