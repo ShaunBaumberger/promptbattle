@@ -228,6 +228,7 @@ export const zh: Dictionary = {
     modelIdLabel: "模型 ID",
     modelIdHint: "该提供商的任何模型都可用——Replicate 请使用 replicate.com 上的模型标识（例如 owner/model）。",
     modelsSaved: "模型已保存。",
+    noVideoProvider: "你的密钥都无法生成视频——添加 Google 或 Replicate 密钥即可使用视频任务。",
     save: "保存",
     saving: "正在保存…",
     ok: "确定",

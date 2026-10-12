@@ -14,6 +14,7 @@ import {
   SUGGESTIONS,
   modelLabel,
   parseModelRef,
+  providerSupports,
   toModelRef,
   type ModelKind,
   type Provider,
@@ -142,10 +143,11 @@ function CatalogPicker({ kind, label, value, onChange, providers }: PickerProps)
   );
 }
 
-function ByoPicker({ kind, label, value, onChange, providers }: PickerProps) {
+function ByoPicker({ kind, label, value, onChange, providers: keyed }: PickerProps) {
   const { dict } = useI18n();
   const { provider, model } = parseModelRef(value);
   const listId = `model_suggestions_${kind}`;
+  const providers = keyed.filter((p) => providerSupports(p, kind));
 
   const switchProvider = (next: Provider) => {
     if (next === provider) return;
@@ -185,6 +187,9 @@ function ByoPicker({ kind, label, value, onChange, providers }: PickerProps) {
           <option key={s} value={s} />
         ))}
       </datalist>
+      {providers.length === 0 && (
+        <p className="text-muted-foreground text-xs">{dict.admin.noVideoProvider}</p>
+      )}
     </fieldset>
   );
 }

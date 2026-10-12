@@ -30,8 +30,9 @@ other's prompts until the reveal.
 
 - **Next.js 16** (App Router, Server Actions) + **React 19** + **Tailwind v4**
 - **Supabase** — Postgres, Realtime (live sync across all three views), Storage
-- **Pluggable AI models** — Google (Gemini / Nano Banana Pro, Veo), OpenAI
-  (GPT Image, Sora) and Replicate (FLUX, Kling, Seedance and thousands more)
+- **Pluggable AI models** — Google (Nano Banana 2.1 / Pro, Gemini Omni video),
+  OpenAI (GPT Image 2.5) and Replicate (FLUX, Veo, Kling, Seedance and thousands
+  more)
 - Deploys cleanly to **Vercel** (Hobby tier is enough for a single event)
 
 ## Bring your own keys
@@ -42,8 +43,8 @@ project and your own AI provider keys (Google, OpenAI and/or Replicate), so
 phones home.
 
 You can also **choose your models** — any image or video model of those
-providers, addressed as `<provider>:<model id>` (e.g. `openai:gpt-image-1`,
-`replicate:black-forest-labs/flux-1.1-pro`, `google:veo-3.0-fast-generate-001`).
+providers, addressed as `<provider>:<model id>` (e.g. `openai:gpt-image-2.5-flare`,
+`replicate:black-forest-labs/flux-2-pro`, `google:gemini-omni-1.1-flash`).
 See [`.env.local.example`](.env.local.example) for the menu and pricing notes.
 
 ## Setup
@@ -129,12 +130,13 @@ variables, and deploy. Notes:
 You pay your AI provider directly for generations on your key. Ballpark per
 match (two players, default Google models):
 
-- **Image task:** ~$0.27
-- **Video task:** ~$1.60 (two 8-second Veo clips) + ~$0.27 for backup images
+- **Image task:** ~$0.27 with Nano Banana Pro, ~$0.07 with Nano Banana 2.1
+- **Video task:** ~$1.60–2.00 (two Gemini Omni Flash clips at ~$0.10/s) plus
+  the backup images
 
 Image-only tournaments are cheap. Video is the expensive option — use it
-sparingly (e.g. only the final). Cheaper models (e.g. Gemini 2.5 Flash Image at
-~$0.04, FLUX Schnell at ~$0.01 per image) are one setting away.
+sparingly (e.g. only the final). Cheaper models (e.g. Nano Banana 2.1 at
+~$0.03, or FLUX Schnell on Replicate) are one setting away.
 
 ## Roadmap
 

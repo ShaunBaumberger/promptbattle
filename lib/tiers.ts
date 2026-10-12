@@ -16,7 +16,7 @@ import { modelCostCents, normalizeModelRef } from "@/lib/ai/models";
  *
  * BYO keys (tournament_secrets.byo_keys) unlock premium features at zero
  * platform cost and allow ANY model of the providers the host has keys
- * for. Models are addressed by refs like "openai:sora-2" — see
+ * for. Models are addressed by refs like "openai:gpt-image-2.5-flare" — see
  * lib/ai/models.ts.
  */
 
@@ -25,7 +25,7 @@ export type Plan = "free" | "premium";
 export interface TierLimits {
   /** Largest allowed bracket. */
   maxPlayers: PlayerCount;
-  /** May the host create video tasks (Veo)? */
+  /** May the host create video tasks? */
   videoTasks: boolean;
   /** Default image model ref when tournaments.image_model is null. */
   imageModel: string;
@@ -37,20 +37,22 @@ export const TIER_LIMITS: Record<Plan, TierLimits> = {
   free: {
     maxPlayers: 8,
     videoTasks: false,
-    // ~$0.039/image — keeps a full free 8-player game around $0.55.
-    imageModel: "google:gemini-2.5-flash-image",
-    videoModel: "google:veo-3.0-fast-generate-001", // unreachable on free (videoTasks: false)
+    // Nano Banana 2.1: Google's current default image model, ~$0.034 per
+    // 1K image — keeps a full free 8-player game around $0.50.
+    imageModel: "google:gemini-nano-banana-2.1",
+    videoModel: "google:gemini-omni-1.1-flash", // unreachable on free (videoTasks: false)
   },
   premium: {
     maxPlayers: 32,
     videoTasks: true,
-    // Nano Banana Pro + Veo 3 Fast. Env overrides kept for self-hosters
-    // (bare Google ids or full refs like "openai:gpt-image-1").
+    // Nano Banana Pro + Gemini Omni Flash. Env overrides kept for
+    // self-hosters (bare Google ids or full refs like
+    // "openai:gpt-image-2.5-flare"); retired ids map to their successors.
     imageModel: normalizeModelRef(
-      process.env.GEMINI_IMAGE_MODEL?.trim() || "google:gemini-3-pro-image-preview",
+      process.env.GEMINI_IMAGE_MODEL?.trim() || "google:gemini-3-pro-image",
     ),
     videoModel: normalizeModelRef(
-      process.env.VEO_MODEL?.trim() || "google:veo-3.0-fast-generate-001",
+      process.env.VEO_MODEL?.trim() || "google:gemini-omni-1.1-flash",
     ),
   },
 };

@@ -1,12 +1,9 @@
 import { GoogleGenAI, GenerateVideosOperation } from "@google/genai";
 
-// Video model is env-configurable (bring-your-own-key + bring-your-own-
-// model). Default Veo 3 Fast: $0.10/sec at 720p. Each 8s video ≈ $0.80,
-// so a video-task match (two videos) costs ~$1.60 in addition to the
-// Nano Banana backup images (~$0.27). Swap to veo-2.0-generate-001 for
-// a cheaper/older model, or the non-fast veo-3.0 for higher fidelity.
-// See .env.local.example. The @google/genai SDK accepts any string here.
-const MODEL = process.env.VEO_MODEL?.trim() || "veo-3.0-fast-generate-001";
+// Veo long-running-operation path, used for `veo-*` model ids (Google's
+// current video model, Gemini Omni Flash, runs on the Interactions API —
+// see lib/ai/google.ts).
+const MODEL = "veo-3.1-fast-generate-preview";
 
 let cached: GoogleGenAI | null = null;
 

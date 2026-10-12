@@ -8,7 +8,8 @@
  *   replicate:black-forest-labs/flux-1.1-pro
  *   replicate:owner/model:<version-hash>      (community models)
  * Refs are stored in tournaments.image_model / video_model. Legacy values
- * without a provider prefix are Google model ids (pre-multi-provider).
+ * without a provider prefix are Google model ids (pre-multi-provider), and
+ * retired model ids are mapped to their successors (RETIRED_MODELS).
  *
  * Two ways a tournament can use a model:
  *   * Platform keys (free + paid plans): only CATALOG models — each has a
@@ -26,10 +27,21 @@ export type ModelKind = "image" | "video";
 export const PROVIDERS: Provider[] = ["google", "openai", "replicate"];
 
 export const PROVIDER_LABELS: Record<Provider, string> = {
-  google: "Google (Gemini · Veo)",
-  openai: "OpenAI (GPT Image · Sora)",
-  replicate: "Replicate (FLUX, Kling, Seedance, …)",
+  google: "Google (Nano Banana · Gemini Omni)",
+  openai: "OpenAI (GPT Image)",
+  replicate: "Replicate (FLUX, Veo, Kling, Seedance, …)",
 };
+
+/** What each provider can generate. OpenAI retired Sora and its Videos API in Sept 2026. */
+export const PROVIDER_KINDS: Record<Provider, ModelKind[]> = {
+  google: ["image", "video"],
+  openai: ["image"],
+  replicate: ["image", "video"],
+};
+
+export function providerSupports(provider: Provider, kind: ModelKind): boolean {
+  return PROVIDER_KINDS[provider].includes(kind);
+}
 
 /** Where hosts get an API key for each provider (BYO card hint). */
 export const PROVIDER_KEY_URLS: Record<Provider, string> = {
@@ -49,44 +61,85 @@ export interface CatalogModel {
 /**
  * Curated models available on platform keys (paid plan). Prices are the
  * providers' list prices at the settings used here (1K images / OpenAI
- * quality "medium"; 8-second 720p clips), rounded up.
+ * quality "medium"; one video clip), rounded up. Replicate isn't listed:
+ * its per-model prices vary too much to promise a flat fee — it's
+ * available with the host's own key.
  */
 export const CATALOG: CatalogModel[] = [
-  { ref: "google:gemini-2.5-flash-image", kind: "image", label: "Google Gemini 2.5 Flash Image", costCents: 4 },
-  { ref: "google:gemini-3-pro-image-preview", kind: "image", label: "Google Nano Banana Pro", costCents: 14 },
-  { ref: "openai:gpt-image-1", kind: "image", label: "OpenAI GPT Image 1", costCents: 5 },
-  { ref: "replicate:black-forest-labs/flux-1.1-pro", kind: "image", label: "FLUX 1.1 Pro (Replicate)", costCents: 4 },
-  { ref: "replicate:black-forest-labs/flux-schnell", kind: "image", label: "FLUX Schnell (Replicate)", costCents: 1 },
-  { ref: "google:veo-3.0-fast-generate-001", kind: "video", label: "Google Veo 3 Fast", costCents: 80 },
-  { ref: "openai:sora-2", kind: "video", label: "OpenAI Sora 2", costCents: 80 },
+  { ref: "google:gemini-nano-banana-2.1", kind: "image", label: "Google Nano Banana 2.1", costCents: 4 },
+  { ref: "google:gemini-3.1-flash-lite-image", kind: "image", label: "Google Nano Banana 2 Lite (fastest)", costCents: 4 },
+  { ref: "google:gemini-3-pro-image", kind: "image", label: "Google Nano Banana Pro", costCents: 14 },
+  { ref: "openai:gpt-image-2.5-flare", kind: "image", label: "OpenAI GPT Image 2.5 Flare", costCents: 6 },
+  // ~$0.10 per second of 720p video; budgeted for clips up to 10 s.
+  { ref: "google:gemini-omni-1.1-flash", kind: "video", label: "Google Gemini Omni Flash", costCents: 100 },
 ];
 
 /** Model ids suggested in the BYO model field (any id is accepted). */
 export const SUGGESTIONS: Record<Provider, Record<ModelKind, string[]>> = {
   google: {
-    image: ["gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
-    video: ["veo-3.0-fast-generate-001", "veo-3.0-generate-001"],
+    image: [
+      "gemini-nano-banana-2.1",
+      "gemini-3-pro-image",
+      "gemini-3.1-flash-lite-image",
+      "gemini-3.1-flash-image",
+    ],
+    video: ["gemini-omni-1.1-flash"],
   },
   openai: {
-    image: ["gpt-image-1", "gpt-image-1.5", "gpt-image-2"],
-    video: ["sora-2", "sora-2-pro"],
+    image: ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2"],
+    video: [],
   },
   replicate: {
-    image: ["black-forest-labs/flux-1.1-pro", "black-forest-labs/flux-schnell"],
+    image: [
+      "black-forest-labs/flux-2-pro",
+      "black-forest-labs/flux-schnell",
+      "google/nano-banana-2",
+      "bytedance/seedream-5-lite",
+      "ideogram-ai/ideogram-v3-turbo",
+    ],
     video: [
-      "google/veo-3-fast",
-      "kwaivgi/kling-v2.1",
-      "bytedance/seedance-1-pro",
-      "minimax/video-01",
+      "google/veo-3.1-fast",
+      "kwaivgi/kling-v3-video",
+      "bytedance/seedance-2.0-fast",
+      "minimax/hailuo-2.3",
+      "wan-video/wan-2.5-t2v-fast",
     ],
   },
 };
 
-/** Defaults applied when a host stores their first key for a provider. */
-export const PROVIDER_DEFAULTS: Record<Provider, Record<ModelKind, string>> = {
-  google: { image: "google:gemini-3-pro-image-preview", video: "google:veo-3.0-fast-generate-001" },
-  openai: { image: "openai:gpt-image-1", video: "openai:sora-2" },
-  replicate: { image: "replicate:black-forest-labs/flux-1.1-pro", video: "replicate:google/veo-3-fast" },
+/**
+ * Defaults applied when a host stores their first key for a provider.
+ * null = the provider can't generate that kind.
+ */
+export const PROVIDER_DEFAULTS: Record<Provider, Record<ModelKind, string | null>> = {
+  google: { image: "google:gemini-nano-banana-2.1", video: "google:gemini-omni-1.1-flash" },
+  openai: { image: "openai:gpt-image-2.5-flare", video: null },
+  replicate: { image: "replicate:black-forest-labs/flux-2-pro", video: "replicate:google/veo-3.1-fast" },
+};
+
+/**
+ * Retired model ids → their successors, so tournaments, env overrides and
+ * old rows keep working after a provider shuts a model down. Per the
+ * providers' deprecation pages (checked 2026-10-12).
+ */
+const RETIRED_MODELS: Record<string, string> = {
+  "google:gemini-2.5-flash-image": "google:gemini-nano-banana-2.1",
+  "google:gemini-2.5-flash-image-preview": "google:gemini-nano-banana-2.1",
+  "google:gemini-3.1-flash-image-preview": "google:gemini-nano-banana-2.1",
+  "google:gemini-3-pro-image-preview": "google:gemini-3-pro-image",
+  "google:veo-2.0-generate-001": "google:gemini-omni-1.1-flash",
+  "google:veo-3.0-generate-001": "google:gemini-omni-1.1-flash",
+  "google:veo-3.0-fast-generate-001": "google:gemini-omni-1.1-flash",
+  "google:veo-3.1-generate-preview": "google:gemini-omni-1.1-flash",
+  "google:veo-3.1-fast-generate-preview": "google:gemini-omni-1.1-flash",
+  "google:veo-3.1-lite-generate-preview": "google:gemini-omni-1.1-flash",
+  "google:gemini-omni-flash-preview": "google:gemini-omni-1.1-flash",
+  "openai:gpt-image-1": "openai:gpt-image-2.5-flare",
+  "openai:gpt-image-1-mini": "openai:gpt-image-2.5-flare",
+  "openai:gpt-image-1.5": "openai:gpt-image-2.5-flare",
+  // Sora has no OpenAI successor — fall back to Google's video model.
+  "openai:sora-2": "google:gemini-omni-1.1-flash",
+  "openai:sora-2-pro": "google:gemini-omni-1.1-flash",
 };
 
 /** Conservative fallback for anything not in the catalog. */
@@ -117,10 +170,11 @@ export function toModelRef(provider: Provider, model: string): string {
   return `${provider}:${model.trim()}`;
 }
 
-/** Normalize legacy ids into full refs. */
+/** Normalize legacy ids into full refs and retired models into their successors. */
 export function normalizeModelRef(ref: string): string {
   const { provider, model } = parseModelRef(ref.trim());
-  return toModelRef(provider, model);
+  const full = toModelRef(provider, model);
+  return RETIRED_MODELS[full] ?? full;
 }
 
 export function isValidModelId(model: string): boolean {

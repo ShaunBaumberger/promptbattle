@@ -1,13 +1,9 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Image model + size are env-configurable so self-hosters can trade cost
-// for quality without editing code (bring-your-own-key + bring-your-own-
-// model). Defaults match what we run in production: Nano Banana Pro —
-// Google's higher-fidelity model (~$0.134 per 1K image, noticeably better
-// prompt adherence than gemini-2.5-flash-image at $0.039, ~15–25s slower).
-// See .env.local.example for the menu of supported models and pricing.
-const MODEL =
-  process.env.GEMINI_IMAGE_MODEL?.trim() || "gemini-3-pro-image-preview";
+// generateContent path for Google image models. Current models go through
+// the Interactions API (lib/ai/google.ts), which falls back to this for
+// ids it doesn't serve.
+const MODEL = "gemini-nano-banana-2.1";
 const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE?.trim() || "1K"; // "1K" | "2K" | "4K"
 
 let cached: GoogleGenAI | null = null;

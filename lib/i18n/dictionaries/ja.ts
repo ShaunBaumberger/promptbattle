@@ -230,6 +230,7 @@ export const ja: Dictionary = {
     modelIdLabel: "モデル ID",
     modelIdHint: "このプロバイダーのどのモデルでも使えます — Replicate では replicate.com のモデルのスラッグ（例：owner/model）を使用します。",
     modelsSaved: "モデルを保存しました。",
+    noVideoProvider: "登録済みのキーでは動画を生成できません — 動画のお題を使うには Google か Replicate のキーを追加してください。",
     save: "保存",
     saving: "保存中…",
     ok: "OK",

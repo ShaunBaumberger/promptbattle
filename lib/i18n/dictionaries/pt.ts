@@ -230,6 +230,7 @@ export const pt: Dictionary = {
     modelIdLabel: "ID do modelo",
     modelIdHint: "Qualquer modelo deste fornecedor funciona — no Replicate, usa o slug do modelo em replicate.com (ex. owner/model).",
     modelsSaved: "Modelos guardados.",
+    noVideoProvider: "Nenhuma das tuas chaves gera vídeo — adiciona uma chave Google ou Replicate para usar tarefas de vídeo.",
     save: "Guardar",
     saving: "A guardar…",
     ok: "OK",

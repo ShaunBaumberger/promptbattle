@@ -232,6 +232,7 @@ export const hi: Dictionary = {
     modelIdLabel: "मॉडल ID",
     modelIdHint: "इस प्रदाता का कोई भी मॉडल काम करेगा — Replicate के लिए replicate.com से मॉडल का slug उपयोग करें (जैसे owner/model)।",
     modelsSaved: "मॉडल सहेजे गए।",
+    noVideoProvider: "आपकी कोई भी कुंजी वीडियो नहीं बना सकती — वीडियो कार्यों के लिए Google या Replicate कुंजी जोड़ें।",
     save: "सहेजें",
     saving: "सहेजा जा रहा है…",
     ok: "ठीक है",

@@ -232,6 +232,7 @@ export const ar: Dictionary = {
     modelIdLabel: "معرّف النموذج",
     modelIdHint: "أي نموذج من هذا المزود يعمل — في Replicate استخدم معرّف النموذج من replicate.com (مثل owner/model).",
     modelsSaved: "تم حفظ النماذج.",
+    noVideoProvider: "لا يمكن لأي من مفاتيحك توليد الفيديو — أضف مفتاح Google أو Replicate لاستخدام مهام الفيديو.",
     save: "حفظ",
     saving: "جارٍ الحفظ…",
     ok: "حسنًا",

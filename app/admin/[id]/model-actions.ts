@@ -13,6 +13,7 @@ import {
   isValidModelId,
   normalizeModelRef,
   parseModelRef,
+  providerSupports,
   type ModelKind,
 } from "@/lib/ai/models";
 import { effectivePlan, type Plan } from "@/lib/tiers";
@@ -56,6 +57,7 @@ export async function updateModelsAction(
     const norm = normalizeModelRef(ref);
     const { provider, model } = parseModelRef(norm);
     if (!isValidModelId(model)) return dict.admin.err.invalidModelId;
+    if (!providerSupports(provider, kind)) return dict.admin.err.modelNotAllowed;
     if (byo) {
       if (!byoProviders.includes(provider)) {
         return interpolate(dict.admin.err.providerKeyMissing, {

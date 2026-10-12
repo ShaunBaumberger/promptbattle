@@ -275,6 +275,7 @@ export interface Dictionary {
     modelIdLabel: string;
     modelIdHint: string;
     modelsSaved: string;
+    noVideoProvider: string;
     // shared
     save: string;
     saving: string;

@@ -1,18 +1,9 @@
 import "server-only";
 
 import { GoogleGenAI } from "@google/genai";
-import { generateImage as googleGenerateImage } from "@/lib/gemini";
-import {
-  startVideoGeneration as googleStartVideo,
-  pollVideoGeneration as googlePollVideo,
-} from "@/lib/veo";
 import { isProvider, parseModelRef, type Provider } from "./models";
-import {
-  openaiGenerateImage,
-  openaiPollVideo,
-  openaiStartVideo,
-  openaiValidateKey,
-} from "./openai";
+import { googleGenerateImage, googlePollVideo, googleStartVideo } from "./google";
+import { openaiGenerateImage, openaiValidateKey } from "./openai";
 import {
   replicateGenerateImage,
   replicatePollVideo,
@@ -54,7 +45,7 @@ export async function generateImageByRef(
   const { provider, model } = parseModelRef(ref);
   switch (provider) {
     case "google":
-      return googleGenerateImage(prompt, { model, apiKey });
+      return googleGenerateImage(model, prompt, apiKey);
     case "openai":
       return openaiGenerateImage(model, prompt, apiKey);
     case "replicate":
@@ -73,18 +64,10 @@ export async function startVideoByRef(
 ): Promise<string> {
   const { provider, model } = parseModelRef(ref);
   switch (provider) {
-    case "google": {
-      const { operationName } = await googleStartVideo(prompt, {
-        model,
-        apiKey,
-        durationSeconds: 8,
-        aspectRatio: "16:9",
-        resolution: "720p",
-      });
-      return `google:${operationName}`;
-    }
+    case "google":
+      return `google:${await googleStartVideo(model, prompt, apiKey)}`;
     case "openai":
-      return `openai:${await openaiStartVideo(model, prompt, apiKey)}`;
+      throw new Error("OpenAI offers no video model (Sora was retired in Sept 2026)");
     case "replicate":
       return `replicate:${await replicateStartVideo(model, prompt, apiKey)}`;
   }
@@ -110,9 +93,9 @@ export async function pollVideoByOpRef(
   const { provider, id } = parseOpRef(opRef);
   switch (provider) {
     case "google":
-      return googlePollVideo(id, { apiKey });
+      return googlePollVideo(id, apiKey);
     case "openai":
-      return openaiPollVideo(id, apiKey);
+      return { status: "error", error: "OpenAI video jobs are no longer supported" };
     case "replicate":
       return replicatePollVideo(id, apiKey);
   }
