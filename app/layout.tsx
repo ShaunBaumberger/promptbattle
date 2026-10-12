@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,6 +10,14 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Heavy, wide display face for brand headlines (stands in for the
+// proprietary Ginto Nord of the Discord-inspired design system).
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 import { Toaster } from "@/components/ui/sonner";
@@ -63,7 +71,7 @@ export default async function RootLayout({
       lang={locale}
       dir={localeDir(locale)}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <I18nProvider initialLocale={locale}>

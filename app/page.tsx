@@ -3,6 +3,7 @@ import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { JoinFlow } from "./join/join-flow";
+import { Landing } from "./home/landing";
 
 export const metadata = { alternates: { canonical: "/" } };
 
@@ -13,25 +14,9 @@ export default async function Home({
 }) {
   const { code } = await searchParams;
   const trimmed = code?.trim().toUpperCase();
-  const { dict } = await getServerDictionary();
+  const { locale, dict } = await getServerDictionary();
 
-  if (!trimmed) {
-    return (
-      <DarkShell>
-        <main className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-          <p className="text-white/50 text-sm uppercase tracking-[0.3em]">
-            Prompt Battle
-          </p>
-          <h1 className="text-white text-3xl font-semibold tracking-tight">
-            {dict.landing.scanTitle}
-          </h1>
-          <p className="text-white/60 max-w-sm text-base">
-            {dict.landing.scanHint}
-          </p>
-        </main>
-      </DarkShell>
-    );
-  }
+  if (!trimmed) return <Landing dict={dict} locale={locale} />;
 
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
