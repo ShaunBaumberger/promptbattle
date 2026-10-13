@@ -398,6 +398,7 @@ export const ja: Dictionary = {
   auth: {
     continueGoogle: "Google で続行",
     continueMicrosoft: "Microsoft で続行",
+    continueGithub: "GitHub で続行",
     or: "または",
     email: "メールアドレス",
     password: "パスワード",

@@ -399,6 +399,7 @@ export const fr: Dictionary = {
   auth: {
     continueGoogle: "Continuer avec Google",
     continueMicrosoft: "Continuer avec Microsoft",
+    continueGithub: "Continuer avec GitHub",
     or: "ou",
     email: "E-mail",
     password: "Mot de passe",
