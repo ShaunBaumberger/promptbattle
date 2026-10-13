@@ -5,7 +5,7 @@
 -- only the service-role key can read it.
 --
 -- Model choices live in the existing tournaments.image_model /
--- video_model columns as refs like 'openai:sora-2' (no schema change).
+-- video_model columns as refs like 'openai:gpt-image-2.5-flare' (no schema change).
 --
 -- Apply via Supabase Dashboard → SQL Editor → New query → paste → Run.
 -- =============================================================
