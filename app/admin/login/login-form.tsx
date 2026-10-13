@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { useI18n } from "@/lib/i18n/context";
 import { richText } from "@/lib/i18n/rich";
+import { GitHubIcon, GoogleIcon } from "@/components/provider-icons";
 
 type Mode = "signin" | "signup";
 type Status = { type: "error" | "info"; msg: string } | null;
@@ -88,10 +89,24 @@ export function LoginForm() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Button type="button" variant="outline" onClick={() => oauth("google")} disabled={busy}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 gap-3 text-sm font-semibold"
+          onClick={() => oauth("google")}
+          disabled={busy}
+        >
+          <GoogleIcon className="size-5" />
           {t.continueGoogle}
         </Button>
-        <Button type="button" variant="outline" onClick={() => oauth("github")} disabled={busy}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 gap-3 text-sm font-semibold"
+          onClick={() => oauth("github")}
+          disabled={busy}
+        >
+          <GitHubIcon className="size-5" />
           {t.continueGithub}
         </Button>
       </div>
