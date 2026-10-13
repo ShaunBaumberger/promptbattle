@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * OAuth + magic-link callback. Supabase redirects here with a `code` after
- * the user authenticates (Google/Microsoft) or clicks an email link. We
+ * the user authenticates (Google/GitHub) or clicks an email link. We
  * exchange it for a session cookie and continue to the admin dashboard.
  */
 export async function GET(request: Request) {
