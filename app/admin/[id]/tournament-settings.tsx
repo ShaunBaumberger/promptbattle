@@ -108,8 +108,8 @@ export function TournamentSettings({
   };
 
   return (
-    <div className="space-y-4 rounded-md border p-4">
-      <h2 className="text-base font-semibold">{dict.admin.settings}</h2>
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
+      <h2 className="font-display text-base font-bold">{dict.admin.settings}</h2>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="tournament_name_setting">{dict.admin.tournamentName}</Label>

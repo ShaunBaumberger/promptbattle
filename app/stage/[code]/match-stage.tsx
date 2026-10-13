@@ -262,7 +262,7 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
   return (
     <main className="flex flex-1 flex-col gap-6 p-8">
       <header className="flex items-center justify-between">
-        <p className="text-white/50 text-2xl uppercase tracking-[0.3em]">
+        <p className="font-display text-white/60 text-2xl font-bold uppercase tracking-[0.08em]">
           {match.round === "FINAL"
             ? dict.rounds.FINAL
             : interpolate(dict.stage.roundMatch, {
@@ -272,16 +272,16 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
         </p>
         {live ? (
           <p
-            className={`tabular-nums text-7xl font-semibold tracking-tight transition-colors ${
+            className={`font-display tabular-nums text-7xl font-black tracking-tight transition-colors ${
               showSeconds <= 10 ? "text-rose-400" : "text-white"
             }`}
           >
             {showSeconds}s
           </p>
         ) : match.status === "voting" ? (
-          <div className="flex items-center gap-3 rounded-full border border-sky-400/40 bg-sky-400/10 px-5 py-2 backdrop-blur">
-            <span className="bg-sky-400 inline-block h-3 w-3 animate-pulse rounded-full" />
-            <p className="text-sky-100 text-2xl font-semibold uppercase tracking-widest">
+          <div className="flex items-center gap-3 rounded-full border border-pb-violet/50 bg-pb-violet/20 px-5 py-2 backdrop-blur">
+            <span className="bg-pb-violet-soft inline-block h-3 w-3 animate-pulse rounded-full" />
+            <p className="text-white text-2xl font-semibold uppercase tracking-widest">
               {dict.stage.votingLive}
             </p>
           </div>
@@ -292,10 +292,10 @@ export function MatchStage({ matchId, tournamentId, play, videoPlaying }: Props)
 
       {winnerRevealed && (
         <div className="flex flex-col items-center gap-2 pb-2 text-center duration-700 animate-in fade-in slide-in-from-bottom-2">
-          <span className="text-amber-400/80 text-base uppercase tracking-[0.4em]">
+          <span className="text-pb-gold text-base font-semibold uppercase tracking-[0.4em]">
             {match.round === "FINAL" ? dict.stage.champion : dict.stage.winner}
           </span>
-          <p className="text-white flex items-center justify-center gap-4 text-6xl font-semibold tracking-tight drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+          <p className="font-display text-white flex items-center justify-center gap-4 text-6xl font-black tracking-tight drop-shadow-[0_0_30px_rgba(255,201,77,0.45)]">
             <span className="text-6xl">🏆</span>
             {winnerName}
           </p>
@@ -365,12 +365,12 @@ function FinalVideoStatusBanner({ startedAt: _startedAt }: { startedAt: string |
     return () => clearInterval(id);
   }, []);
   return (
-    <div className="bg-amber-400/10 border-amber-400/30 mx-auto flex w-fit items-center gap-4 rounded-full border px-6 py-3 backdrop-blur duration-500 animate-in fade-in">
+    <div className="bg-pb-violet/20 border-pb-violet/50 mx-auto flex w-fit items-center gap-4 rounded-full border px-6 py-3 backdrop-blur duration-500 animate-in fade-in">
       <span className="text-2xl">🎬</span>
-      <p className="text-amber-100 text-xl font-medium">
+      <p className="text-white text-xl font-medium">
         {dict.stage.finalVideosGenerating}
       </p>
-      <span className="text-amber-200/70 tabular-nums text-base">
+      <span className="text-pb-violet-soft tabular-nums text-base">
         {elapsed}s
       </span>
     </div>
@@ -438,9 +438,12 @@ function PreparingView({
     <div className="grid flex-1 grid-cols-[1fr_auto_1fr] gap-6 duration-500 animate-in fade-in">
       <PlayerSeat name={aName} side="left" />
 
-      <div className="flex w-[28vw] flex-col items-center justify-center gap-4">
+      <div className="flex w-[28vw] flex-col items-center justify-center gap-6">
+        <span className="font-display bg-pb-violet ring-background flex size-32 items-center justify-center rounded-full text-5xl font-black ring-8 shadow-[0_0_80px_rgba(123,92,255,0.45)]">
+          VS
+        </span>
         <span className="bg-white/10 text-white/80 inline-flex items-center gap-3 rounded-full border border-white/15 px-6 py-3 text-xl font-medium uppercase tracking-[0.3em] backdrop-blur">
-          <span className="bg-amber-400 inline-block h-2.5 w-2.5 animate-pulse rounded-full" />
+          <span className="bg-pb-violet-soft inline-block h-2.5 w-2.5 animate-pulse rounded-full" />
           {dict.stage.prepareReady}
         </span>
         <p className="text-white/40 max-w-xs text-center text-base">
@@ -467,13 +470,13 @@ function PlayerSeat({
         side === "left" ? "items-start text-left" : "items-end text-right"
       }`}
     >
-      <span className="text-white/40 text-base uppercase tracking-[0.3em]">
+      <span className={`text-base font-semibold uppercase tracking-[0.3em] ${SIDE[side].text}`}>
         {side === "left" ? dict.stage.left : dict.stage.right}
       </span>
-      <h2 className="text-white text-6xl font-semibold tracking-tight">
+      <h2 className="font-display text-white text-6xl font-black tracking-tight break-words">
         {name}
       </h2>
-      <div className="bg-white/5 flex min-h-[20vh] w-full items-center justify-center rounded-2xl border border-dashed border-white/10 p-5 backdrop-blur">
+      <div className={`bg-white/5 flex min-h-[20vh] w-full items-center justify-center rounded-2xl border-2 border-dashed p-5 backdrop-blur ${SIDE[side].dashed}`}>
         <p className="text-white/30 italic">…</p>
       </div>
     </div>
@@ -674,9 +677,10 @@ function RevealColumn({
     >
       <div className="flex items-center gap-3">
         {showWinnerStyle && <span className="text-5xl">🏆</span>}
+        <span className={`inline-block size-4 rounded-full ${SIDE[side].bg}`} aria-hidden />
         <h2
-          className={`text-4xl font-semibold tracking-tight ${
-            showWinnerStyle ? "text-white" : "text-white/80"
+          className={`font-display text-4xl font-black tracking-tight ${
+            showWinnerStyle ? "text-pb-gold" : "text-white"
           }`}
         >
           {name}
@@ -686,11 +690,11 @@ function RevealColumn({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={resultUrl}
-          alt={`Ergebnis von ${name}`}
+          alt={interpolate(dict.vote.resultOf, { name })}
           className={`bg-white/5 w-auto rounded-2xl object-contain transition-all duration-700 animate-in fade-in zoom-in-95 fill-mode-both ${
             showWinnerStyle
-              ? "max-h-[55vh] border-2 border-amber-400 shadow-[0_0_80px_rgba(251,191,36,0.5)] ring-4 ring-amber-400"
-              : "max-h-[45vh] border border-white/10 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]"
+              ? "max-h-[55vh] border-2 border-pb-gold shadow-[0_0_80px_rgba(255,201,77,0.5)] ring-4 ring-pb-gold"
+              : `max-h-[45vh] border-4 ${SIDE[side].border} shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]`
           }`}
         />
       ) : (
@@ -710,7 +714,7 @@ function RevealColumn({
       */}
       {!showBar && (
         <div
-          className={`bg-white/5 w-full rounded-2xl border border-white/10 p-4 backdrop-blur ${
+          className={`bg-white/5 w-full rounded-2xl border border-white/10 border-t-4 p-4 backdrop-blur ${SIDE[side].topBorder} ${
             side === "left" ? "text-left" : "text-right"
           }`}
         >
@@ -731,7 +735,7 @@ function RevealColumn({
           <div className="bg-white/10 relative h-24 w-16 overflow-hidden rounded-xl border border-white/10 backdrop-blur">
             <div
               className={`absolute right-0 bottom-0 left-0 transition-[height,background-color] duration-[1500ms] ease-out ${
-                showWinnerStyle ? "bg-amber-400" : "bg-white/40"
+                showWinnerStyle ? "bg-pb-gold" : SIDE[side].bg
               }`}
               style={{ height: `${heightPct}%` }}
             />
@@ -764,8 +768,11 @@ function PlayerColumn({
         side === "left" ? "items-start text-left" : "items-end text-right"
       }`}
     >
-      <h2 className="text-white text-7xl font-semibold tracking-tight">{name}</h2>
-      <div className="bg-white/5 min-h-[30vh] w-full flex-1 rounded-2xl border border-white/10 p-6 backdrop-blur">
+      <h2 className="font-display text-white flex items-center gap-4 text-6xl font-black tracking-tight break-words">
+        <span className={`inline-block size-5 shrink-0 rounded-full ${SIDE[side].bg}`} aria-hidden />
+        {name}
+      </h2>
+      <div className={`bg-white/5 min-h-[30vh] w-full flex-1 rounded-2xl border border-white/10 border-t-4 p-6 backdrop-blur ${SIDE[side].topBorder}`}>
         <p className="text-white whitespace-pre-wrap break-words text-4xl leading-snug [overflow-wrap:anywhere]">
           {prompt || <span className="text-white/30 italic">…</span>}
         </p>
@@ -773,6 +780,24 @@ function PlayerColumn({
     </div>
   );
 }
+
+/** Left seat = player A (green), right seat = player B (magenta) — same as the homepage. */
+const SIDE = {
+  left: {
+    text: "text-pb-green",
+    bg: "bg-pb-green",
+    border: "border-pb-green/70",
+    topBorder: "border-t-pb-green",
+    dashed: "border-pb-green/40",
+  },
+  right: {
+    text: "text-pb-magenta",
+    bg: "bg-pb-magenta",
+    border: "border-pb-magenta/70",
+    topBorder: "border-t-pb-magenta",
+    dashed: "border-pb-magenta/40",
+  },
+} as const;
 
 function calcRemaining(endTime: string | null): number {
   if (!endTime) return 0;

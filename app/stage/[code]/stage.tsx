@@ -12,6 +12,7 @@ import { ChampionView } from "./champion-view";
 import { MatchStage } from "./match-stage";
 import { useStageAudio } from "./use-stage-audio";
 import { useI18n, interpolate } from "@/lib/i18n/context";
+import { BrandMark } from "@/components/brand-mark";
 
 interface Props {
   tournamentId: string;
@@ -177,11 +178,9 @@ export function Stage({
   return (
     <>
       <main className="flex flex-1 flex-col gap-10 p-12">
-        <header className="space-y-2 text-center">
-          <p className="text-white/40 text-base uppercase tracking-[0.4em]">
-            Prompt Battle
-          </p>
-          <h1 className="text-white text-6xl font-semibold tracking-tight">
+        <header className="space-y-3 text-center">
+          <StageBrand />
+          <h1 className="font-display text-white text-5xl font-black tracking-tight break-words">
             {tournamentName}
           </h1>
         </header>
@@ -192,6 +191,18 @@ export function Stage({
       </main>
       {!audio.enabled && <AudioEnableGate onEnable={audio.enable} />}
     </>
+  );
+}
+
+/** Logo lockup for the projector: mark + wordmark. */
+function StageBrand({ large = false }: { large?: boolean }) {
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <BrandMark className={large ? "size-12" : "size-9"} />
+      <span className={`font-display font-extrabold uppercase ${large ? "text-3xl" : "text-xl"} text-white/85`}>
+        Prompt Battle
+      </span>
+    </div>
   );
 }
 
@@ -231,16 +242,14 @@ function SetupView({
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-14 p-12">
       <header className="space-y-3 text-center duration-700 animate-in fade-in slide-in-from-top-2">
-        <p className="text-white/50 text-xl uppercase tracking-[0.4em]">
-          Prompt Battle
-        </p>
-        <h1 className="text-white text-8xl font-semibold tracking-tight">
+        <StageBrand large />
+        <h1 className="font-display text-white text-7xl font-black tracking-tight break-words">
           {tournamentName}
         </h1>
       </header>
 
       <div className="flex flex-col items-center gap-7 duration-700 animate-in fade-in zoom-in-95">
-        <div className="rounded-3xl border border-white/10 bg-white p-7 shadow-[0_0_80px_rgba(56,189,248,0.25)]">
+        <div className="rounded-[40px] bg-white p-7 shadow-[0_0_80px_rgba(123,92,255,0.45)] ring-8 ring-pb-violet/60">
           {joinUrl ? (
             <QRCodeSVG value={joinUrl} size={360} level="M" marginSize={0} />
           ) : (
@@ -254,14 +263,14 @@ function SetupView({
               {joinUrl.replace(/^https?:\/\//, "") || "…"}
             </span>
           </p>
-          <p className="text-white text-5xl font-semibold tracking-[0.2em]">
-            <span className="font-mono">{tournamentCode}</span>
+          <p className="font-display text-pb-green text-6xl font-black tracking-[0.12em]">
+            <span>{tournamentCode}</span>
           </p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-white/5 px-10 py-6 text-center backdrop-blur duration-700 animate-in fade-in slide-in-from-bottom-2">
-        <p className="text-white text-7xl font-semibold tabular-nums">
+      <div className="bg-pb-surface rounded-[40px] px-12 py-6 text-center duration-700 animate-in fade-in slide-in-from-bottom-2">
+        <p className="font-display text-white text-7xl font-black tabular-nums">
           {participantCount}
         </p>
         <p className="text-white/60 mt-1 text-xl">

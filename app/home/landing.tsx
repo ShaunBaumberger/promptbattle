@@ -24,7 +24,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { premiumCurrency, premiumPriceCents } from "@/lib/stripe";
 import { FREE_GAMES_PER_WINDOW, limitsFor } from "@/lib/tiers";
 import { REPO_URL } from "@/lib/site";
-import { BrandMark } from "./brand-mark";
+import { BrandMark } from "@/components/brand-mark";
 
 const LOGIN = "/admin/login";
 

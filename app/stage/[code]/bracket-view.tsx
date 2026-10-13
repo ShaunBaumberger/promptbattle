@@ -291,12 +291,12 @@ function CenterColumn({
   // match area).
   return (
     <div className="flex min-w-[280px] flex-1 flex-col">
-      <h3 className="text-amber-300 py-5 text-center text-3xl font-semibold uppercase tracking-[0.25em]">
+      <h3 className="font-display text-pb-gold py-5 text-center text-3xl font-black uppercase tracking-[0.08em]">
         {label}
       </h3>
       <div className="flex flex-1 flex-col items-center px-2 py-2">
         <div className="flex flex-1 items-end pb-6">
-          <span className="text-8xl drop-shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+          <span className="text-8xl drop-shadow-[0_0_30px_rgba(255,201,77,0.45)]">
             🏆
           </span>
         </div>
@@ -373,7 +373,7 @@ function MatchCard({
       <div
         className={`flex w-full flex-col gap-2 rounded-xl border border-dashed p-3 ${
           highlight
-            ? "border-amber-400/30 bg-amber-400/5"
+            ? "border-pb-gold/30 bg-pb-gold/5"
             : "border-white/10 bg-white/[0.02]"
         }`}
       >
@@ -395,10 +395,10 @@ function MatchCard({
     <div
       className={`flex w-full flex-col gap-2 rounded-xl border p-3 backdrop-blur transition-all ${
         isLive
-          ? "border-sky-400/60 bg-sky-400/10 shadow-[0_0_30px_rgba(56,189,248,0.3)] ring-2 ring-sky-400/40"
+          ? "border-pb-violet bg-pb-violet/20 shadow-[0_0_30px_rgba(123,92,255,0.45)] ring-2 ring-pb-violet/50"
           : highlight
-            ? "border-amber-400/40 bg-amber-400/[0.06] shadow-[0_0_25px_rgba(251,191,36,0.2)]"
-            : "border-white/10 bg-white/5"
+            ? "border-pb-gold/50 bg-pb-gold/[0.06] shadow-[0_0_25px_rgba(255,201,77,0.2)]"
+            : "border-white/10 bg-pb-surface/70"
       }`}
     >
       <Slot
@@ -440,7 +440,7 @@ function Slot({
 }) {
   const cls =
     state === "winner"
-      ? "text-white font-semibold"
+      ? "text-pb-gold font-semibold"
       : state === "loser"
         ? "text-white/40 line-through"
         : state === "empty"

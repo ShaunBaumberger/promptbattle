@@ -83,9 +83,9 @@ export function StartBracketForm({
   const ready = enoughPlayers && tasksOk;
 
   return (
-    <div className="space-y-4 rounded-md border p-4">
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
       <div className="space-y-1">
-        <h2 className="text-base font-semibold">{dict.admin.startTournament}</h2>
+        <h2 className="font-display text-base font-bold">{dict.admin.startTournament}</h2>
         <p className="text-muted-foreground text-sm">
           {interpolate(dict.admin.startTournamentHint, { count: playerCount })}
         </p>

@@ -303,7 +303,7 @@ export function MatchControl({
 
   if (!loaded) {
     return (
-      <div className="rounded-md border p-4">
+      <div className="bg-card rounded-2xl border p-5">
         <p className="text-muted-foreground text-sm">{dict.admin.loadingMatchStatus}</p>
       </div>
     );
@@ -320,9 +320,9 @@ export function MatchControl({
   };
 
   return (
-    <div className="space-y-4 rounded-md border p-4">
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">{dict.admin.matchControl}</h2>
+        <h2 className="font-display text-base font-bold">{dict.admin.matchControl}</h2>
         <p className="text-muted-foreground text-xs">
           {interpolate(dict.admin.roundTimeLabel, { n: roundTimeSeconds })}
         </p>
@@ -391,7 +391,7 @@ export function MatchControl({
             match.task_kind === "video" &&
             isReadyVideoUrl(match.video_a_url) &&
             isReadyVideoUrl(match.video_b_url) && (
-              <div className="space-y-2 rounded-md border border-amber-400/40 bg-amber-400/5 p-3">
+              <div className="space-y-2 rounded-xl border border-pb-violet/40 bg-pb-violet/10 p-3">
                 <p className="text-sm font-semibold">{dict.admin.playVideos}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button

@@ -4,6 +4,9 @@ import { interpolate } from "@/lib/i18n/interpolate";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { JoinFlow } from "./join/join-flow";
 import { Landing } from "./home/landing";
+import Link from "next/link";
+import { BrandBackdrop } from "@/components/brand-backdrop";
+import { BrandMark } from "@/components/brand-mark";
 
 export const metadata = { alternates: { canonical: "/" } };
 
@@ -29,7 +32,7 @@ export default async function Home({
     return (
       <DarkShell>
         <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-          <h1 className="text-white text-2xl font-semibold tracking-tight">
+          <h1 className="font-display text-white text-2xl font-bold tracking-tight">
             {dict.landing.codeNotFoundTitle}
           </h1>
           <p className="text-white/60 max-w-sm text-base">
@@ -46,7 +49,7 @@ export default async function Home({
     return (
       <DarkShell>
         <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-          <h1 className="text-white text-2xl font-semibold tracking-tight">
+          <h1 className="font-display text-white text-2xl font-bold tracking-tight">
             {dict.landing.finishedTitle}
           </h1>
           <p className="text-white/60 max-w-sm text-base">
@@ -72,11 +75,12 @@ export default async function Home({
  */
 function DarkShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark relative flex min-h-full flex-1 flex-col overflow-hidden bg-background text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_60%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.12),transparent_60%)]"
-      />
+    <div className="relative isolate flex min-h-full flex-1 flex-col overflow-hidden bg-background text-foreground">
+      <BrandBackdrop />
+      <Link href="/" className="absolute start-4 top-4 z-10 flex items-center gap-2" aria-label="Prompt Battle">
+        <BrandMark className="size-7" />
+        <span className="font-display hidden text-sm font-extrabold uppercase sm:inline">Prompt Battle</span>
+      </Link>
       <div className="absolute end-4 top-4 z-10">
         <LanguageSwitcher />
       </div>

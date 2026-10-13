@@ -54,10 +54,10 @@ export function ByoKeyCard({
   }, [saveState, dict]);
 
   return (
-    <div className="space-y-4 rounded-md border p-4">
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
       <div className="flex items-center gap-2">
         <KeyRound className="size-4" aria-hidden />
-        <h2 className="text-base font-semibold">{dict.admin.byoTitle}</h2>
+        <h2 className="font-display text-base font-bold">{dict.admin.byoTitle}</h2>
       </div>
       <p className="text-muted-foreground text-sm">{dict.admin.byoDesc}</p>
 
@@ -138,7 +138,7 @@ function StoredKeyRow({
 
   return (
     <li className="flex flex-wrap items-center gap-3">
-      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+      <span className="text-sm font-medium text-pb-green">
         ✓ {PROVIDER_LABELS[provider]}
       </span>
       <form action={action}>

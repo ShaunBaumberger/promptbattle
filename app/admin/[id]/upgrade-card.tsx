@@ -31,10 +31,10 @@ export function UpgradeCard({
   const [state, formAction, pending] = useActionState(bound, initial);
 
   return (
-    <div className="space-y-3 rounded-md border border-amber-400/50 bg-amber-400/5 p-4">
+    <div className="from-pb-violet/25 to-pb-magenta/15 space-y-3 rounded-xl border border-pb-magenta/40 bg-gradient-to-br p-4">
       <div className="flex items-center gap-2">
-        <Sparkles className="size-4 text-amber-500" aria-hidden />
-        <h2 className="text-base font-semibold">{dict.admin.upgradeTitle}</h2>
+        <Sparkles className="size-4 text-pb-magenta" aria-hidden />
+        <h2 className="font-display text-base font-bold">{dict.admin.upgradeTitle}</h2>
       </div>
       <p className="text-muted-foreground text-sm">{dict.admin.upgradeDesc}</p>
       <p className="text-muted-foreground text-xs">

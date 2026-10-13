@@ -140,12 +140,12 @@ export default async function TournamentAdminPage({
         </Link>
         <div className="flex items-center gap-2">
           {byoKeySet && (
-            <Badge className="border-sky-500/50 bg-sky-500/15 text-sky-600">
+            <Badge className="border-pb-green/50 bg-pb-green/15 text-pb-green">
               🔑 {dict.admin.byoBadge}
             </Badge>
           )}
           {tournament.plan === "premium" && (
-            <Badge className="border-amber-500/50 bg-amber-500/15 text-amber-600">
+            <Badge className="border-pb-magenta/50 bg-pb-magenta/15 text-pb-magenta">
               ✨ {dict.admin.premiumBadge}
             </Badge>
           )}
@@ -156,7 +156,7 @@ export default async function TournamentAdminPage({
       </div>
 
       {upgrade === "success" && plan === "premium" && (
-        <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400">
+        <div className="rounded-xl border border-pb-green/40 bg-pb-green/10 p-3 text-sm text-pb-green">
           ✅ {dict.admin.upgradeSuccess}
         </div>
       )}
@@ -167,7 +167,7 @@ export default async function TournamentAdminPage({
       )}
 
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+        <h1 className="font-display text-3xl font-black tracking-tight break-words">{tournament.name}</h1>
         <p className="text-muted-foreground text-sm">
           {dict.admin.joinCodeLabel}{" "}
           <span className="bg-muted rounded px-2 py-0.5 font-mono">{tournament.code}</span>
@@ -253,7 +253,7 @@ export default async function TournamentAdminPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">{dict.admin.tasksHeading}</h2>
+        <h2 className="font-display text-xl font-bold">{dict.admin.tasksHeading}</h2>
         <TaskManager
           tournamentId={tournament.id}
           playerCount={tournament.player_count as PlayerCount}
@@ -288,8 +288,8 @@ export default async function TournamentAdminPage({
         </section>
       )}
 
-      <section className="space-y-3 rounded-md border p-4">
-        <h2 className="text-base font-semibold">{dict.admin.duplicate}</h2>
+      <section className="bg-card space-y-3 rounded-2xl border p-5">
+        <h2 className="font-display text-base font-bold">{dict.admin.duplicate}</h2>
         <p className="text-muted-foreground text-sm">{dict.admin.duplicateHint}</p>
         <form action={copyTournamentAction.bind(null, tournament.id)}>
           <Button type="submit" variant="outline" size="sm">
@@ -298,8 +298,8 @@ export default async function TournamentAdminPage({
         </form>
       </section>
 
-      <section className="border-destructive/50 space-y-3 rounded-md border p-4">
-        <h2 className="text-base font-semibold">{dict.admin.dangerZone}</h2>
+      <section className="bg-card border-destructive/50 space-y-3 rounded-2xl border p-5">
+        <h2 className="font-display text-base font-bold">{dict.admin.dangerZone}</h2>
         <p className="text-muted-foreground text-sm">{dict.admin.dangerHint}</p>
         <DeleteTournamentDialog
           tournamentId={tournament.id}

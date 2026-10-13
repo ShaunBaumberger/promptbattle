@@ -40,14 +40,14 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
         <span className="bg-white/10 text-white/80 inline-flex items-center rounded-full border border-white/10 px-3 py-1 text-xs font-medium uppercase tracking-widest backdrop-blur">
           {dict.rounds[match.round]}
         </span>
-        <span className="inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-sky-300 backdrop-blur">
-          <span className="bg-sky-400 inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
+        <span className="inline-flex items-center gap-2 rounded-full border border-pb-violet/50 bg-pb-violet/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-pb-violet-soft backdrop-blur">
+          <span className="bg-pb-violet-soft inline-block h-1.5 w-1.5 animate-pulse rounded-full" />
           {dict.vote.votingLive}
         </span>
       </header>
 
       <div className="space-y-1.5 text-center">
-        <h1 className="text-white text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-white text-2xl font-black tracking-tight uppercase text-balance">
           {dict.vote.whoPromptedBetter}
         </h1>
         <p className="text-white/60 text-sm">{dict.vote.tapImageToWin}</p>
@@ -61,6 +61,7 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
       <div className="flex flex-col gap-4">
         <VoteCard
           name={aName}
+          side="A"
           resultUrl={match.result_a_url}
           selected={voted === "A"}
           disabled={pending}
@@ -68,6 +69,7 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
         />
         <VoteCard
           name={bName}
+          side="B"
           resultUrl={match.result_b_url}
           selected={voted === "B"}
           disabled={pending}
@@ -84,14 +86,29 @@ export function VotingView({ match, participantId, aName, bName }: Props) {
   );
 }
 
+const SIDE_STYLE = {
+  A: {
+    dot: "bg-pb-green",
+    selected: "border-pb-green bg-pb-green/10 ring-2 ring-pb-green ring-offset-2 ring-offset-background shadow-[0_0_40px_rgba(53,237,126,0.25)]",
+    chip: "bg-pb-green text-black",
+  },
+  B: {
+    dot: "bg-pb-magenta",
+    selected: "border-pb-magenta bg-pb-magenta/10 ring-2 ring-pb-magenta ring-offset-2 ring-offset-background shadow-[0_0_40px_rgba(236,72,189,0.25)]",
+    chip: "bg-pb-magenta text-white",
+  },
+} as const;
+
 function VoteCard({
   name,
+  side,
   resultUrl,
   selected,
   disabled,
   onClick,
 }: {
   name: string;
+  side: "A" | "B";
   resultUrl: string | null;
   selected: boolean;
   disabled: boolean;
@@ -104,15 +121,16 @@ function VoteCard({
       onClick={onClick}
       disabled={disabled}
       className={`group flex flex-col gap-3 overflow-hidden rounded-3xl border p-3 text-left backdrop-blur transition-all active:scale-[0.985] ${
-        selected
-          ? "border-sky-400 bg-sky-400/10 ring-2 ring-sky-400 ring-offset-2 ring-offset-background shadow-[0_0_40px_rgba(56,189,248,0.25)]"
-          : "border-white/10 bg-white/5 hover:bg-white/10"
+        selected ? SIDE_STYLE[side].selected : "border-white/10 bg-white/5 hover:bg-white/10"
       } ${disabled ? "opacity-60" : ""}`}
     >
       <div className="flex items-center justify-between px-1">
-        <span className="text-white text-lg font-semibold">{name}</span>
+        <span className="flex items-center gap-2 text-white text-lg font-semibold">
+          <span className={`inline-block size-2.5 rounded-full ${SIDE_STYLE[side].dot}`} aria-hidden />
+          {name}
+        </span>
         {selected && (
-          <span className="rounded-full bg-sky-400 px-2.5 py-0.5 text-xs font-semibold text-black">
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${SIDE_STYLE[side].chip}`}>
             {dict.vote.yourChoice}
           </span>
         )}

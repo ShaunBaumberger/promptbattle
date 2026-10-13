@@ -236,7 +236,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
           {dict.rounds[match.round]}
         </span>
         <p
-          className={`tabular-nums text-3xl font-semibold tracking-tight transition-colors ${
+          className={`font-display tabular-nums text-3xl font-black tracking-tight transition-colors ${
             showSeconds <= 10 ? "text-rose-400" : "text-white"
           }`}
           aria-live="polite"
@@ -302,7 +302,7 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
             : dict.play.imagePlaceholder
         }
         disabled={locked}
-        className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 h-28 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
+        className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-pb-violet h-28 shrink-0 resize-none overflow-y-auto rounded-2xl border-white/10 px-4 py-3 text-base backdrop-blur [field-sizing:fixed]"
       />
 
       {expanded && match.task_reference_url && (
@@ -353,7 +353,7 @@ function PreparingPhoneView({
       </span>
       <div className="flex flex-col items-center gap-3">
         <p className="text-white/60 text-base">{dict.play.prepareReady}</p>
-        <p className="text-white text-3xl font-semibold tracking-tight">
+        <p className="font-display text-white text-2xl font-black tracking-tight break-words">
           {side === "left" ? dict.play.youSitLeft : dict.play.youSitRight}
         </p>
         <p className="text-white/60 mt-2 text-base">
@@ -361,8 +361,8 @@ function PreparingPhoneView({
           <span className="text-white font-medium">{opponentName}</span>
         </p>
       </div>
-      <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-6 py-4 backdrop-blur">
-        <p className="text-amber-100 text-sm">{dict.play.taskAppearsWhenHost}</p>
+      <div className="rounded-2xl border border-pb-violet/40 bg-pb-violet/15 px-6 py-4 backdrop-blur">
+        <p className="text-white/90 text-sm">{dict.play.taskAppearsWhenHost}</p>
       </div>
     </main>
   );
@@ -376,7 +376,7 @@ function GeneratingView({ round }: { round: Match["round"] }) {
         {dict.rounds[round]}
       </span>
       <div className="flex flex-col items-center gap-5">
-        <div className="border-white/15 border-t-sky-400 h-14 w-14 animate-spin rounded-full border-4" />
+        <div className="border-white/15 border-t-pb-violet h-14 w-14 animate-spin rounded-full border-4" />
         <p className="text-white text-2xl font-semibold tracking-tight">
           {dict.play.generatingTitle}
         </p>
@@ -414,8 +414,8 @@ function ResultView({
       </header>
 
       {didWin === true && (
-        <div className="rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-center backdrop-blur duration-700 animate-in zoom-in-95">
-          <p className="text-white text-3xl font-semibold tracking-tight">
+        <div className="rounded-2xl border border-pb-gold/50 bg-pb-gold/10 p-4 text-center backdrop-blur duration-700 animate-in zoom-in-95">
+          <p className="font-display text-white text-2xl font-black tracking-tight break-words">
             {dict.play.wonTitle}
           </p>
           {round !== "FINAL" && (
@@ -425,7 +425,7 @@ function ResultView({
       )}
       {didWin === false && (
         <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-center backdrop-blur duration-500 animate-in fade-in">
-          <p className="text-white text-3xl font-semibold tracking-tight">
+          <p className="font-display text-white text-2xl font-black tracking-tight break-words">
             {dict.play.lostTitle}
           </p>
           {round !== "FINAL" && (

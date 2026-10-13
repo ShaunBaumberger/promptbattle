@@ -71,7 +71,7 @@ export default async function RootLayout({
       lang={locale}
       dir={localeDir(locale)}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} h-full antialiased`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${unbounded.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <I18nProvider initialLocale={locale}>

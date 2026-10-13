@@ -34,7 +34,7 @@ export default async function AdminDashboardPage() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-8 p-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">{dict.admin.title}</h1>
+        <h1 className="font-display text-2xl font-black tracking-tight uppercase">{dict.admin.title}</h1>
         <form action={logoutAction}>
           <Button type="submit" variant="ghost">
             {dict.admin.logout}
@@ -52,7 +52,7 @@ export default async function AdminDashboardPage() {
       </Card>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{dict.admin.existingTournaments}</h2>
+        <h2 className="font-display text-lg font-bold">{dict.admin.existingTournaments}</h2>
         {!tournaments?.length && (
           <p className="text-muted-foreground text-sm">{dict.admin.noTournaments}</p>
         )}
@@ -60,7 +60,7 @@ export default async function AdminDashboardPage() {
           {tournaments?.map((t) => (
             <div
               key={t.id}
-              className="hover:bg-muted/50 flex items-center gap-3 rounded-md border p-4 transition"
+              className="bg-card hover:bg-muted flex items-center gap-3 rounded-xl border p-4 transition"
             >
               <Link href={`/admin/${t.id}`} className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center gap-2">

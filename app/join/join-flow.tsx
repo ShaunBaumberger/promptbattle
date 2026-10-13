@@ -50,7 +50,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-10 duration-500 animate-in fade-in slide-in-from-bottom-4">
         <div className="space-y-2 text-center">
-          <h1 className="text-white text-4xl font-semibold tracking-tight">
+          <h1 className="font-display text-white text-3xl font-bold tracking-tight break-words">
             {tournamentName}
           </h1>
         </div>
@@ -71,7 +71,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
               autoCorrect="off"
               autoCapitalize="words"
               spellCheck={false}
-              className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-white/30 h-14 rounded-2xl border-white/10 px-4 text-lg backdrop-blur"
+              className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-pb-violet h-14 rounded-2xl border-white/10 px-4 text-lg backdrop-blur"
             />
           </div>
           {state.status === "error" && (
@@ -85,7 +85,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
           <Button
             type="submit"
             disabled={pending || state.status === "ok"}
-            className="bg-white text-black hover:bg-white/90 active:scale-[0.98] h-14 rounded-2xl text-base font-semibold transition-transform"
+            className="bg-pb-green text-black hover:bg-pb-green/90 active:scale-[0.98] h-14 rounded-2xl text-base font-semibold transition-transform"
           >
             {pending || state.status === "ok" ? dict.join.joining : dict.join.joinButton}
           </Button>

@@ -97,10 +97,10 @@ export function ModelSettingsCard({
 function Shell({ children }: { children: React.ReactNode }) {
   const { dict } = useI18n();
   return (
-    <div className="space-y-4 rounded-md border p-4">
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
       <div className="flex items-center gap-2">
         <Cpu className="size-4" aria-hidden />
-        <h2 className="text-base font-semibold">{dict.admin.modelsTitle}</h2>
+        <h2 className="font-display text-base font-bold">{dict.admin.modelsTitle}</h2>
       </div>
       <p className="text-muted-foreground text-sm">{dict.admin.modelsDesc}</p>
       {children}
