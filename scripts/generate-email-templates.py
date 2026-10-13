@@ -140,12 +140,9 @@ def template(kind):
 
 
 def subject(kind):
-    p = "ml" if kind == "magic" else "cs"
-    parts = []
-    for i, lang in enumerate(LANGS[1:]):
-        kw = "if" if i == 0 else "else if"
-        parts.append(f'{{{{ {kw} eq $l "{lang}" }}}}{S[lang][p + "_subject"]}')
-    return '{{ $l := printf "%v" .Data.locale }}' + "".join(parts) + "{{ else }}" + S["en"][p + "_subject"] + "{{ end }}"
+    # Supabase caps subjects at 255 characters, too short for a 10-language
+    # switch. The code works in every language and shows in notifications.
+    return "{{ .Token }} · Prompt Battle"
 
 
 for kind, name in [("magic", "magic-link"), ("confirm", "confirm-signup")]:

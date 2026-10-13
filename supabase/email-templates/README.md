@@ -17,6 +17,10 @@ the link before the person clicks it — the code still works on the login page.
 | **Confirm sign up** | `confirm-signup.subject.txt`    | `confirm-signup.html` |
 
 Paste each file's full contents into the subject and message body fields and save.
+Copy the HTML **source**, not the page a browser shows when you open the file —
+on a Mac, `pbcopy < supabase/email-templates/magic-link.html` puts it on the
+clipboard. The subject is the language-neutral `{{ .Token }} · Prompt Battle`
+because Supabase caps subjects at 255 characters.
 
 ## Editing
 
