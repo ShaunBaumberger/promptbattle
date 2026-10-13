@@ -399,7 +399,6 @@ export const hi: Dictionary = {
   },
   auth: {
     continueGoogle: "Google से जारी रखें",
-    continueMicrosoft: "Microsoft से जारी रखें",
     continueGithub: "GitHub से जारी रखें",
     or: "या",
     email: "ईमेल",

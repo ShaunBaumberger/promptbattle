@@ -476,7 +476,6 @@ export interface Dictionary {
   };
   auth: {
     continueGoogle: string;
-    continueMicrosoft: string;
     continueGithub: string;
     or: string;
     email: string;

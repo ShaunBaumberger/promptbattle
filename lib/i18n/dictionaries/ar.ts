@@ -399,7 +399,6 @@ export const ar: Dictionary = {
   },
   auth: {
     continueGoogle: "المتابعة باستخدام Google",
-    continueMicrosoft: "المتابعة باستخدام Microsoft",
     continueGithub: "المتابعة باستخدام GitHub",
     or: "أو",
     email: "البريد الإلكتروني",

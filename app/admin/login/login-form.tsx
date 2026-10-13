@@ -25,7 +25,7 @@ export function LoginForm() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const oauth = async (provider: "google" | "azure" | "github") => {
+  const oauth = async (provider: "google" | "github") => {
     setBusy(true);
     setStatus(null);
     const supabase = createClient();
@@ -90,9 +90,6 @@ export function LoginForm() {
       <div className="flex flex-col gap-2">
         <Button type="button" variant="outline" onClick={() => oauth("google")} disabled={busy}>
           {t.continueGoogle}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => oauth("azure")} disabled={busy}>
-          {t.continueMicrosoft}
         </Button>
         <Button type="button" variant="outline" onClick={() => oauth("github")} disabled={busy}>
           {t.continueGithub}

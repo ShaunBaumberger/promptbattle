@@ -44,7 +44,7 @@ export default async function PrivacyPage() {
         <h3>Konten von Veranstaltenden</h3>
         <p>
           Wer Turniere erstellt, braucht ein Konto. Wir speichern die E-Mail-Adresse und
-          – bei Anmeldung mit Google, Microsoft oder GitHub – den Namen und das Profilbild, die
+          – bei Anmeldung mit Google oder GitHub – den Namen und das Profilbild, die
           der jeweilige Anbieter übermittelt. Zweck: Bereitstellung des Kontos
           (Vertragserfüllung, Art. 6 Abs. 1 lit. b DSGVO).
         </p>
@@ -94,7 +94,7 @@ export default async function PrivacyPage() {
           <li>Supabase Inc., USA – Datenbank, Anmeldung, Dateispeicher</li>
           <li>Stripe Payments Europe Ltd., Irland – Zahlungen</li>
           <li>Google LLC, OpenAI, Replicate Inc., USA – KI-Generierung</li>
-          <li>Google, Microsoft bzw. GitHub – nur bei Anmeldung mit deren Konto</li>
+          <li>Google bzw. GitHub – nur bei Anmeldung mit deren Konto</li>
         </ul>
         <p>
           Einige dieser Anbieter bearbeiten Daten in den USA. Die Übermittlung stützt sich,
@@ -153,7 +153,7 @@ export default async function PrivacyPage() {
       <h3>Host accounts</h3>
       <p>
         Creating tournaments requires an account. We store your email address and – if
-        you sign in with Google, Microsoft or GitHub – the name and profile picture that provider
+        you sign in with Google or GitHub – the name and profile picture that provider
         shares. Purpose: providing your account (performance of contract, Art. 6(1)(b)
         GDPR).
       </p>
@@ -197,7 +197,7 @@ export default async function PrivacyPage() {
         <li>Supabase Inc., USA – database, sign-in, file storage</li>
         <li>Stripe Payments Europe Ltd., Ireland – payments</li>
         <li>Google LLC, OpenAI, Replicate Inc., USA – AI generation</li>
-        <li>Google, Microsoft or GitHub – only if you sign in with their account</li>
+        <li>Google or GitHub – only if you sign in with their account</li>
       </ul>
       <p>
         Some of these providers process data in the USA. Transfers rely on the Swiss-U.S.
