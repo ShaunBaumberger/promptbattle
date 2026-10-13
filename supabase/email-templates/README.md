@@ -21,6 +21,11 @@ Paste each file's full contents into the subject and message body fields and sav
 ## Editing
 
 The files are generated — every language shares one layout. Change the copy or
-layout in the generator and regenerate rather than hand-editing ten branches.
+layout in `scripts/generate-email-templates.py` and regenerate rather than
+hand-editing ten branches:
+
+```bash
+python3 scripts/generate-email-templates.py supabase/email-templates
+```
 The templates use Go template syntax (`{{ if eq $l "de" }}…`), which Supabase
 renders server-side; test changes with a real login email before relying on them.
