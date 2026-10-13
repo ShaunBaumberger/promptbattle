@@ -3,7 +3,12 @@ import { getServerDictionary } from "@/lib/i18n/server";
 
 export const metadata = { title: "Host login", robots: { index: false } };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const { dict } = await getServerDictionary();
   return (
     <main className="flex flex-1 items-center justify-center p-6">
@@ -12,7 +17,7 @@ export default async function LoginPage() {
           <h1 className="font-display text-2xl font-black tracking-tight uppercase">{dict.admin.hostLogin}</h1>
           <p className="text-muted-foreground text-sm">{dict.admin.loginSubtitle}</p>
         </div>
-        <LoginForm />
+        <LoginForm initialError={error === "auth" ? dict.auth.linkExpired : null} />
       </div>
     </main>
   );

@@ -477,17 +477,32 @@ export interface Dictionary {
   auth: {
     continueGoogle: string;
     continueGithub: string;
-    or: string;
+    orEmail: string;
+    sendLink: string;
+    sending: string;
+    linkHint: string;
+    usePassword: string;
+    useLink: string;
+    inboxTitle: string;
+    /** "{email}" */
+    inboxText: string;
+    confirmTitle: string;
+    /** "{email}" */
+    confirmText: string;
+    codeLabel: string;
+    verify: string;
+    spamHint: string;
+    sendAgain: string;
+    sentAgain: string;
+    otherEmail: string;
+    invalidCode: string;
+    linkExpired: string;
     email: string;
     password: string;
     signIn: string;
     createAccount: string;
     toSignup: string;
     toSignin: string;
-    magicLink: string;
-    enterEmailFirst: string;
-    checkEmail: string;
-    accountCreated: string;
     /** "{terms}", "{privacy}" — rendered as links */
     agree: string;
   };
