@@ -400,7 +400,6 @@ export const ar: Dictionary = {
   auth: {
     continueGoogle: "المتابعة باستخدام Google",
     continueMicrosoft: "المتابعة باستخدام Microsoft",
-    continueApple: "المتابعة باستخدام Apple",
     or: "أو",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",

@@ -395,7 +395,6 @@ export const zh: Dictionary = {
   auth: {
     continueGoogle: "使用 Google 继续",
     continueMicrosoft: "使用 Microsoft 继续",
-    continueApple: "使用 Apple 继续",
     or: "或",
     email: "邮箱",
     password: "密码",
