@@ -3,9 +3,12 @@ import type { ReactNode } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { BrandBackdrop } from "@/components/brand-backdrop";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { getUser } from "@/lib/supabase/auth";
+import { FeedbackDialog } from "./feedback-dialog";
 
 /** Host area chrome: brand bar over the indigo canvas. */
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const user = await getUser();
   return (
     <div className="relative isolate flex min-h-full flex-1 flex-col">
       <BrandBackdrop />
@@ -18,7 +21,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               Host
             </span>
           </Link>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            {user && <FeedbackDialog />}
+            <LanguageSwitcher />
+          </div>
         </div>
       </div>
       {children}

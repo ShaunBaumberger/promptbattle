@@ -7,6 +7,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/supabase/auth";
 import { logoutAction } from "./login/actions";
 import { CreateTournamentForm } from "./create-tournament-form";
+import { HostGuide } from "./host-guide";
 import { copyTournamentAction } from "./[id]/actions";
 import { DeleteTournamentDialog } from "./[id]/delete-tournament-dialog";
 import type { Tournament } from "@/lib/types/database";
@@ -35,11 +36,14 @@ export default async function AdminDashboardPage() {
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-8 p-6">
       <header className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-black tracking-tight uppercase">{dict.admin.title}</h1>
-        <form action={logoutAction}>
-          <Button type="submit" variant="ghost">
-            {dict.admin.logout}
-          </Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <HostGuide autoOpen={!tournaments?.length} />
+          <form action={logoutAction}>
+            <Button type="submit" variant="ghost">
+              {dict.admin.logout}
+            </Button>
+          </form>
+        </div>
       </header>
 
       <Card>

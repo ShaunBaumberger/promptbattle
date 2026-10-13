@@ -602,4 +602,38 @@ export interface Dictionary {
     footerTagline: string;
     madeIn: string;
   };
+  /** Host feedback dialog (admin area). */
+  feedback: {
+    button: string;
+    title: string;
+    desc: string;
+    label: string;
+    placeholder: string;
+    allowContact: string;
+    send: string;
+    sending: string;
+    thanks: string;
+    tooMany: string;
+    failed: string;
+  };
+  /** First-visit host guide (admin dashboard). */
+  guide: {
+    howItWorks: string;
+    title: string;
+    intro: string;
+    s1Title: string;
+    s1Text: string;
+    s2Title: string;
+    s2Text: string;
+    s3Title: string;
+    s3Text: string;
+    s4Title: string;
+    s4Text: string;
+    tip: string;
+    back: string;
+    next: string;
+    done: string;
+    /** "{n}", "{total}" */
+    stepOf: string;
+  };
 }
