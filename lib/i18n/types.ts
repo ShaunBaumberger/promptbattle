@@ -477,6 +477,7 @@ export interface Dictionary {
   auth: {
     continueGoogle: string;
     continueMicrosoft: string;
+    continueApple: string;
     or: string;
     email: string;
     password: string;

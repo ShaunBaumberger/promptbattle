@@ -399,6 +399,7 @@ export const it: Dictionary = {
   auth: {
     continueGoogle: "Continua con Google",
     continueMicrosoft: "Continua con Microsoft",
+    continueApple: "Continua con Apple",
     or: "oppure",
     email: "E-mail",
     password: "Password",

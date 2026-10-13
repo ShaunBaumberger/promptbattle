@@ -25,7 +25,7 @@ export function LoginForm() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
-  const oauth = async (provider: "google" | "azure") => {
+  const oauth = async (provider: "google" | "azure" | "apple") => {
     setBusy(true);
     setStatus(null);
     const supabase = createClient();
@@ -93,6 +93,9 @@ export function LoginForm() {
         </Button>
         <Button type="button" variant="outline" onClick={() => oauth("azure")} disabled={busy}>
           {t.continueMicrosoft}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => oauth("apple")} disabled={busy}>
+          {t.continueApple}
         </Button>
       </div>
 

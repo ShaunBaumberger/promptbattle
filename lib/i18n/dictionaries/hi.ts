@@ -400,6 +400,7 @@ export const hi: Dictionary = {
   auth: {
     continueGoogle: "Google से जारी रखें",
     continueMicrosoft: "Microsoft से जारी रखें",
+    continueApple: "Apple से जारी रखें",
     or: "या",
     email: "ईमेल",
     password: "पासवर्ड",

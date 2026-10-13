@@ -400,6 +400,7 @@ export const de: Dictionary = {
   auth: {
     continueGoogle: "Weiter mit Google",
     continueMicrosoft: "Weiter mit Microsoft",
+    continueApple: "Weiter mit Apple",
     or: "oder",
     email: "E-Mail",
     password: "Passwort",
