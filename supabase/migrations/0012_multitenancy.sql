@@ -61,6 +61,9 @@ create table if not exists platform_usage (
   hard_cap_cents int not null default 5000,
   kill_switch boolean not null default false
 );
+alter table platform_usage enable row level security;
+-- No policies → only the service-role key (server-side) can read/write; the
+-- public anon key must not be able to reset the spend cap or kill switch.
 insert into platform_usage (id) values (1) on conflict (id) do nothing;
 
 -- Note: tournaments keeps its existing public-read RLS (migration 0001) so the
