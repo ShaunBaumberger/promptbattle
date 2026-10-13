@@ -22,6 +22,13 @@ on a Mac, `pbcopy < supabase/email-templates/magic-link.html` puts it on the
 clipboard. The subject is the language-neutral `{{ .Token }} · Prompt Battle`
 because Supabase caps subjects at 255 characters.
 
+Or skip the dashboard and upload both templates through the Management API
+(asks for a personal access token from supabase.com/dashboard/account/tokens):
+
+```bash
+node scripts/push-email-templates.mjs
+```
+
 ## Editing
 
 The files are generated — every language shares one layout. Change the copy or
