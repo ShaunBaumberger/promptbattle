@@ -1,0 +1,274 @@
+{{ $l := printf "%v" .Data.locale }}<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>Prompt Battle</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f2fb;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3f2fb;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
+            <tr>
+              <td style="background:#0e0b33;padding:22px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td width="16" height="16" style="width:16px;height:16px;background:#35ed7e;border-radius:5px;font-size:0;line-height:0;">&nbsp;</td>
+                    <td width="5" style="width:5px;font-size:0;line-height:0;">&nbsp;</td>
+                    <td width="16" height="16" style="width:16px;height:16px;background:#ec48bd;border-radius:5px;font-size:0;line-height:0;">&nbsp;</td>
+                    <td style="padding-left:12px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:900;letter-spacing:1.5px;color:#ffffff;">PROMPT BATTLE</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          {{ if eq $l "de" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">Dein Login-Link</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Klicke auf den Button, um dich bei Prompt Battle anzumelden.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Bei Prompt Battle anmelden</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">Oder gib diesen Code auf der Login-Seite ein:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">Link und Code sind 1 Stunde gültig und funktionieren nur einmal. Falls du das nicht angefordert hast, kannst du diese E-Mail ignorieren.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">Button funktioniert nicht? Kopiere diesen Link in deinen Browser:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              Das Live-Spiel fürs KI-Prompten – für Teams, Workshops und Schulklassen.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "fr" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">Ton lien de connexion</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Clique sur le bouton ci-dessous pour te connecter à Prompt Battle.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Me connecter à Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">Ou saisis ce code sur la page de connexion :</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">Le lien et le code sont valables 1 heure et ne fonctionnent qu'une fois. Si tu n'as rien demandé, ignore cet e-mail.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">Le bouton ne fonctionne pas ? Copie ce lien dans ton navigateur :<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              Le jeu de prompting IA en direct pour les équipes, les ateliers et les classes.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "it" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">Il tuo link di accesso</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Clicca il pulsante qui sotto per accedere a Prompt Battle.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Accedi a Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">Oppure inserisci questo codice nella pagina di accesso:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">Link e codice sono validi per 1 ora e funzionano una sola volta. Se non l'hai richiesto, puoi ignorare questa e-mail.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">Il pulsante non funziona? Copia questo link nel browser:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              Il gioco di prompting IA dal vivo per team, workshop e classi.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "es" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">Tu enlace de acceso</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Haz clic en el botón para iniciar sesión en Prompt Battle.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Entrar en Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">O introduce este código en la página de inicio de sesión:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">El enlace y el código son válidos durante 1 hora y solo funcionan una vez. Si no lo has solicitado, puedes ignorar este correo.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">¿No funciona el botón? Copia este enlace en tu navegador:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              El juego de prompting con IA en directo para equipos, talleres y aulas.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "pt" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">O teu link de acesso</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Clica no botão abaixo para entrares no Prompt Battle.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Entrar no Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">Ou introduz este código na página de acesso:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">O link e o código são válidos durante 1 hora e só funcionam uma vez. Se não pediste isto, podes ignorar este e-mail.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">O botão não funciona? Copia este link para o teu browser:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              O jogo de prompting com IA ao vivo para equipas, workshops e salas de aula.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "zh" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">你的登录链接</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">点击下方按钮登录 Prompt Battle。</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">登录 Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">或在登录页面输入此验证码：</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">链接和验证码 1 小时内有效，且只能使用一次。如果这不是你本人的操作，请忽略此邮件。</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">按钮无法使用？请将此链接复制到浏览器中：<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              面向团队、工作坊和课堂的现场 AI 提示词对战游戏。<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "ja" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">ログインリンク</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">下のボタンをクリックして Prompt Battle にログインしてください。</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Prompt Battle にログイン</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">またはログインページでこのコードを入力してください：</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">リンクとコードの有効期限は1時間で、1回のみ使用できます。心当たりがない場合は、このメールを無視してください。</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">ボタンが使えない場合は、このリンクをブラウザにコピーしてください：<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              チーム、ワークショップ、教室のためのライブ AI プロンプトゲーム。<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "hi" }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">आपका लॉगिन लिंक</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Prompt Battle में साइन इन करने के लिए नीचे दिए बटन पर क्लिक करें।</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Prompt Battle में साइन इन करें</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">या लॉगिन पेज पर यह कोड दर्ज करें:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">लिंक और कोड 1 घंटे तक मान्य हैं और केवल एक बार काम करते हैं। अगर आपने इसका अनुरोध नहीं किया, तो इस ईमेल को अनदेखा करें।</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">बटन काम नहीं कर रहा? यह लिंक अपने ब्राउज़र में कॉपी करें:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              टीमों, वर्कशॉप और कक्षाओं के लिए लाइव AI प्रॉम्प्टिंग गेम।<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else if eq $l "ar" }}
+          <tr>
+            <td dir="rtl" style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:right;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">رابط تسجيل الدخول</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">انقر على الزر أدناه لتسجيل الدخول إلى Prompt Battle.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">تسجيل الدخول إلى Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">أو أدخل هذا الرمز في صفحة تسجيل الدخول:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">الرابط والرمز صالحان لمدة ساعة واحدة ويعملان مرة واحدة فقط. إذا لم تطلب ذلك، يمكنك تجاهل هذه الرسالة.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">الزر لا يعمل؟ انسخ هذا الرابط في متصفحك:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td dir="rtl" style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:right;">
+              لعبة كتابة الأوامر المباشرة للذكاء الاصطناعي للفرق والورش والفصول الدراسية.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>{{ else }}
+          <tr>
+            <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c1950;text-align:left;">
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;font-weight:bold;color:#1c1950;">Your login link</h1>
+              <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a4775;">Click the button below to sign in to Prompt Battle.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left">
+                <tr>
+                  <td style="border-radius:12px;background:#7b5cff;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.2;color:#ffffff;text-decoration:none;border-radius:12px;">Sign in to Prompt Battle</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="clear:both;height:28px;line-height:28px;font-size:0;">&nbsp;</div>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.5;color:#4a4775;">Or enter this code on the login page:</p>
+              <p dir="ltr" style="margin:0 0 24px 0;display:inline-block;padding:12px 18px;border-radius:10px;background:#f3f2fb;font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;letter-spacing:6px;color:#1c1950;">{{ .Token }}</p>
+              <p style="margin:0 0 16px 0;font-size:13px;line-height:1.5;color:#7a77a0;">The link and code are valid for 1 hour and work only once. If you didn't request this, you can ignore this email.</p>
+              <p style="margin:0 0 8px 0;font-size:12px;line-height:1.5;color:#7a77a0;">Button not working? Copy this link into your browser:<br><a dir="ltr" href="{{ .ConfirmationURL }}" style="color:#5a3df0;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #ecebf7;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#7a77a0;text-align:left;">
+              The live AI prompting game for teams, workshops and classrooms.<br>
+              <a href="https://promptbattle.io" style="color:#5a3df0;text-decoration:none;">promptbattle.io</a> &middot; <a href="mailto:hello@promptbattle.io" style="color:#5a3df0;text-decoration:none;">hello@promptbattle.io</a>
+            </td>
+          </tr>
+          {{ end }}
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
