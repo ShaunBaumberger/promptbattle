@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { getOperator } from "@/lib/legal";
-import { donateProviderName } from "@/lib/donate";
+import { donateHandledBy } from "@/lib/donate";
 import { FREE_GAMES_PER_WINDOW, limitsFor } from "@/lib/tiers";
 import { REPO_URL, SITE_URL } from "@/lib/site";
 import { LastUpdated, legalLang } from "../updated";
@@ -17,7 +17,7 @@ export default async function TermsPage() {
   const op = getOperator();
   const domain = new URL(SITE_URL).host;
   const mail = <a href={`mailto:${op.email}`}>{op.email}</a>;
-  const donateProvider = donateProviderName();
+  const donateProvider = donateHandledBy();
   const freePlayers = limitsFor("free").maxPlayers;
   const ownKeyPlayers = limitsFor("premium").maxPlayers;
 

@@ -10,6 +10,7 @@ import type { PlayerCount, TournamentStatus } from "@/lib/types/database";
 import { BracketView } from "./bracket-view";
 import { ChampionView } from "./champion-view";
 import { MatchStage } from "./match-stage";
+import { JoinOverlay, JoinStrip } from "./join-strip";
 import { useStageAudio } from "./use-stage-audio";
 import { useI18n, interpolate } from "@/lib/i18n/context";
 import { BrandMark } from "@/components/brand-mark";
@@ -21,6 +22,7 @@ interface Props {
   initialStatus: TournamentStatus;
   initialParticipantCount: number;
   initialCurrentMatchId: string | null;
+  initialShowJoin: boolean;
   playerCount: PlayerCount;
 }
 
@@ -31,6 +33,7 @@ export function Stage({
   initialStatus,
   initialParticipantCount,
   initialCurrentMatchId,
+  initialShowJoin,
   playerCount,
 }: Props) {
   const [status, setStatus] = useState<TournamentStatus>(initialStatus);
@@ -42,6 +45,17 @@ export function Stage({
   >(null);
   const [participantCount, setParticipantCount] = useState(initialParticipantCount);
   const [joinUrl, setJoinUrl] = useState<string>("");
+  // Big join QR: the host toggles it from the console (stage_show_join);
+  // on the stage itself a click, or the J key, toggles it locally too.
+  // Only a *change* of the host flag overrides the local state, so the
+  // 10s stale-state poll doesn't reopen a card closed on the stage.
+  const [showJoin, setShowJoin] = useState(initialShowJoin);
+  const hostShowJoinRef = useRef(initialShowJoin);
+  const syncHostShowJoin = (show: boolean) => {
+    if (show === hostShowJoinRef.current) return;
+    hostShowJoinRef.current = show;
+    setShowJoin(show);
+  };
   const audio = useStageAudio();
 
   // Champion fanfare exactly once when the tournament first transitions to
@@ -58,6 +72,17 @@ export function Stage({
   useEffect(() => {
     setJoinUrl(`${window.location.origin}/?code=${tournamentCode}`);
   }, [tournamentCode]);
+  const joinHost = joinUrl ? new URL(joinUrl).host : "";
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "j" || e.key === "J") setShowJoin((v) => !v);
+      if (e.key === "Escape") setShowJoin(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -76,10 +101,12 @@ export function Stage({
             status: TournamentStatus;
             current_match_id: string | null;
             current_video_playing: "A" | "B" | null;
+            stage_show_join?: boolean;
           };
           setStatus(next.status);
           setCurrentMatchId(next.current_match_id);
           setCurrentVideoPlaying(next.current_video_playing ?? null);
+          syncHostShowJoin(next.stage_show_join === true);
         },
       )
       .on(
@@ -116,7 +143,7 @@ export function Stage({
     const [tRes, cRes] = await Promise.all([
       supabase
         .from("tournaments")
-        .select("status, current_match_id, current_video_playing")
+        .select("status, current_match_id, current_video_playing, stage_show_join")
         .eq("id", tournamentId)
         .maybeSingle(),
       supabase
@@ -130,6 +157,7 @@ export function Stage({
       setCurrentVideoPlaying(
         (tRes.data.current_video_playing as "A" | "B" | null) ?? null,
       );
+      syncHostShowJoin(tRes.data.stage_show_join === true);
     }
     if (typeof cRes.count === "number") setParticipantCount(cRes.count);
   });
@@ -149,12 +177,33 @@ export function Stage({
     );
   }
 
+  // While the bracket runs, players can still join or rejoin (a finished
+  // tournament takes no one), so the join line stays on every screen.
+  const joinUi = status === "live" && (
+    <>
+      <JoinStrip
+        joinHost={joinHost}
+        tournamentCode={tournamentCode}
+        onShowQr={() => setShowJoin(true)}
+      />
+      {showJoin && (
+        <JoinOverlay
+          joinUrl={joinUrl}
+          joinHost={joinHost}
+          tournamentCode={tournamentCode}
+          onClose={() => setShowJoin(false)}
+        />
+      )}
+    </>
+  );
+
   // Match view wins over the "finished" headline so the audience sees the
   // reveal animation (winner crown + vote bars) on the final match. Once the
   // admin clears current_match_id, the finished view takes over.
   if (currentMatchId) {
     return (
       <>
+        {joinUi}
         <MatchStage
           matchId={currentMatchId}
           tournamentId={tournamentId}
@@ -177,6 +226,7 @@ export function Stage({
 
   return (
     <>
+      {joinUi}
       <main className="flex flex-1 flex-col gap-10 p-12">
         <header className="space-y-3 text-center">
           <StageBrand />

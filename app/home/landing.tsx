@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -396,7 +397,7 @@ function VersusMock({ dict }: { dict: Dictionary }) {
           votes={58}
           ring="ring-pb-green"
           bar="bg-pb-green"
-          art="bg-[radial-gradient(circle_at_70%_30%,#ffe08a_0_13%,transparent_14%),linear-gradient(180deg,#ff9a5a_0%,#ff5e7e_48%,#6b3cff_100%)]"
+          src="/home/cat-dj.webp"
         />
         <MockResult
           name="Leo"
@@ -404,7 +405,7 @@ function VersusMock({ dict }: { dict: Dictionary }) {
           votes={42}
           ring="ring-pb-magenta"
           bar="bg-pb-magenta"
-          art="bg-[radial-gradient(circle_at_28%_38%,#ffd27a_0_15%,transparent_16%),linear-gradient(180deg,#ffb347_0%,#ff7a3d_50%,#3a1c71_100%)]"
+          src="/home/pug-dj.webp"
         />
         <span className="font-display bg-pb-violet ring-pb-surface absolute top-[30%] left-1/2 flex size-14 -translate-x-1/2 items-center justify-center rounded-full text-lg font-black ring-[6px] sm:size-16 sm:text-xl">
           VS
@@ -420,25 +421,28 @@ function MockResult({
   votes,
   ring,
   bar,
-  art,
+  src,
 }: {
   name: string;
   prompt: string;
   votes: number;
   ring: string;
   bar: string;
-  art: string;
+  /** An AI result for the prompt — generated with Nano Banana Pro. */
+  src: string;
 }) {
   return (
     <div>
-      <div className={`relative aspect-square overflow-hidden rounded-3xl ring-4 ${ring} ${art}`}>
-        {/* hills */}
-        <div className="absolute -inset-x-6 bottom-[-30%] h-1/2 rounded-[50%] bg-[#24124f]/80" />
-        {/* a bicycle, more or less */}
-        <div className="absolute bottom-[16%] left-[22%] size-[24%] rounded-full border-[5px] border-black/75" />
-        <div className="absolute bottom-[16%] left-[52%] size-[24%] rounded-full border-[5px] border-black/75" />
-        <div className="absolute bottom-[34%] left-[36%] h-[5px] w-[28%] -rotate-12 rounded bg-black/75" />
-        <div className="absolute bottom-[38%] left-[40%] size-[16%] rounded-[45%_55%_40%_60%] bg-white/90" />
+      <div className={`bg-pb-canvas relative aspect-square overflow-hidden rounded-3xl ring-4 ${ring}`}>
+        <Image
+          src={src}
+          alt=""
+          width={640}
+          height={640}
+          sizes="(min-width: 1024px) 280px, 45vw"
+          loading="eager"
+          className="size-full object-cover"
+        />
       </div>
       <p className="mt-3 text-sm font-bold">{name}</p>
       <p className="mt-1 line-clamp-2 font-mono text-xs text-white/60">“{prompt}”</p>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { getOperator } from "@/lib/legal";
-import { donateProviderName } from "@/lib/donate";
+import { donatePaymentProcessor, donateProviderName } from "@/lib/donate";
 import { SITE_URL } from "@/lib/site";
 import { LastUpdated, legalLang } from "../updated";
 
@@ -17,6 +17,7 @@ export default async function PrivacyPage() {
   const domain = new URL(SITE_URL).host;
   const mail = <a href={`mailto:${op.email}`}>{op.email}</a>;
   const donateProvider = donateProviderName();
+  const donateProcessor = donatePaymentProcessor();
 
   if (lang === "de") {
     return (
@@ -71,11 +72,19 @@ export default async function PrivacyPage() {
           <>
             <h3>Spenden</h3>
             <p>
-              Spenden erfolgen direkt bei {donateProvider}; dort gilt dessen
-              Datenschutzerklärung. Wir erhalten nur die Angaben, die {donateProvider} an
-              Empfangende weitergibt (z. B. Name, Betrag, Nachricht und E-Mail-Adresse), und
-              nutzen sie, um die Spende zu verbuchen und uns zu bedanken – niemals
-              Karten- oder Kontodaten.
+              Spenden erfolgen direkt bei {donateProvider}
+              {donateProcessor ? (
+                <>
+                  ; die Zahlung wickelt {donateProcessor} ab. Es gelten deren
+                  Datenschutzerklärungen
+                </>
+              ) : (
+                <>; dort gilt dessen Datenschutzerklärung</>
+              )}
+              . Wir erhalten nur die Angaben, die dabei an Empfangende weitergegeben
+              werden (z. B. Name, Betrag, Nachricht, E-Mail-Adresse und Land der
+              Zahlungskarte), und nutzen sie, um die Spende zu verbuchen und uns zu
+              bedanken – niemals vollständige Karten- oder Kontodaten.
             </p>
           </>
         )}
@@ -102,6 +111,9 @@ export default async function PrivacyPage() {
           <li>Supabase Inc., USA – Datenbank, Anmeldung, Dateispeicher</li>
           <li>Resend Inc., USA – E-Mail-Versand</li>
           {donateProvider && <li>{donateProvider} – Spenden (nur wenn du spendest)</li>}
+          {donateProvider && donateProcessor && (
+            <li>{donateProcessor} – Zahlungsabwicklung der Spenden (nur wenn du spendest)</li>
+          )}
           <li>Google LLC, OpenAI, Replicate Inc., USA – KI-Generierung</li>
           <li>Google bzw. GitHub – nur bei Anmeldung mit deren Konto</li>
         </ul>
@@ -185,10 +197,18 @@ export default async function PrivacyPage() {
         <>
           <h3>Donations</h3>
           <p>
-            Donations are made directly on {donateProvider}, whose privacy policy applies
-            there. We only receive what {donateProvider} shares with recipients (such as
-            name, amount, message and email address) and use it to record the donation and
-            say thanks – never card or bank details.
+            Donations are made directly on {donateProvider}
+            {donateProcessor ? (
+              <>
+                , and the payment is processed by {donateProcessor}. Their privacy
+                policies apply
+              </>
+            ) : (
+              <>, whose privacy policy applies there</>
+            )}
+            . We only receive what is passed on to recipients (such as name, amount,
+            message, email address and the card’s country) and use it to record the
+            donation and say thanks – never full card or bank details.
           </p>
         </>
       )}
@@ -212,6 +232,9 @@ export default async function PrivacyPage() {
         <li>Supabase Inc., USA – database, sign-in, file storage</li>
         <li>Resend Inc., USA – email delivery</li>
         {donateProvider && <li>{donateProvider} – donations (only if you donate)</li>}
+        {donateProvider && donateProcessor && (
+          <li>{donateProcessor} – donation payments (only if you donate)</li>
+        )}
         <li>Google LLC, OpenAI, Replicate Inc., USA – AI generation</li>
         <li>Google or GitHub – only if you sign in with their account</li>
       </ul>

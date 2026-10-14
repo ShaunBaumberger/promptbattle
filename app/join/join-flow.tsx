@@ -14,9 +14,11 @@ const initial: JoinState = { status: "idle" };
 interface Props {
   tournamentName: string;
   tournamentCode: string;
+  /** Bracket already running: entering a known name rejoins as that person. */
+  started: boolean;
 }
 
-export function JoinFlow({ tournamentName, tournamentCode }: Props) {
+export function JoinFlow({ tournamentName, tournamentCode, started }: Props) {
   const { dict } = useI18n();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -73,6 +75,7 @@ export function JoinFlow({ tournamentName, tournamentCode }: Props) {
               spellCheck={false}
               className="bg-white/5 text-white placeholder:text-white/30 focus-visible:bg-white/10 focus-visible:border-pb-violet h-14 rounded-2xl border-white/10 px-4 text-lg backdrop-blur"
             />
+            {started && <p className="text-sm text-white/50">{dict.join.rejoinHint}</p>}
           </div>
           {state.status === "error" && (
             <p

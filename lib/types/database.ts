@@ -43,6 +43,8 @@ export interface Tournament {
   is_test_mode: boolean;
   /** Admin-controlled signal: which FINAL-round video the stage should play fullscreen. */
   current_video_playing: "A" | "B" | null;
+  /** Host asks the stage to show the big join QR (migration 0019). */
+  stage_show_join: boolean;
   /**
    * Per-round timer overrides in seconds. Missing entries fall back to
    * `round_time_seconds`. Lets the admin dial up later rounds (e.g.

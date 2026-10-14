@@ -32,6 +32,7 @@ export interface Dictionary {
   join: {
     nameLabel: string;
     joinButton: string;
+    rejoinHint: string;
     joining: string;
     errCodeMissing: string;
     errNameRequired: string;
@@ -106,6 +107,13 @@ export interface Dictionary {
     loadingChampion: string;
     audioEnable: string;
     scanOrGoTo: string;
+    joinAt: string;
+    codeLabel: string;
+    showQr: string;
+    rejoinTitle: string;
+    /** "{url}" */
+    rejoinText: string;
+    closeHint: string;
     personJoined: string;
     peopleJoined: string;
     /** "{count}" */
@@ -199,6 +207,8 @@ export interface Dictionary {
     /** "{n}" */
     perRound: string;
     openStage: string;
+    showJoinOnStage: string;
+    hideJoinOnStage: string;
     tasksHeading: string;
     duplicate: string;
     duplicateHint: string;
