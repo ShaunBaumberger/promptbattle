@@ -40,6 +40,24 @@ export async function joinTournamentAction(
     return { status: "error", error: dict.join.errFinished };
   }
 
+  // Mid-tournament, a name that's already taken is someone getting back in
+  // (new phone, another browser, cleared storage) — Kahoot-style rejoin by
+  // nickname. Prefer the bracket player so they can play their matches.
+  if (tournament.status === "live") {
+    const { data: existing } = await supabase
+      .from("participants")
+      .select("id, name, is_player")
+      .eq("tournament_id", tournament.id);
+    const key = name.toLocaleLowerCase();
+    const same = (existing ?? []).filter(
+      (p) => (p.name as string).trim().toLocaleLowerCase() === key,
+    );
+    const rejoin = same.find((p) => p.is_player) ?? same[0];
+    if (rejoin) {
+      return { status: "ok", participantId: rejoin.id, tournamentCode: tournament.code };
+    }
+  }
+
   const { data: participant, error: insertErr } = await supabase
     .from("participants")
     .insert({ tournament_id: tournament.id, name })

@@ -62,7 +62,11 @@ export default async function Home({
 
   return (
     <DarkShell>
-      <JoinFlow tournamentName={tournament.name} tournamentCode={tournament.code} />
+      <JoinFlow
+        tournamentName={tournament.name}
+        tournamentCode={tournament.code}
+        started={tournament.status === "live"}
+      />
     </DarkShell>
   );
 }

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Check, Heart } from "lucide-react";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
-import { donateProviderName, donateUrl } from "@/lib/donate";
+import { donateHandledBy, donateUrl } from "@/lib/donate";
 import { BrandBackdrop } from "@/components/brand-backdrop";
 import { BrandMark } from "@/components/brand-mark";
 import { SiteFooter } from "../home/landing";
@@ -69,7 +69,7 @@ export default async function DonatePage() {
             {t.cta}
           </a>
           <p className="mt-4 text-center text-sm text-white/55">
-            {interpolate(t.note, { provider: donateProviderName() ?? "" })}
+            {interpolate(t.note, { provider: donateHandledBy() ?? "" })}
           </p>
         </div>
       </main>

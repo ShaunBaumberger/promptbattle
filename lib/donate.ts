@@ -41,3 +41,20 @@ export function donateProviderName(): string | null {
   const host = new URL(url).hostname.replace(/^www\./, "");
   return PROVIDER_NAMES[host] ?? host;
 }
+
+/**
+ * The payment service the donation platform pays out through (e.g. the
+ * Stripe account connected to Ko-fi), from DONATE_PROCESSOR. It sees the
+ * donor's payment details, so the privacy policy names it too.
+ */
+export function donatePaymentProcessor(): string | null {
+  return process.env.DONATE_PROCESSOR?.trim() || null;
+}
+
+/** "Ko-fi" or "Ko-fi / Stripe" — who handles a donation, for the fine print. */
+export function donateHandledBy(): string | null {
+  const provider = donateProviderName();
+  if (!provider) return null;
+  const processor = donatePaymentProcessor();
+  return processor ? `${provider} / ${processor}` : provider;
+}

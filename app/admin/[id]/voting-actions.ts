@@ -45,6 +45,24 @@ export async function clearVideoPlayingAction(
   return { ok: true };
 }
 
+/**
+ * Show or hide the big join QR on the stage (tournaments.stage_show_join),
+ * so players who lost their connection can scan back in mid-tournament.
+ */
+export async function setStageJoinOverlayAction(
+  tournamentId: string,
+  show: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownsTournament(tournamentId))) return { ok: false, error: await notOwnerMessage() };
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase
+    .from("tournaments")
+    .update({ stage_show_join: show === true })
+    .eq("id", tournamentId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 /** Open the voting phase. Allowed only from `reveal`. */
 export async function startVotingAction(
   matchId: string,

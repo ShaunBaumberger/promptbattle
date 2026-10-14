@@ -17,7 +17,7 @@ export default async function StagePage({
   const supabase = createServiceRoleClient();
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, code, name, status, player_count, current_match_id")
+    .select("id, code, name, status, player_count, current_match_id, stage_show_join")
     .eq("code", normalized)
     .maybeSingle();
 
@@ -36,6 +36,7 @@ export default async function StagePage({
       initialStatus={tournament.status}
       initialParticipantCount={count ?? 0}
       initialCurrentMatchId={tournament.current_match_id}
+      initialShowJoin={tournament.stage_show_join === true}
       playerCount={tournament.player_count as PlayerCount}
     />
   );

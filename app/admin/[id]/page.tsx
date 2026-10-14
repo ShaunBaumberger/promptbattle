@@ -31,6 +31,7 @@ import { getByoProviders } from "@/lib/byo-key";
 import { platformProviders } from "@/lib/ai";
 import { ByoKeyCard } from "./byo-key-card";
 import { ModelSettingsCard } from "./model-settings-card";
+import { StageJoinToggle } from "./stage-join-toggle";
 import { FlashToast } from "@/components/flash-toast";
 import { DonateCard } from "@/components/donate-card";
 import { donationsEnabled } from "@/lib/donate";
@@ -165,6 +166,12 @@ export default async function TournamentAdminPage({
           >
             {dict.admin.openStage}
           </a>
+          {tournament.status === "live" && (
+            <StageJoinToggle
+              tournamentId={tournament.id}
+              initialShown={tournament.stage_show_join === true}
+            />
+          )}
         </div>
       </header>
 
