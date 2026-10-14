@@ -44,7 +44,7 @@ export async function updateModelsAction(
     return { ok: false, error: dict.admin.err.tournamentNotFound };
   }
   if (t.status !== "setup") {
-    return { ok: false, error: dict.admin.err.upgradeSetupOnly };
+    return { ok: false, error: dict.admin.err.setupOnly };
   }
 
   const byo = t.byo_key === true;

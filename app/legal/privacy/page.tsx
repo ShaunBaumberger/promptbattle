@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { getOperator } from "@/lib/legal";
+import { donateProviderName } from "@/lib/donate";
 import { SITE_URL } from "@/lib/site";
 import { LastUpdated, legalLang } from "../updated";
 
@@ -15,6 +16,7 @@ export default async function PrivacyPage() {
   const op = getOperator();
   const domain = new URL(SITE_URL).host;
   const mail = <a href={`mailto:${op.email}`}>{op.email}</a>;
+  const donateProvider = donateProviderName();
 
   if (lang === "de") {
     return (
@@ -65,12 +67,18 @@ export default async function PrivacyPage() {
           Anbieter. Solche Keys speichern wir verschlüsselt (AES-256) und nur für das
           jeweilige Turnier.
         </p>
-        <h3>Zahlungen</h3>
-        <p>
-          Premium-Upgrades werden über Stripe abgewickelt. Wir erhalten nur den
-          Zahlungsstatus, den Betrag und die bei Stripe angegebene E-Mail-Adresse –
-          niemals vollständige Karten- oder Kontodaten.
-        </p>
+        {donateProvider && (
+          <>
+            <h3>Spenden</h3>
+            <p>
+              Spenden erfolgen direkt bei {donateProvider}; dort gilt dessen
+              Datenschutzerklärung. Wir erhalten nur die Angaben, die {donateProvider} an
+              Empfangende weitergibt (z. B. Name, Betrag, Nachricht und E-Mail-Adresse), und
+              nutzen sie, um die Spende zu verbuchen und uns zu bedanken – niemals
+              Karten- oder Kontodaten.
+            </p>
+          </>
+        )}
         <h3>E-Mails</h3>
         <p>
           Login-Links und Bestätigungen versenden wir über unseren
@@ -92,7 +100,8 @@ export default async function PrivacyPage() {
         <ul>
           <li>Vercel Inc., USA – Hosting</li>
           <li>Supabase Inc., USA – Datenbank, Anmeldung, Dateispeicher</li>
-          <li>Stripe Payments Europe Ltd., Irland – Zahlungen</li>
+          <li>Resend Inc., USA – E-Mail-Versand</li>
+          {donateProvider && <li>{donateProvider} – Spenden (nur wenn du spendest)</li>}
           <li>Google LLC, OpenAI, Replicate Inc., USA – KI-Generierung</li>
           <li>Google bzw. GitHub – nur bei Anmeldung mit deren Konto</li>
         </ul>
@@ -105,7 +114,7 @@ export default async function PrivacyPage() {
         <h2>5. Aufbewahrung</h2>
         <p>
           Turnierdaten inklusive generierter Medien bleiben gespeichert, bis die
-          Veranstaltenden das Turnier oder ihr Konto löschen. Zahlungsbelege bewahren wir
+          Veranstaltenden das Turnier oder ihr Konto löschen. Angaben zu Spenden bewahren wir
           gemäss den gesetzlichen Buchführungspflichten auf (in der Schweiz 10 Jahre).
         </p>
 
@@ -172,11 +181,17 @@ export default async function PrivacyPage() {
         API keys, their own agreement with that provider applies as well. We store such
         keys encrypted (AES-256) and only for the tournament they belong to.
       </p>
-      <h3>Payments</h3>
-      <p>
-        Premium upgrades are processed by Stripe. We only receive the payment status, the
-        amount and the email address given to Stripe – never full card or bank details.
-      </p>
+      {donateProvider && (
+        <>
+          <h3>Donations</h3>
+          <p>
+            Donations are made directly on {donateProvider}, whose privacy policy applies
+            there. We only receive what {donateProvider} shares with recipients (such as
+            name, amount, message and email address) and use it to record the donation and
+            say thanks – never card or bank details.
+          </p>
+        </>
+      )}
       <h3>Emails</h3>
       <p>
         Login links and confirmations are sent through our authentication service. We do
@@ -195,7 +210,8 @@ export default async function PrivacyPage() {
       <ul>
         <li>Vercel Inc., USA – hosting</li>
         <li>Supabase Inc., USA – database, sign-in, file storage</li>
-        <li>Stripe Payments Europe Ltd., Ireland – payments</li>
+        <li>Resend Inc., USA – email delivery</li>
+        {donateProvider && <li>{donateProvider} – donations (only if you donate)</li>}
         <li>Google LLC, OpenAI, Replicate Inc., USA – AI generation</li>
         <li>Google or GitHub – only if you sign in with their account</li>
       </ul>
@@ -208,7 +224,7 @@ export default async function PrivacyPage() {
       <h2>5. Retention</h2>
       <p>
         Tournament data, including generated media, is kept until the host deletes the
-        tournament or their account. Payment records are kept as required by statutory
+        tournament or their account. Donation records are kept as required by statutory
         bookkeeping rules (10 years in Switzerland).
       </p>
 

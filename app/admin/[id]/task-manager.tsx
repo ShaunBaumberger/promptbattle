@@ -39,7 +39,7 @@ interface Props {
   tournamentId: string;
   playerCount: PlayerCount;
   tasks: Task[];
-  /** Free plans can't create video tasks (Veo is premium-only). */
+  /** Free plans can't create video tasks (they need the host's own key). */
   videoAllowed: boolean;
 }
 
@@ -208,7 +208,7 @@ export function TaskManager({ tournamentId, playerCount, tasks, videoAllowed }: 
                   disabled={!videoAllowed}
                 >
                   {dict.admin.videoTask}
-                  {!videoAllowed && ` ${dict.admin.premiumTag}`}
+                  {!videoAllowed && ` ${dict.admin.ownKeyTag}`}
                 </Button>
               </div>
             </div>

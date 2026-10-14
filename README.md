@@ -14,8 +14,9 @@ Built for workshops, team events, classrooms and meetups — anywhere you want t
 turn "learning to prompt" into a spectator sport.
 
 **Play it at [promptbattle.io](https://promptbattle.io)** — free for up to 8
-players, CHF 9 per tournament for bigger events with video rounds, or free with
-your own AI API key. Or host it yourself from this repository.
+players, and free with your own AI API key for bigger events with video rounds.
+Or host it yourself from this repository. If it made your event better, you can
+[support it with a donation](https://promptbattle.io/donate).
 
 ## How it works
 
@@ -40,8 +41,10 @@ other's prompts until the reveal.
   addressed as `<provider>:<model id>`
 - **Host accounts** — Google, GitHub, emailed login link (with a one-time code
   fallback) or email + password; each host only sees their own tournaments
-- **Plans** — free tier with hard cost caps, pay-per-event upgrade via Stripe
-  (cards, TWINT), or bring-your-own keys stored encrypted per tournament
+- **Free tier with hard cost caps** — per-account quota plus a global budget,
+  checked before a tournament starts so a running game always finishes
+- **Bring your own keys** — bigger brackets, video tasks and any model on the
+  host's own provider keys, stored encrypted per tournament
 - **Test mode** — rehearse the whole flow without any AI calls
 - **On site or online** — projector in the room, or share the stage in a video call
 
@@ -49,8 +52,8 @@ other's prompts until the reveal.
 
 - **Next.js 16** (App Router, Server Actions) + **React 19** + **Tailwind v4**
 - **Supabase** — Postgres, Auth, Realtime (live sync across all three views), Storage
-- **Stripe** Checkout for pay-per-event upgrades, **Resend** for email
-- Deploys to **Vercel**
+- **Resend** for email
+- Deploys to **Vercel** (a daily cron keeps the Supabase free plan awake)
 
 ## Self-hosting
 
@@ -61,10 +64,11 @@ You run it on your own Supabase project and your own AI provider keys, so
 
 - Node.js 20+
 - A free [Supabase](https://supabase.com) project
-- An API key for at least one AI provider — [Google Gemini](https://aistudio.google.com/apikey)
-  (default models), [OpenAI](https://platform.openai.com/api-keys) or
-  [Replicate](https://replicate.com/account/api-tokens). Only needed for real
-  generation — Test Mode skips all API calls.
+- A [Google Gemini API key](https://aistudio.google.com/apikey) — free-plan
+  games run on Google's Nano Banana. Hosts can add their own Google,
+  [OpenAI](https://platform.openai.com/api-keys) or
+  [Replicate](https://replicate.com/account/api-tokens) keys per tournament for
+  bigger events. Only needed for real generation — Test Mode skips all API calls.
 
 ### 1. Install
 
@@ -106,8 +110,8 @@ Hosts sign in with **Supabase Auth**. In the Supabase dashboard → Authenticati
 cp .env.local.example .env.local
 ```
 
-Fill in your Supabase URL + keys, at least one AI provider key and
-`SECRETS_ENCRYPTION_KEY`. Every variable — including Stripe, the legal-page
+Fill in your Supabase URL + keys, your Google AI key and
+`SECRETS_ENCRYPTION_KEY`. Every variable — including donations, the legal-page
 details and model selection — is documented inline in the example file.
 
 ### 5. Run
@@ -144,8 +148,11 @@ variables, and deploy. Notes:
   up the result) — no single function blocks on the render.
 - Vercel caps request bodies at **4.5 MB**. Reference-image uploads are resized
   client-side to stay well under that, so phone photos upload fine.
-- Vercel's Hobby plan is for non-commercial use; a deployment that takes
-  payments needs Pro.
+- `vercel.json` schedules `/api/keep-alive` once a day (allowed on the Hobby
+  plan) so Supabase doesn't pause a free project after a quiet week. Set
+  `CRON_SECRET` so only Vercel can call it.
+- Vercel's Hobby plan is for non-commercial use. Asking for donations is fine;
+  taking payments needs Pro.
 
 ## Cost
 

@@ -6,6 +6,7 @@ import {
   CodeXml,
   Cpu,
   GraduationCap,
+  Heart,
   Languages,
   Mic,
   MonitorPlay,
@@ -21,10 +22,11 @@ import {
 import type { Dictionary } from "@/lib/i18n/types";
 import { interpolate } from "@/lib/i18n/interpolate";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { premiumCurrency, premiumPriceCents } from "@/lib/stripe";
 import { FREE_GAMES_PER_WINDOW, limitsFor } from "@/lib/tiers";
 import { REPO_URL } from "@/lib/site";
+import { donationsEnabled } from "@/lib/donate";
 import { BrandMark } from "@/components/brand-mark";
+import { DONATE_PATH, DonateCard } from "@/components/donate-card";
 
 const LOGIN = "/admin/login";
 
@@ -35,7 +37,6 @@ const sm = "px-4 py-2.5 text-sm";
 const green = "bg-pb-green text-black hover:brightness-110";
 const btnGreen = `${btnBase} ${lg} ${green}`;
 const btnViolet = `${btnBase} ${sm} sm:text-base bg-pb-violet text-white hover:bg-pb-violet-deep`;
-const btnWhite = `${btnBase} ${lg} bg-white text-black hover:bg-white/90`;
 const btnGhost = `${btnBase} ${lg} bg-pb-surface-2 text-white hover:bg-pb-surface-2/80`;
 
 function formatPrice(cents: number, currency: string, locale: string): string {
@@ -55,9 +56,8 @@ function formatPrice(cents: number, currency: string, locale: string): string {
 /** Public marketing homepage (shown at / when no join code is present). */
 export function Landing({ dict, locale }: { dict: Dictionary; locale: string }) {
   const t = dict.home;
-  const currency = premiumCurrency();
+  const currency = "chf";
   const freePlayers = limitsFor("free").maxPlayers;
-  const premiumPlayers = limitsFor("premium").maxPlayers;
   // Arabic and Devanagari carry marks above/below the line; the tight
   // display leading would make them collide.
   const tall = locale === "ar" || locale === "hi";
@@ -250,8 +250,9 @@ export function Landing({ dict, locale }: { dict: Dictionary; locale: string }) 
         <section id="pricing" className="mx-auto w-full max-w-6xl scroll-mt-6 px-5 py-20 lg:py-28">
           <SectionTitle>{t.pricingTitle}</SectionTitle>
           <p className="mt-4 text-center text-lg text-white/70">{t.pricingLead}</p>
-          <div className="mt-12 grid items-stretch gap-4 lg:grid-cols-3">
+          <div className="mx-auto mt-12 grid max-w-4xl items-stretch gap-4 lg:grid-cols-2">
             <PriceCard
+              featured
               name={t.freeName}
               price={formatPrice(0, currency, locale)}
               per={t.freePer}
@@ -264,20 +265,6 @@ export function Landing({ dict, locale }: { dict: Dictionary; locale: string }) 
               cta={<Link href={LOGIN} className={`${btnGreen} w-full`}>{t.startFree}</Link>}
             />
             <PriceCard
-              featured
-              badge={t.premiumBadge}
-              name={t.premiumName}
-              price={formatPrice(premiumPriceCents(), currency, locale)}
-              per={t.premiumPer}
-              features={[
-                interpolate(t.upToPlayers, { n: premiumPlayers }),
-                t.premiumF2,
-                t.premiumF3,
-                t.premiumF4,
-              ]}
-              cta={<Link href={LOGIN} className={`${btnWhite} w-full`}>{t.premiumCta}</Link>}
-            />
-            <PriceCard
               name={t.byoName}
               price={formatPrice(0, currency, locale)}
               per={t.byoPer}
@@ -285,6 +272,11 @@ export function Landing({ dict, locale }: { dict: Dictionary; locale: string }) 
               cta={<Link href={LOGIN} className={`${btnGhost} w-full`}>{t.byoCta}</Link>}
             />
           </div>
+          {donationsEnabled() && (
+            <div className="mx-auto mt-6 max-w-4xl lg:mt-12">
+              <DonateCard title={dict.donate.title} text={dict.donate.text} cta={dict.donate.button} />
+            </div>
+          )}
         </section>
 
         {/* ---------- FAQ ---------- */}
@@ -298,6 +290,7 @@ export function Landing({ dict, locale }: { dict: Dictionary; locale: string }) 
               [t.q4, t.a4],
               [t.q5, t.a5],
               [t.q6, t.a6],
+              [t.q7, interpolate(t.a7, { n: FREE_GAMES_PER_WINDOW })],
             ].map(([q, a], i) => (
               <details key={i} className="group bg-pb-surface rounded-2xl p-6 open:ring-1 open:ring-white/15">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold [&::-webkit-details-marker]:hidden">
@@ -487,6 +480,12 @@ export function SiteFooter({ dict }: { dict: Dictionary }) {
             <Link href="/legal/terms" className="hover:text-white">
               {dict.legal.terms}
             </Link>
+            {donationsEnabled() && (
+              <Link href={DONATE_PATH} className="inline-flex items-center gap-1.5 hover:text-white">
+                <Heart className="text-pb-magenta size-3.5" aria-hidden />
+                {dict.donate.button}
+              </Link>
+            )}
           </nav>
         </div>
         <p

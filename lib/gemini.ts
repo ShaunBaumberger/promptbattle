@@ -33,7 +33,7 @@ export interface GeneratedImage {
  * the final error if all attempts fail.
  *
  * `model` overrides the env/default model — used by the tier system so
- * free-plan tournaments run the cheap model while premium runs the default
+ * free-plan tournaments run the cheap model while own-key games run the default
  * (see lib/tiers.ts).
  */
 export async function generateImage(

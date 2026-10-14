@@ -232,23 +232,14 @@ export interface Dictionary {
     venueOnline: string;
     venueHint: string;
     // tier / plan surface
-    premiumTag: string;
+    ownKeyTag: string;
     planFreeInfo: string;
     /** "{n}", "{max}" */
     freeGamesLeft: string;
     /** "{usd}" */
     estCost: string;
     // Stripe pay-per-event upgrade
-    upgradeTitle: string;
-    upgradeDesc: string;
-    paymentMethodsNote: string;
-    /** "{price}" */
-    upgradeButton: string;
-    upgradeRedirecting: string;
-    premiumBadge: string;
-    upgradeSuccess: string;
-    upgradeCancelled: string;
-    upgradeHint: string;
+    bigEventsHint: string;
     // BYO AI provider keys
     byoTitle: string;
     byoDesc: string;
@@ -454,17 +445,14 @@ export interface Dictionary {
       wrongPassword: string;
       noVotesTie: string;
       tie: string;
-      playersNeedPremium: string;
-      videoNeedsPremium: string;
+      playersNeedOwnKey: string;
+      videoNeedsOwnKey: string;
       /** "{max}" */
       quotaExhausted: string;
       budgetPaused: string;
       liveModeLocked: string;
       restartLimit: string;
-      /** "{msg}" */
-      paymentInit: string;
-      upgradeSetupOnly: string;
-      alreadyPremium: string;
+      setupOnly: string;
       byoInvalidKey: string;
       byoNotConfigured: string;
       modelNotAllowed: string;
@@ -473,8 +461,6 @@ export interface Dictionary {
       providerKeyMissing: string;
       /** "{provider}" */
       platformProviderUnavailable: string;
-      /** "{usd}", "{max}" */
-      premiumBudgetExceeded: string;
     };
   };
   auth: {
@@ -573,13 +559,6 @@ export interface Dictionary {
     freeF3: string;
     /** "{n}" */
     freeF4: string;
-    premiumName: string;
-    premiumPer: string;
-    premiumBadge: string;
-    premiumF2: string;
-    premiumF3: string;
-    premiumF4: string;
-    premiumCta: string;
     byoName: string;
     byoPer: string;
     byoF1: string;
@@ -600,12 +579,29 @@ export interface Dictionary {
     a5: string;
     q6: string;
     a6: string;
+    q7: string;
+    /** \"{n}\" */
+    a7: string;
     ctaTitle: string;
     ctaText: string;
     footerTagline: string;
     madeIn: string;
   };
   /** Host feedback dialog (admin area). */
+  donate: {
+    button: string;
+    title: string;
+    text: string;
+    usesTitle: string;
+    use1: string;
+    use2: string;
+    use3: string;
+    cta: string;
+    /** "{provider}" */
+    note: string;
+    finishedTitle: string;
+    finishedText: string;
+  };
   feedback: {
     button: string;
     title: string;

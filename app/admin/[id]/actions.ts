@@ -17,8 +17,6 @@ import {
   estimateTournamentCostCents,
   imageModelFor,
   videoModelFor,
-  centsToUsd,
-  PREMIUM_MAX_COST_CENTS,
   FREE_GAMES_PER_WINDOW,
   quotaWindowStartIso,
   type Plan,
@@ -26,7 +24,7 @@ import {
 import { getByoProviders } from "@/lib/byo-key";
 import { platformKey } from "@/lib/ai";
 import { PROVIDER_LABELS, parseModelRef, type Provider } from "@/lib/ai/models";
-import { notOwnerMessage, ownsMatch, ownsTournament } from "@/lib/supabase/ownership";
+import { notOwnerMessage, ownsTournament } from "@/lib/supabase/ownership";
 
 const VALID_ROUNDS: readonly Round[] = ["R32", "R16", "QF", "SF", "FINAL"] as const;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -53,7 +51,7 @@ export async function createTaskAction(
     return { error: dict.admin.err.invalidTaskType };
   }
 
-  // Tier gate: video tasks (Veo, ~$1.60/match) are premium-only. Checked
+  // Tier gate: video tasks (~$1.60/match) need the host's own key. Checked
   // server-side against the tournament's plan so the disabled UI button
   // isn't the only line of defense.
   if (kind === "video") {
@@ -66,7 +64,7 @@ export async function createTaskAction(
     if (!t) return { error: dict.admin.err.tournamentNotFound };
     const ePlan = effectivePlan((t.plan as Plan) ?? "free", t.byo_key === true);
     if (!limitsFor(ePlan).videoTasks) {
-      return { error: dict.admin.err.videoNeedsPremium };
+      return { error: dict.admin.err.videoNeedsOwnKey };
     }
   }
 
@@ -266,7 +264,7 @@ export async function updatePlayerCountAction(
     tournament.byo_key === true,
   );
   if (newPlayerCount > limitsFor(pcPlan).maxPlayers) {
-    return { ok: false, error: dict.admin.err.playersNeedPremium };
+    return { ok: false, error: dict.admin.err.playersNeedOwnKey };
   }
   // Just update player_count — skip_image_generation is now driven by the
   // separate is_test_mode flag (which is set at creation), not by size.
@@ -325,7 +323,7 @@ export async function copyTournamentAction(sourceId: string) {
       skip_image_generation: source.skip_image_generation,
       owner_id: user.id,
       venue: source.venue ?? "onsite",
-      // Premium is paid per event — a copy always starts back on 'free'
+      // A copy always starts back on 'free' without keys
       // (and with started_at null, so it doesn't inherit quota usage).
       plan: "free",
       // Defaults: status='setup', current_match_id=null
@@ -668,17 +666,6 @@ export async function startBracketAction(
       // global budget — never start a game the budget can't finish.
       if (freeBudgetLeftCents !== null && worstCents > freeBudgetLeftCents) {
         return { error: dict.admin.err.budgetPaused };
-      }
-      // Paid plan: one flat fee covers a bounded generation cost.
-      if (plan === "premium") {
-        if (worstCents > PREMIUM_MAX_COST_CENTS) {
-          return {
-            error: interpolate(dict.admin.err.premiumBudgetExceeded, {
-              usd: centsToUsd(worstCents),
-              max: centsToUsd(PREMIUM_MAX_COST_CENTS),
-            }),
-          };
-        }
       }
     }
   }

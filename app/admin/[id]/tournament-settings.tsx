@@ -177,7 +177,7 @@ export function TournamentSettings({
             {PLAYER_COUNT_VALUES.map((value) => (
               <option key={value} value={value} disabled={value > maxPlayers}>
                 {interpolate(dict.admin.playersN, { count: value })}
-                {value > maxPlayers && ` ${dict.admin.premiumTag}`}
+                {value > maxPlayers && ` ${dict.admin.ownKeyTag}`}
               </option>
             ))}
           </select>

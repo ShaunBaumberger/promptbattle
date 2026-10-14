@@ -32,12 +32,8 @@ import { platformProviders } from "@/lib/ai";
 import { ByoKeyCard } from "./byo-key-card";
 import { ModelSettingsCard } from "./model-settings-card";
 import { FlashToast } from "@/components/flash-toast";
-import {
-  stripeConfigured,
-  premiumPriceDisplay,
-  fulfillCheckoutSession,
-} from "@/lib/stripe";
-import { UpgradeCard } from "./upgrade-card";
+import { DonateCard } from "@/components/donate-card";
+import { donationsEnabled } from "@/lib/donate";
 
 // Image generation can take ~15-25s; allow headroom for the server action.
 export const maxDuration = 60;
@@ -47,23 +43,14 @@ export default async function TournamentAdminPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ upgrade?: string; session_id?: string; copied?: string }>;
+  searchParams: Promise<{ copied?: string }>;
 }) {
   const { id } = await params;
-  const { upgrade, session_id: checkoutSessionId, copied } = await searchParams;
+  const { copied } = await searchParams;
 
   const user = await requireUser();
   const supabase = createServiceRoleClient();
-  const { locale, dict } = await getServerDictionary();
-
-  // Returning from Stripe Checkout: verify + fulfill BEFORE fetching the
-  // tournament so this render already shows the premium state. Idempotent
-  // (the webhook may have fulfilled first) and forgery-proof (the session
-  // is verified against the Stripe API; the upgraded tournament comes
-  // from the session's own metadata).
-  if (upgrade === "success" && checkoutSessionId) {
-    await fulfillCheckoutSession(checkoutSessionId);
-  }
+  const { dict } = await getServerDictionary();
 
   const [{ data: tournament }, { data: tasks }, { data: participants }] = await Promise.all([
     supabase.from("tournaments").select("*").eq("id", id).maybeSingle(),
@@ -88,7 +75,7 @@ export default async function TournamentAdminPage({
   }
 
   const byoKeySet = tournament.byo_key === true;
-  // BYO key ⇒ premium features; every prop below derives from this.
+  // BYO key ⇒ full feature set; every prop below derives from this.
   const plan = effectivePlan((tournament.plan as Plan) ?? "free", byoKeySet);
   const skipGeneration =
     tournament.skip_image_generation === true || tournament.is_test_mode === true;
@@ -97,7 +84,7 @@ export default async function TournamentAdminPage({
   const videoOverride = (tournament.video_model as string | null) ?? null;
   const imageRef = imageModelFor(plan, imageOverride);
   const videoRef = videoModelFor(plan, videoOverride);
-  const modelMode = byoKeySet ? "byo" : plan === "free" ? "free" : "platform";
+  const modelMode = byoKeySet ? "byo" : "free";
 
   // Pre-flight info for the start form: free games remaining in the
   // rolling 30-day window + a worst-case cost estimate for this bracket.
@@ -144,26 +131,19 @@ export default async function TournamentAdminPage({
               🔑 {dict.admin.byoBadge}
             </Badge>
           )}
-          {tournament.plan === "premium" && (
-            <Badge className="border-pb-magenta/50 bg-pb-magenta/15 text-pb-magenta">
-              ✨ {dict.admin.premiumBadge}
-            </Badge>
-          )}
           <Badge variant="secondary">
             {dict.admin.tStatus[tournament.status as Tournament["status"]]}
           </Badge>
         </div>
       </div>
 
-      {upgrade === "success" && plan === "premium" && (
-        <div className="rounded-xl border border-pb-green/40 bg-pb-green/10 p-3 text-sm text-pb-green">
-          ✅ {dict.admin.upgradeSuccess}
-        </div>
-      )}
-      {upgrade === "cancelled" && (
-        <div className="text-muted-foreground rounded-md border border-dashed p-3 text-sm">
-          {dict.admin.upgradeCancelled}
-        </div>
+      {/* The moment a host is most likely to say thanks. */}
+      {tournament.status === "finished" && donationsEnabled() && (
+        <DonateCard
+          title={dict.donate.finishedTitle}
+          text={dict.donate.finishedText}
+          cta={dict.donate.button}
+        />
       )}
 
       <header className="space-y-2">
@@ -205,25 +185,9 @@ export default async function TournamentAdminPage({
         />
       </section>
 
-      {/* Pay-per-event upgrade — only while free, in setup, not a test
-          tournament, and Stripe is configured. Upgrading is locked once
-          the bracket starts (models/limits must not change mid-game).
-          Hidden when a BYO key is set (premium is already unlocked). */}
-      {plan === "free" &&
-        tournament.status === "setup" &&
-        !tournament.is_test_mode &&
-        stripeConfigured() && (
-          <section>
-            <UpgradeCard
-              tournamentId={tournament.id}
-              priceDisplay={premiumPriceDisplay(locale)}
-            />
-          </section>
-        )}
-
-      {/* BYO keys — the third path: premium features on the host's own
-          AI provider keys, zero platform cost. Setup-only for the same
-          "nothing changes mid-game" reason as the upgrade. */}
+      {/* BYO keys: the full feature set on the host's own AI provider
+          keys, zero platform cost. Setup-only — models and limits must
+          not change mid-game. */}
       {tournament.status === "setup" &&
         !tournament.is_test_mode &&
         encryptionConfigured() && (

@@ -36,7 +36,7 @@ async function guard(tournamentId: string): Promise<{ error?: string } | null> {
   // Keys are locked once live — billing must not switch accounts mid-game
   // (and video polls are scoped to the key that started the job).
   if (tournament.status !== "setup") {
-    return { error: dict.admin.err.upgradeSetupOnly };
+    return { error: dict.admin.err.setupOnly };
   }
   return null;
 }
