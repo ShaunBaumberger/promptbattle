@@ -5,7 +5,7 @@ Branded Supabase Auth emails in all 10 UI languages. The language comes from
 (see `app/admin/login/login-form.tsx` and `app/auth/callback/route.ts`).
 Users without a stored language get English.
 
-Both emails include the one-time link **and** the 6-digit code (`{{ .Token }}`):
+Both emails include the one-time link **and** the one-time code (`{{ .Token }}`):
 corporate mail scanners (e.g. Microsoft Defender Safe Links) can open and use up
 the link before the person clicks it — the code still works on the login page.
 

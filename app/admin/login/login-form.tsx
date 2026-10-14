@@ -252,7 +252,7 @@ function ErrorNote({ message }: { message: string }) {
 }
 
 /**
- * Shown after an email went out. The 6-digit code is the fallback for mail
+ * Shown after an email went out. The one-time code is the fallback for mail
  * scanners that consume one-time links, and for opening the email on
  * another device.
  */
@@ -329,7 +329,7 @@ function SentPanel({
             maxLength={10}
             minLength={6}
             required
-            placeholder="123456"
+            placeholder="12345678"
             className="h-12 text-center font-mono text-xl tracking-[0.4em]"
           />
           <Button type="submit" disabled={busy} className="h-11 font-semibold">
