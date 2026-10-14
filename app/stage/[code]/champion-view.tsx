@@ -89,14 +89,14 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
         <p className="text-muted-foreground text-2xl uppercase tracking-[0.4em]">
           {tournamentName}
         </p>
-        <p className="text-amber-500 text-3xl font-bold uppercase tracking-[0.4em] drop-shadow-[0_0_20px_rgba(251,191,36,0.5)]">
+        <p className="font-display text-pb-gold text-3xl font-black uppercase tracking-[0.12em] drop-shadow-[0_0_20px_rgba(255,201,77,0.5)]">
           {dict.stage.champion}
         </p>
       </div>
 
       <div className="z-10 flex flex-col items-center gap-2 delay-200 duration-700 animate-in fade-in zoom-in-95 fill-mode-both">
-        <span className="text-9xl drop-shadow-[0_0_30px_rgba(251,191,36,0.6)]">🏆</span>
-        <h1 className="text-foreground text-8xl font-bold tracking-tight">
+        <span className="text-9xl drop-shadow-[0_0_30px_rgba(255,201,77,0.6)]">🏆</span>
+        <h1 className="font-display text-foreground text-8xl font-black tracking-tight break-words">
           {championName}
         </h1>
       </div>
@@ -109,14 +109,14 @@ export function ChampionView({ tournamentId, tournamentName }: Props) {
           muted
           loop
           playsInline
-          className="z-10 max-h-[40vh] w-auto rounded-lg border-4 border-amber-400 object-contain shadow-[0_0_80px_rgba(251,191,36,0.5)] delay-500 duration-1000 animate-in fade-in zoom-in-95 fill-mode-both"
+          className="z-10 max-h-[40vh] w-auto rounded-2xl border-4 border-pb-gold object-contain shadow-[0_0_80px_rgba(255,201,77,0.5)] delay-500 duration-1000 animate-in fade-in zoom-in-95 fill-mode-both"
         />
       ) : championImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={championImage}
-          alt={`Sieger:innen-Bild von ${championName}`}
-          className="z-10 max-h-[40vh] w-auto rounded-lg border-4 border-amber-400 object-contain shadow-[0_0_80px_rgba(251,191,36,0.5)] delay-500 duration-1000 animate-in fade-in zoom-in-95 fill-mode-both"
+          alt={interpolate(dict.vote.resultOf, { name: championName })}
+          className="z-10 max-h-[40vh] w-auto rounded-2xl border-4 border-pb-gold object-contain shadow-[0_0_80px_rgba(255,201,77,0.5)] delay-500 duration-1000 animate-in fade-in zoom-in-95 fill-mode-both"
         />
       ) : null}
 
@@ -144,12 +144,12 @@ function ConfettiBackdrop() {
         const delay = ((i * 173) % 4000) / 1000; // 0..4s
         const duration = 4 + ((i * 91) % 4000) / 1000; // 4..8s
         const colors = [
-          "#fbbf24",
-          "#f59e0b",
-          "#ef4444",
-          "#3b82f6",
-          "#10b981",
-          "#a855f7",
+          "#ffc94d",
+          "#35ed7e",
+          "#ec48bd",
+          "#7b5cff",
+          "#b9a8ff",
+          "#ffffff",
         ];
         const color = colors[i % colors.length];
         const size = 8 + (i % 3) * 4; // 8..16px

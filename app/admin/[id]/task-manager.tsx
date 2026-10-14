@@ -39,9 +39,11 @@ interface Props {
   tournamentId: string;
   playerCount: PlayerCount;
   tasks: Task[];
+  /** Free plans can't create video tasks (Veo is premium-only). */
+  videoAllowed: boolean;
 }
 
-export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
+export function TaskManager({ tournamentId, playerCount, tasks, videoAllowed }: Props) {
   const { dict } = useI18n();
   // Memoised so the array reference is stable across renders — the form-reset
   // effect depends on it and would otherwise fire on every render.
@@ -203,8 +205,10 @@ export function TaskManager({ tournamentId, playerCount, tasks }: Props) {
                   variant={kind === "video" ? "default" : "outline"}
                   size="sm"
                   onClick={() => setKind("video")}
+                  disabled={!videoAllowed}
                 >
                   {dict.admin.videoTask}
+                  {!videoAllowed && ` ${dict.admin.premiumTag}`}
                 </Button>
               </div>
             </div>

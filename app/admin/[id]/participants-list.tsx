@@ -70,7 +70,7 @@ export function ParticipantsList({ tournamentId, initialParticipants }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-xl font-semibold">{dict.admin.participants}</h2>
+        <h2 className="font-display text-xl font-bold">{dict.admin.participants}</h2>
         <p className="text-muted-foreground text-sm">
           {interpolate(dict.admin.participantsSummary, {
             total: participants.length,

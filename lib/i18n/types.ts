@@ -82,6 +82,8 @@ export interface Dictionary {
     yourPrompt: string;
     emptyPrompt: string;
     votingOnStage: string;
+    /** Online-venue tournaments: link so remote players open the stage view. */
+    watchStage: string;
   };
   vote: {
     votingLive: string;
@@ -201,6 +203,10 @@ export interface Dictionary {
     duplicate: string;
     duplicateHint: string;
     copyTournament: string;
+    /** Toast after a successful tournament copy. */
+    copied: string;
+    /** Toast after renaming a tournament. */
+    nameUpdated: string;
     dangerZone: string;
     dangerHint: string;
     // participants
@@ -220,6 +226,56 @@ export interface Dictionary {
     selectAndStart: string;
     startingBracket: string;
     tournamentStarted: string;
+    // venue (onsite vs online tournaments)
+    venue: string;
+    venueOnsite: string;
+    venueOnline: string;
+    venueHint: string;
+    // tier / plan surface
+    premiumTag: string;
+    planFreeInfo: string;
+    /** "{n}", "{max}" */
+    freeGamesLeft: string;
+    /** "{usd}" */
+    estCost: string;
+    // Stripe pay-per-event upgrade
+    upgradeTitle: string;
+    upgradeDesc: string;
+    paymentMethodsNote: string;
+    /** "{price}" */
+    upgradeButton: string;
+    upgradeRedirecting: string;
+    premiumBadge: string;
+    upgradeSuccess: string;
+    upgradeCancelled: string;
+    upgradeHint: string;
+    // BYO AI provider keys
+    byoTitle: string;
+    byoDesc: string;
+    byoKeyLabel: string;
+    byoSave: string;
+    byoSaving: string;
+    byoSet: string;
+    byoRemove: string;
+    byoRemoved: string;
+    byoSaved: string;
+    byoGetKeyHint: string;
+    byoBadge: string;
+    byoProviderLabel: string;
+    byoStoredKeys: string;
+    /** "{url}" */
+    byoGetKeyAt: string;
+    // AI model choice
+    modelsTitle: string;
+    modelsDesc: string;
+    /** "{model}" */
+    modelsFreeInfo: string;
+    imageModelLabel: string;
+    videoModelLabel: string;
+    modelIdLabel: string;
+    modelIdHint: string;
+    modelsSaved: string;
+    noVideoProvider: string;
     // shared
     save: string;
     saving: string;
@@ -397,6 +453,187 @@ export interface Dictionary {
       wrongPassword: string;
       noVotesTie: string;
       tie: string;
+      playersNeedPremium: string;
+      videoNeedsPremium: string;
+      /** "{max}" */
+      quotaExhausted: string;
+      budgetPaused: string;
+      /** "{msg}" */
+      paymentInit: string;
+      upgradeSetupOnly: string;
+      alreadyPremium: string;
+      byoInvalidKey: string;
+      byoNotConfigured: string;
+      modelNotAllowed: string;
+      invalidModelId: string;
+      /** "{provider}" */
+      providerKeyMissing: string;
+      /** "{provider}" */
+      platformProviderUnavailable: string;
+      /** "{usd}", "{max}" */
+      premiumBudgetExceeded: string;
     };
+  };
+  auth: {
+    continueGoogle: string;
+    continueGithub: string;
+    orEmail: string;
+    sendLink: string;
+    sending: string;
+    linkHint: string;
+    usePassword: string;
+    useLink: string;
+    inboxTitle: string;
+    /** "{email}" */
+    inboxText: string;
+    confirmTitle: string;
+    /** "{email}" */
+    confirmText: string;
+    codeLabel: string;
+    verify: string;
+    spamHint: string;
+    sendAgain: string;
+    sentAgain: string;
+    otherEmail: string;
+    invalidCode: string;
+    linkExpired: string;
+    email: string;
+    password: string;
+    signIn: string;
+    createAccount: string;
+    toSignup: string;
+    toSignin: string;
+    /** "{terms}", "{privacy}" — rendered as links */
+    agree: string;
+  };
+  legal: {
+    imprint: string;
+    privacy: string;
+    terms: string;
+    sourceCode: string;
+    onlyDeEn: string;
+  };
+  /** Public homepage (marketing). */
+  home: {
+    navHow: string;
+    navPricing: string;
+    navFaq: string;
+    hostLogin: string;
+    startFree: string;
+    heroEyebrow: string;
+    heroTitle: string;
+    heroLead: string;
+    heroCta: string;
+    joinLabel: string;
+    joinPlaceholder: string;
+    mockPromptA: string;
+    mockPromptB: string;
+    marquee: string;
+    howTitle: string;
+    step1Title: string;
+    step1Text: string;
+    step2Title: string;
+    step2Text: string;
+    step3Title: string;
+    step3Text: string;
+    step4Title: string;
+    step4Text: string;
+    forTitle: string;
+    for1Title: string;
+    for1Text: string;
+    for2Title: string;
+    for2Text: string;
+    for3Title: string;
+    for3Text: string;
+    for4Title: string;
+    for4Text: string;
+    featuresTitle: string;
+    f1Title: string;
+    f1Text: string;
+    f2Title: string;
+    f2Text: string;
+    f3Title: string;
+    f3Text: string;
+    f4Title: string;
+    f4Text: string;
+    f5Title: string;
+    f5Text: string;
+    f6Title: string;
+    f6Text: string;
+    pricingTitle: string;
+    pricingLead: string;
+    freeName: string;
+    freePer: string;
+    /** "{n}" */
+    upToPlayers: string;
+    freeF2: string;
+    freeF3: string;
+    /** "{n}" */
+    freeF4: string;
+    premiumName: string;
+    premiumPer: string;
+    premiumBadge: string;
+    premiumF2: string;
+    premiumF3: string;
+    premiumF4: string;
+    premiumCta: string;
+    byoName: string;
+    byoPer: string;
+    byoF1: string;
+    byoF2: string;
+    byoF3: string;
+    byoF4: string;
+    byoCta: string;
+    faqTitle: string;
+    q1: string;
+    a1: string;
+    q2: string;
+    a2: string;
+    q3: string;
+    a3: string;
+    q4: string;
+    a4: string;
+    q5: string;
+    a5: string;
+    q6: string;
+    a6: string;
+    ctaTitle: string;
+    ctaText: string;
+    footerTagline: string;
+    madeIn: string;
+  };
+  /** Host feedback dialog (admin area). */
+  feedback: {
+    button: string;
+    title: string;
+    desc: string;
+    label: string;
+    placeholder: string;
+    allowContact: string;
+    send: string;
+    sending: string;
+    thanks: string;
+    tooMany: string;
+    failed: string;
+  };
+  /** First-visit host guide (admin dashboard). */
+  guide: {
+    howItWorks: string;
+    title: string;
+    intro: string;
+    s1Title: string;
+    s1Text: string;
+    s2Title: string;
+    s2Text: string;
+    s3Title: string;
+    s3Text: string;
+    s4Title: string;
+    s4Text: string;
+    tip: string;
+    back: string;
+    next: string;
+    done: string;
+    /** "{n}", "{total}" */
+    stepOf: string;
   };
 }

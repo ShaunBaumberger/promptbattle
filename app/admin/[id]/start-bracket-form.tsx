@@ -8,12 +8,20 @@ import { getRoundsForPlayerCount } from "@/lib/rounds";
 import type { PlayerCount, Round } from "@/lib/types/database";
 import { startBracketAction, type StartBracketState } from "./actions";
 import { useI18n, interpolate } from "@/lib/i18n/context";
+import { FREE_GAMES_PER_WINDOW } from "@/lib/tiers";
 
 interface Props {
   tournamentId: string;
   playerCount: PlayerCount;
   initialParticipantCount: number;
   initialTasksByRound: Record<Round, number>;
+  /** Remaining free games in the rolling 30-day window; null = not capped
+   *  (premium / test mode). Shown pre-flight so the cap never surprises a
+   *  host mid-event. */
+  freeGamesLeft: number | null;
+  /** Worst-case generation cost estimate (USD string); null when nothing
+   *  will be generated (test mode). */
+  estCostUsd: string | null;
 }
 
 const initial: StartBracketState = {};
@@ -23,6 +31,8 @@ export function StartBracketForm({
   playerCount,
   initialParticipantCount,
   initialTasksByRound,
+  freeGamesLeft,
+  estCostUsd,
 }: Props) {
   const { dict } = useI18n();
   const rounds = getRoundsForPlayerCount(playerCount);
@@ -73,9 +83,9 @@ export function StartBracketForm({
   const ready = enoughPlayers && tasksOk;
 
   return (
-    <div className="space-y-4 rounded-md border p-4">
+    <div className="bg-card space-y-4 rounded-2xl border p-5">
       <div className="space-y-1">
-        <h2 className="text-base font-semibold">{dict.admin.startTournament}</h2>
+        <h2 className="font-display text-base font-bold">{dict.admin.startTournament}</h2>
         <p className="text-muted-foreground text-sm">
           {interpolate(dict.admin.startTournamentHint, { count: playerCount })}
         </p>
@@ -104,8 +114,32 @@ export function StartBracketForm({
         })}
       </ul>
 
+      {/* Cost-protection pre-flight: quota + estimated cost are shown
+          BEFORE the start button. Once started, a game always finishes —
+          no cap ever interrupts a live bracket. */}
+      {(freeGamesLeft !== null || estCostUsd !== null) && (
+        <div className="bg-muted/40 space-y-1 rounded-md border border-dashed p-3 text-xs">
+          {freeGamesLeft !== null && (
+            <p className={freeGamesLeft === 0 ? "text-destructive font-medium" : "text-muted-foreground"}>
+              {interpolate(dict.admin.freeGamesLeft, {
+                n: freeGamesLeft,
+                max: FREE_GAMES_PER_WINDOW,
+              })}
+            </p>
+          )}
+          {estCostUsd !== null && (
+            <p className="text-muted-foreground">
+              {interpolate(dict.admin.estCost, { usd: estCostUsd })}
+            </p>
+          )}
+        </div>
+      )}
+
       <form action={formAction}>
-        <Button type="submit" disabled={!ready || pending}>
+        <Button
+          type="submit"
+          disabled={!ready || pending || freeGamesLeft === 0}
+        >
           {pending ? dict.admin.startingBracket : dict.admin.selectAndStart}
         </Button>
       </form>

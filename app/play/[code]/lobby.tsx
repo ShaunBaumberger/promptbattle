@@ -22,6 +22,9 @@ interface Props {
   tournamentName: string;
   initialStatus: TournamentStatus;
   initialCurrentMatchId: string | null;
+  /** 'online' tournaments show a "watch the stage" link so remote
+   *  participants can follow the projector view on their own device. */
+  venue: "onsite" | "online";
 }
 
 export function Lobby({
@@ -30,6 +33,7 @@ export function Lobby({
   tournamentName,
   initialStatus,
   initialCurrentMatchId,
+  venue,
 }: Props) {
   const { dict } = useI18n();
   const router = useRouter();
@@ -318,7 +322,7 @@ export function Lobby({
         <p className="text-white/40 text-xs uppercase tracking-[0.3em]">
           {tournamentName}
         </p>
-        <h1 className="text-white text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-white text-2xl font-black tracking-tight text-balance">
           {interpolate(dict.lobby.greeting, { name: participant.name })}
         </h1>
       </div>
@@ -327,7 +331,7 @@ export function Lobby({
         <span className="text-6xl" role="img" aria-hidden>
           {message.icon}
         </span>
-        <p className="text-white text-2xl font-semibold tracking-tight">
+        <p className="font-display text-pb-violet-soft text-xl font-bold tracking-tight uppercase">
           {message.badge}
         </p>
       </div>
@@ -338,11 +342,25 @@ export function Lobby({
 
       {message.pulse && (
         <div className="flex items-center gap-2">
-          <span className="bg-sky-400 inline-block h-2 w-2 animate-pulse rounded-full" />
+          <span className="bg-pb-green inline-block h-2 w-2 animate-pulse rounded-full" />
           <span className="text-white/50 text-xs uppercase tracking-widest">
             {dict.lobby.stayInApp}
           </span>
         </div>
+      )}
+
+      {/* Online tournaments: remote participants open the stage view on
+          their own device (bracket, reveals, voting) — the equivalent of
+          looking up at the projector in an onsite event. */}
+      {venue === "online" && (
+        <a
+          href={`/stage/${tournamentCode}`}
+          target="_blank"
+          rel="noreferrer"
+          className="bg-white/10 text-white hover:bg-white/15 inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-medium backdrop-blur transition-colors"
+        >
+          📺 {dict.play.watchStage} ↗
+        </a>
       )}
     </main>
   );

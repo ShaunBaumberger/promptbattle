@@ -26,35 +26,25 @@ export function CreateTournamentForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="mode">{dict.admin.mode}</Label>
+        <Label htmlFor="venue">{dict.admin.venue}</Label>
         <select
-          id="mode"
-          name="mode"
+          id="venue"
+          name="venue"
           required
-          defaultValue="8"
+          defaultValue="onsite"
           className="border-input bg-background h-9 rounded-md border px-3 text-sm"
         >
-          <option value="2">{dict.admin.modeOpt2}</option>
-          <option value="4">{dict.admin.modeOpt4}</option>
-          <option value="8">{dict.admin.modeOpt8}</option>
-          <option value="16">{dict.admin.modeOpt16}</option>
-          <option value="32">{dict.admin.modeOpt32}</option>
-          <option value="test">{dict.admin.modeOptTest}</option>
+          <option value="onsite">{dict.admin.venueOnsite}</option>
+          <option value="online">{dict.admin.venueOnline}</option>
         </select>
-        <p className="text-muted-foreground text-xs">{dict.admin.testModeHint}</p>
+        <p className="text-muted-foreground text-xs">{dict.admin.venueHint}</p>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="round_time_seconds">{dict.admin.roundTimeSeconds}</Label>
-        <Input
-          id="round_time_seconds"
-          name="round_time_seconds"
-          type="number"
-          min={10}
-          max={600}
-          defaultValue={60}
-        />
-      </div>
+      {/* Player count, round times, and test/live mode are all configured
+          in the tournament's settings after creation — the form stays
+          minimal (defaults: 8 players, 60s rounds, free plan). */}
+      <p className="text-muted-foreground text-xs">{dict.admin.planFreeInfo}</p>
+      <p className="text-muted-foreground text-xs">{dict.admin.upgradeHint}</p>
 
       {state.error && (
         <p className="text-destructive text-sm" role="alert">

@@ -1,22 +1,24 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// Image model + size are env-configurable so self-hosters can trade cost
-// for quality without editing code (bring-your-own-key + bring-your-own-
-// model). Defaults match what we run in production: Nano Banana Pro —
-// Google's higher-fidelity model (~$0.134 per 1K image, noticeably better
-// prompt adherence than gemini-2.5-flash-image at $0.039, ~15–25s slower).
-// See .env.local.example for the menu of supported models and pricing.
-const MODEL =
-  process.env.GEMINI_IMAGE_MODEL?.trim() || "gemini-3-pro-image-preview";
+// generateContent path for Google image models. Current models go through
+// the Interactions API (lib/ai/google.ts), which falls back to this for
+// ids it doesn't serve.
+const MODEL = "gemini-nano-banana-2.1";
 const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE?.trim() || "1K"; // "1K" | "2K" | "4K"
 
 let cached: GoogleGenAI | null = null;
 
-function client(): GoogleGenAI {
+/**
+ * Platform client by default; a fresh client when a per-tournament BYO
+ * key is supplied (not cached — keys vary per tournament and clients are
+ * cheap to construct).
+ */
+function client(apiKey?: string): GoogleGenAI {
+  if (apiKey) return new GoogleGenAI({ apiKey });
   if (cached) return cached;
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
-  cached = new GoogleGenAI({ apiKey });
+  const envKey = process.env.GOOGLE_GEMINI_API_KEY;
+  if (!envKey) throw new Error("GOOGLE_GEMINI_API_KEY is not set");
+  cached = new GoogleGenAI({ apiKey: envKey });
   return cached;
 }
 
@@ -29,18 +31,33 @@ export interface GeneratedImage {
  * Generate one image from a text prompt. Retries up to `maxRetries + 1` total
  * attempts on transient failures (network, 5xx, missing image part). Throws
  * the final error if all attempts fail.
+ *
+ * `model` overrides the env/default model — used by the tier system so
+ * free-plan tournaments run the cheap model while premium runs the default
+ * (see lib/tiers.ts).
  */
 export async function generateImage(
   prompt: string,
-  { maxRetries = 2, signal }: { maxRetries?: number; signal?: AbortSignal } = {},
+  {
+    maxRetries = 2,
+    signal,
+    model,
+    apiKey,
+  }: {
+    maxRetries?: number;
+    signal?: AbortSignal;
+    model?: string;
+    /** BYO: bill this call to the tournament owner's key instead of the platform. */
+    apiKey?: string;
+  } = {},
 ): Promise<GeneratedImage> {
-  const ai = client();
+  const ai = client(apiKey);
   let lastErr: unknown;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await ai.models.generateContent({
-        model: MODEL,
+        model: model?.trim() || MODEL,
         contents: [
           {
             role: "user",
