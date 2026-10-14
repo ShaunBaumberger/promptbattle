@@ -1,16 +1,21 @@
+<p align="center">
+  <img src="public/brand/promptbattle-logo-512.png" alt="Prompt Battle logo" width="96" height="96">
+</p>
+
 # Prompt Battle
 
 A live, on-stage **prompt-battle tournament**. Two players go head-to-head: each
 gets the same task and races to write the best prompt. An AI model turns their
-prompts into images (or videos), the results are revealed side-by-side on a
+prompts into images (or videos), the results are revealed side by side on a
 projector, and the audience votes for the winner. Single-elimination bracket,
 2 to 32 players.
 
-Built for workshops, team events, classrooms, and meetups — anywhere you want
-to make "learning to prompt" into a spectator sport.
+Built for workshops, team events, classrooms and meetups — anywhere you want to
+turn "learning to prompt" into a spectator sport.
 
-> The UI is currently **German**. English/i18n is on the roadmap (see below) —
-> contributions welcome.
+**Play it at [promptbattle.io](https://promptbattle.io)** — free for up to 8
+players, CHF 9 per tournament for bigger events with video rounds, or free with
+your own AI API key. Or host it yourself from this repository.
 
 ## How it works
 
@@ -19,35 +24,38 @@ Three views, three screens:
 | View | URL | Who | What |
 |------|-----|-----|------|
 | **Host** | `/admin` | Organizer (laptop) | Create tournaments, add tasks, run matches, control reveals & voting |
-| **Players** | `/` → join with code | Players (phones) | Join via QR/code, type prompts against the clock |
+| **Players** | `/` → join with code | Players (phones) | Join via QR/code, type prompts against the clock, vote |
 | **Stage** | `/stage/<code>` | Projector | Bracket, live match, reveal animation, voting, champion |
 
 A **task** is either an image to recreate (players see a reference image), a
 text brief ("generate an image of…"), or a video brief. Players never see each
 other's prompts until the reveal.
 
+## Features
+
+- **10 languages** — English, German, French, Italian, Spanish, Portuguese,
+  Chinese, Japanese, Hindi and Arabic (right-to-left); every player picks their own
+- **Any AI model** — Google (Nano Banana 2.1 / Pro, Gemini Omni video), OpenAI
+  (GPT Image 2.5) and Replicate (FLUX, Veo, Kling, Seedance and thousands more),
+  addressed as `<provider>:<model id>`
+- **Host accounts** — Google, GitHub, emailed login link (with a one-time code
+  fallback) or email + password; each host only sees their own tournaments
+- **Plans** — free tier with hard cost caps, pay-per-event upgrade via Stripe
+  (cards, TWINT), or bring-your-own keys stored encrypted per tournament
+- **Test mode** — rehearse the whole flow without any AI calls
+- **On site or online** — projector in the room, or share the stage in a video call
+
 ## Tech stack
 
 - **Next.js 16** (App Router, Server Actions) + **React 19** + **Tailwind v4**
-- **Supabase** — Postgres, Realtime (live sync across all three views), Storage
-- **Pluggable AI models** — Google (Nano Banana 2.1 / Pro, Gemini Omni video),
-  OpenAI (GPT Image 2.5) and Replicate (FLUX, Veo, Kling, Seedance and thousands
-  more)
-- Deploys cleanly to **Vercel** (Hobby tier is enough for a single event)
+- **Supabase** — Postgres, Auth, Realtime (live sync across all three views), Storage
+- **Stripe** Checkout for pay-per-event upgrades, **Resend** for email
+- Deploys to **Vercel**
 
-## Bring your own keys
+## Self-hosting
 
-This is **self-hosted and bring-your-own-key**: you run it on your own Supabase
-project and your own AI provider keys (Google, OpenAI and/or Replicate), so
-**you** control (and pay for) the generations your tournaments produce. Nothing
-phones home.
-
-You can also **choose your models** — any image or video model of those
-providers, addressed as `<provider>:<model id>` (e.g. `openai:gpt-image-2.5-flare`,
-`replicate:black-forest-labs/flux-2-pro`, `google:gemini-omni-1.1-flash`).
-See [`.env.local.example`](.env.local.example) for the menu and pricing notes.
-
-## Setup
+You run it on your own Supabase project and your own AI provider keys, so
+**you** control (and pay for) the generations your tournaments produce.
 
 ### Prerequisites
 
@@ -56,12 +64,12 @@ See [`.env.local.example`](.env.local.example) for the menu and pricing notes.
 - An API key for at least one AI provider — [Google Gemini](https://aistudio.google.com/apikey)
   (default models), [OpenAI](https://platform.openai.com/api-keys) or
   [Replicate](https://replicate.com/account/api-tokens). Only needed for real
-  generation — there's a Test Mode that skips all API calls.
+  generation — Test Mode skips all API calls.
 
 ### 1. Install
 
 ```bash
-git clone https://github.com/<you>/promptbattle.git
+git clone https://github.com/ShaunBaumberger/promptbattle.git
 cd promptbattle
 npm install
 ```
@@ -70,38 +78,50 @@ npm install
 
 In your Supabase project, open **SQL Editor** and run every file in
 [`supabase/migrations/`](supabase/migrations/) **in filename order**
-(`0001…` first, then `0002…`, … `0008…`, `0008b…`, `0009…` and so on).
+(`0001…`, `0002…`, … `0008…`, `0008b…`, `0009…` up to the highest number).
 
-The first migration creates the tables, Row-Level-Security policies, the
-Realtime publication, **and** a public Storage bucket named `images` — so once
-all files have run, the database is fully configured. No dashboard clicking
-required.
+The migrations create the tables, Row-Level-Security policies, the Realtime
+publication and a public Storage bucket named `images`. Apply each file once;
+re-running one on an existing database errors on already-applied statements.
 
-> Re-running migrations on an existing database will error on already-applied
-> statements — that's expected. Apply each one once, in order.
+### 3. Set up sign-in
 
-### 3. Configure environment
+Hosts sign in with **Supabase Auth**. In the Supabase dashboard → Authentication:
+
+- **URL Configuration:** set the Site URL to your domain (or
+  `http://localhost:3000`) and add `<your site>/auth/callback` plus
+  `http://localhost:3000/**` as redirect URLs.
+- **Sign In / Providers:** email is on by default. Google and GitHub are
+  optional (each needs an OAuth app pointing at your project's
+  `/auth/v1/callback`).
+- **Emails → SMTP Settings:** Supabase's built-in mailer only reaches your own
+  team, so connect an SMTP provider (e.g. [Resend](https://resend.com)) before
+  real hosts sign up by email.
+- **Email templates (optional):** branded login emails in all 10 languages live
+  in [`supabase/email-templates/`](supabase/email-templates/) — see its README.
+
+### 4. Configure environment
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Fill in your Supabase URL + keys, your Gemini key, and a host password. Every
-variable is documented inline in the example file, including the optional
-model-selection vars.
+Fill in your Supabase URL + keys, at least one AI provider key and
+`SECRETS_ENCRYPTION_KEY`. Every variable — including Stripe, the legal-page
+details and model selection — is documented inline in the example file.
 
-### 4. Run
+### 5. Run
 
 ```bash
 npm run dev
 ```
 
-Open <http://localhost:3000>. The host area is at `/admin` (log in with
-`HOST_PASSWORD`).
+Open <http://localhost:3000>. The host area is at `/admin`; sign in with
+any of the methods you enabled.
 
 ## Running an event
 
-1. **Host:** go to `/admin`, create a tournament, pick the player count and
+1. **Host:** sign in at `/admin`, create a tournament, pick the player count and
    round time.
 2. **Host:** add tasks for each round (image references, or text/video briefs).
 3. **Stage:** open `/stage/<code>` on the projector — it shows a join QR code.
@@ -118,12 +138,14 @@ rehearse the whole flow for free.
 Import the repo on [Vercel](https://vercel.com/new), add the same environment
 variables, and deploy. Notes:
 
-- Server actions that generate images/videos set `maxDuration = 60` to fit
-  Vercel's function budget. Video models render longer than that, so video generation
+- Server actions that generate images set `maxDuration = 60` to fit Vercel's
+  function budget. Video models render longer than that, so video generation
   uses a **polling architecture** (kick off the job, then short poll calls pick
   up the result) — no single function blocks on the render.
 - Vercel caps request bodies at **4.5 MB**. Reference-image uploads are resized
   client-side to stay well under that, so phone photos upload fine.
+- Vercel's Hobby plan is for non-commercial use; a deployment that takes
+  payments needs Pro.
 
 ## Cost
 
@@ -140,19 +162,19 @@ sparingly (e.g. only the final). Cheaper models (e.g. Nano Banana 2.1 at
 
 ## Roadmap
 
-Things that would help this go wider — PRs welcome:
+Ideas that would take it further — PRs welcome:
 
-- **i18n** — the UI is German-only today; an English locale + i18n layer
-- **Automated migrations** — a setup script instead of manual SQL paste
+- **Automated setup** — a script instead of pasting migrations into the SQL editor
 - **More providers** — e.g. Stability, fal.ai, local models via ComfyUI
-- **Multi-tenant / hosted mode** — real accounts + per-org isolation (today's
-  auth is a single shared host password, perfect for one organizer, not for a
-  shared instance)
+- **Teams** — several hosts sharing tournaments within an organization
+- **More task types** — e.g. style transfer or "guess the prompt" rounds
 
 ## License
 
-[AGPL-3.0-or-later](LICENSE). You're free to use, modify, and self-host. If you
+[AGPL-3.0-or-later](LICENSE). You're free to use, modify and self-host. If you
 run a **modified** version as a network service, the AGPL requires you to make
-your source available to its users. Add the canonical license text as a
-`LICENSE` file (GitHub's *Add file → license template → GNU AGPLv3* inserts the
-official wording).
+your source available to its users. The name, logo and the promptbattle.io
+domain are not covered by the license.
+
+Built by [Shaun Baumberger](https://github.com/ShaunBaumberger), with
+[Claude Code](https://claude.com/claude-code) as pair programmer.
