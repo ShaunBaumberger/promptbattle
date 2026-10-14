@@ -199,6 +199,7 @@ export default async function TournamentAdminPage({
             {}
           }
           initialSkipGeneration={tournament.skip_image_generation === true}
+          liveModeLocked={tournament.status !== "setup" && !byoKeySet}
           status={tournament.status as Tournament["status"]}
           maxPlayers={limitsFor(plan).maxPlayers}
         />

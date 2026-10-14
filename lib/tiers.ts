@@ -140,6 +140,13 @@ export const PREMIUM_MAX_COST_CENTS = Number(
   process.env.PREMIUM_MAX_COST_CENTS ?? 800,
 );
 
+/**
+ * Generations per match on the platform's key: the first, plus one retry
+ * after "Restart match". The retry is added to the global budget; beyond
+ * it a restart is refused, so restarts can't mint free images.
+ */
+export const MAX_PLATFORM_GENERATIONS = 2;
+
 /** Format cents as a display string like "0.55" (USD). */
 export function centsToUsd(cents: number): string {
   return (cents / 100).toFixed(2);

@@ -26,6 +26,7 @@ import {
 import { getByoProviders } from "@/lib/byo-key";
 import { platformKey } from "@/lib/ai";
 import { PROVIDER_LABELS, parseModelRef, type Provider } from "@/lib/ai/models";
+import { notOwnerMessage, ownsMatch, ownsTournament } from "@/lib/supabase/ownership";
 
 const VALID_ROUNDS: readonly Round[] = ["R32", "R16", "QF", "SF", "FINAL"] as const;
 const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -41,6 +42,7 @@ export async function createTaskAction(
   _prev: TaskActionState,
   formData: FormData,
 ): Promise<TaskActionState> {
+  if (!(await ownsTournament(tournamentId))) return { error: await notOwnerMessage() };
   const round = String(formData.get("round") ?? "") as Round;
   const kind = String(formData.get("kind") ?? "image");
   const internalLabel = String(formData.get("internal_label") ?? "").trim() || null;
@@ -140,6 +142,7 @@ export async function createTaskAction(
 }
 
 export async function deleteTaskAction(taskId: string, tournamentId: string) {
+  if (!(await ownsTournament(tournamentId))) return;
   const supabase = createServiceRoleClient();
 
   const { data: task } = await supabase
@@ -169,6 +172,7 @@ export async function updateRoundTimeAction(
   tournamentId: string,
   seconds: number,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownsTournament(tournamentId))) return { ok: false, error: await notOwnerMessage() };
   if (!Number.isFinite(seconds) || seconds < 10 || seconds > 600) {
     const { dict } = await getServerDictionary();
     return { ok: false, error: dict.admin.roundTimeRangeError };
@@ -194,6 +198,7 @@ export async function updateRoundTimeOverrideAction(
   round: Round,
   seconds: number | null,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownsTournament(tournamentId))) return { ok: false, error: await notOwnerMessage() };
   const { dict } = await getServerDictionary();
   if (!["R32", "R16", "QF", "SF", "FINAL"].includes(round)) {
     return { ok: false, error: dict.admin.err.invalidRound };
@@ -237,6 +242,7 @@ export async function updatePlayerCountAction(
   tournamentId: string,
   newPlayerCount: number,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownsTournament(tournamentId))) return { ok: false, error: await notOwnerMessage() };
   const { dict } = await getServerDictionary();
   if (![2, 4, 8, 16, 32].includes(newPlayerCount)) {
     return { ok: false, error: dict.admin.err.playerCountInvalid };
@@ -478,6 +484,7 @@ export async function startBracketAction(
   _prev: StartBracketState,
   _formData: FormData,
 ): Promise<StartBracketState> {
+  if (!(await ownsTournament(tournamentId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -504,6 +511,9 @@ export async function startBracketAction(
   // that starts always finishes — no cap ever fires mid-game (that would
   // strand players in the final). Test mode / skip-generation costs
   // nothing; BYO tournaments bill their own key — both bypass the caps.
+  // Budget left in the global window, checked against this tournament's
+  // worst-case cost once the bracket is known (below).
+  let freeBudgetLeftCents: number | null = null;
   if (plan === "free" && !skipGeneration) {
     // 1. Per-account quota: N free game starts per rolling 30 days.
     const { count: startsInWindow } = await supabase
@@ -543,6 +553,7 @@ export async function startBracketAction(
             kill_switch: false,
           })
           .eq("id", 1);
+        freeBudgetLeftCents = usage.hard_cap_cents;
       } else if (usage.kill_switch || usage.cents_spent >= usage.hard_cap_cents) {
         if (!usage.kill_switch) {
           await supabase
@@ -551,6 +562,8 @@ export async function startBracketAction(
             .eq("id", 1);
         }
         return { error: dict.admin.err.budgetPaused };
+      } else {
+        freeBudgetLeftCents = usage.hard_cap_cents - usage.cents_spent;
       }
     }
   }
@@ -644,15 +657,20 @@ export async function startBracketAction(
           };
         }
       }
+      const worstCents = estimateTournamentCostCents({
+        plan,
+        imageModelOverride: (tournament.image_model as string | null) ?? null,
+        videoModelOverride: (tournament.video_model as string | null) ?? null,
+        matchTaskKinds: worstKinds,
+        skipGeneration: false,
+      });
+      // Free plan: the whole tournament must fit in what's left of the
+      // global budget — never start a game the budget can't finish.
+      if (freeBudgetLeftCents !== null && worstCents > freeBudgetLeftCents) {
+        return { error: dict.admin.err.budgetPaused };
+      }
       // Paid plan: one flat fee covers a bounded generation cost.
       if (plan === "premium") {
-        const worstCents = estimateTournamentCostCents({
-          plan,
-          imageModelOverride: (tournament.image_model as string | null) ?? null,
-          videoModelOverride: (tournament.video_model as string | null) ?? null,
-          matchTaskKinds: worstKinds,
-          skipGeneration: false,
-        });
         if (worstCents > PREMIUM_MAX_COST_CENTS) {
           return {
             error: interpolate(dict.admin.err.premiumBudgetExceeded, {

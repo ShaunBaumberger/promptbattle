@@ -7,6 +7,8 @@ import { getRoundsForPlayerCount, roundTimeFor } from "@/lib/rounds";
 import type { PlayerCount, Round } from "@/lib/types/database";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
+import { notOwnerMessage, ownsMatch, ownsTournament } from "@/lib/supabase/ownership";
+import { MAX_PLATFORM_GENERATIONS } from "@/lib/tiers";
 
 export type MatchActionState = { error?: string; ok?: boolean };
 
@@ -26,6 +28,7 @@ export async function prepareNextMatchAction(
   _prev: MatchActionState,
   _formData: FormData,
 ): Promise<MatchActionState> {
+  if (!(await ownsTournament(tournamentId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -111,6 +114,7 @@ export async function startCurrentMatchAction(
   _prev: MatchActionState,
   _formData: FormData,
 ): Promise<MatchActionState> {
+  if (!(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -216,15 +220,29 @@ export async function clearCurrentMatchAction(
  * Toggle the tournament between Test-Modus (no Gemini API calls — neither
  * Nano Banana nor Veo) and Live-Modus (real generation). The flag's name
  * is a historical artifact (`skip_image_generation`) but it now controls
- * both image and video generation. Allowed any time, on any tournament —
- * the admin needs this for dry runs irrespective of how the tournament
- * was originally created.
+ * both image and video generation. Switching to test mode is allowed any
+ * time. Switching to live on the platform's key is allowed only before
+ * the start: costs are checked and reserved at start, so a game started
+ * in test mode must not start generating afterwards. BYO tournaments bill
+ * the host's own key and may switch any time.
  */
 export async function setSkipGenerationAction(
   tournamentId: string,
   skip: boolean,
 ): Promise<MatchActionState> {
+  if (!(await ownsTournament(tournamentId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
+  if (skip !== true) {
+    const { data: t } = await supabase
+      .from("tournaments")
+      .select("status, byo_key")
+      .eq("id", tournamentId)
+      .maybeSingle();
+    if (t && t.status !== "setup" && t.byo_key !== true) {
+      const { dict } = await getServerDictionary();
+      return { error: dict.admin.err.liveModeLocked };
+    }
+  }
   const { error } = await supabase
     .from("tournaments")
     .update({ skip_image_generation: skip })
@@ -248,6 +266,7 @@ export async function replayMatchAction(
   _prev: MatchActionState,
   _formData: FormData,
 ): Promise<MatchActionState> {
+  if (!(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -357,6 +376,7 @@ export async function setMatchWinnerAction(
   _prev: MatchActionState,
   _formData: FormData,
 ): Promise<MatchActionState> {
+  if (!(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -456,12 +476,13 @@ export async function restartLiveMatchAction(
   _prev: MatchActionState,
   _formData: FormData,
 ): Promise<MatchActionState> {
+  if (!(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
   const { data: match } = await supabase
     .from("matches")
-    .select("id, tournament_id, status, round, player_a_id, player_b_id")
+    .select("id, tournament_id, status, round, player_a_id, player_b_id, generation_count")
     .eq("id", matchId)
     .maybeSingle();
 
@@ -482,11 +503,21 @@ export async function restartLiveMatchAction(
 
   const { data: tournament } = await supabase
     .from("tournaments")
-    .select("id, round_time_seconds, round_time_overrides")
+    .select("id, round_time_seconds, round_time_overrides, byo_key, skip_image_generation")
     .eq("id", match.tournament_id)
     .maybeSingle();
 
   if (!tournament) return { error: dict.admin.err.tournamentNotFound };
+  // On the platform's key a match may be generated twice (one retry).
+  // Restarting before generation (live/locked) costs nothing.
+  if (
+    tournament.byo_key !== true &&
+    tournament.skip_image_generation !== true &&
+    (match.status === "generating" || match.status === "reveal") &&
+    ((match.generation_count as number | null) ?? 0) >= MAX_PLATFORM_GENERATIONS
+  ) {
+    return { error: dict.admin.err.restartLimit };
+  }
 
   const seconds = roundTimeFor(
     match.round as Round,
@@ -527,6 +558,9 @@ export async function restartLiveMatchAction(
  * Lock a live match. Idempotent: succeeds whether the timer expired or the
  * admin pressed the button early. Server overrides the end_time when locked
  * early so the recorded timer matches reality.
+ *
+ * Players' phones and the stage call this when their countdown hits zero,
+ * so it can't require the host — but only the host may lock early.
  */
 export async function lockMatchAction(
   matchId: string,
@@ -547,6 +581,10 @@ export async function lockMatchAction(
   if (match.status !== "live") return { error: dict.admin.err.matchNotLive };
 
   const now = new Date();
+  // A little slack for clock skew between a device and the server.
+  const timeUp = !!match.end_time && new Date(match.end_time).getTime() - 3000 <= now.getTime();
+  if (!timeUp && !(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
+
   const endTime = match.end_time ? new Date(match.end_time) : now;
   const recordedEnd = endTime < now ? endTime : now;
 

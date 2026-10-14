@@ -23,6 +23,9 @@ interface Props {
   initialRoundTime: number;
   initialRoundTimeOverrides: Partial<Record<Round, number>>;
   initialSkipGeneration: boolean;
+  /** Platform-funded game already started: costs were reserved at start,
+   *  so it can't switch from test to live mode any more. */
+  liveModeLocked: boolean;
   status: TournamentStatus;
   /** Largest bracket the tournament's plan allows (free 8 / premium 32).
    *  Bigger options render disabled with a premium tag; the server
@@ -39,6 +42,7 @@ export function TournamentSettings({
   initialRoundTime,
   initialRoundTimeOverrides,
   initialSkipGeneration,
+  liveModeLocked,
   status,
   maxPlayers,
 }: Props) {
@@ -149,13 +153,14 @@ export function TournamentSettings({
             variant={!skipGeneration ? "default" : "outline"}
             size="sm"
             onClick={() => setMode("live")}
-            disabled={modePending}
+            disabled={modePending || (skipGeneration && liveModeLocked)}
           >
             {dict.admin.liveModeBtn}
           </Button>
         </div>
         <p className="text-muted-foreground text-xs">
           {skipGeneration ? dict.admin.testModeDesc : dict.admin.liveModeDesc}
+          {skipGeneration && liveModeLocked && ` ${dict.admin.liveModeLockedHint}`}
         </p>
       </div>
 
