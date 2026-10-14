@@ -16,7 +16,7 @@ interface Props {
   initialParticipantCount: number;
   initialTasksByRound: Record<Round, number>;
   /** Remaining free games in the rolling 30-day window; null = not capped
-   *  (premium / test mode). Shown pre-flight so the cap never surprises a
+   *  (own key / test mode). Shown pre-flight so the cap never surprises a
    *  host mid-event. */
   freeGamesLeft: number | null;
   /** Worst-case generation cost estimate (USD string); null when nothing

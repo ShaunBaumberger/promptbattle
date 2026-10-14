@@ -30,7 +30,7 @@ const KEY_PLACEHOLDERS: Record<Provider, string> = {
 
 /**
  * Bring-your-own-keys box. Hosts store one key per AI provider (Google,
- * OpenAI, Replicate); any stored key unlocks premium features and bills
+ * OpenAI, Replicate); any stored key unlocks the full feature set and bills
  * generation to the host's own provider account. Keys are validated live,
  * stored encrypted, and never shown again — the UI only knows which
  * providers have a key.

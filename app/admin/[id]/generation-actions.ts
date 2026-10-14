@@ -238,7 +238,7 @@ export async function generateMatchVideosAction(
   // (createTaskAction gate), so a video match here means the API was
   // bypassed. Refuse before any Veo budget is burned.
   if (!skipGeneration && !limitsFor(ePlan).videoTasks) {
-    return { ok: false, error: "Video generation requires Premium." };
+    return { ok: false, error: "Video generation requires your own API key." };
   }
   const imageModel = imageModelFor(
     ePlan,

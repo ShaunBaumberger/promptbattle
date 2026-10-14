@@ -44,7 +44,7 @@ export function CreateTournamentForm() {
           in the tournament's settings after creation — the form stays
           minimal (defaults: 8 players, 60s rounds, free plan). */}
       <p className="text-muted-foreground text-xs">{dict.admin.planFreeInfo}</p>
-      <p className="text-muted-foreground text-xs">{dict.admin.upgradeHint}</p>
+      <p className="text-muted-foreground text-xs">{dict.admin.bigEventsHint}</p>
 
       {state.error && (
         <p className="text-destructive text-sm" role="alert">

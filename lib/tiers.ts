@@ -7,17 +7,16 @@ import { modelCostCents, normalizeModelRef } from "@/lib/ai/models";
  * estimates spend imports from here so free-tier limits can't drift apart
  * across the create form, the server actions, and the generation pipeline.
  *
- * Business model (decided 2026-07):
+ * Two ways to play (decided 2026-10 — the paid per-event plan was
+ * dropped for now; promptbattle.io is free and takes donations):
  *   free    → platform-funded. Hard-capped features so one game costs the
  *             platform ~US$0.55: ≤8 players, image/text tasks only (no
  *             video), cheap image model.
- *   premium → paid per event (Stripe, flat fee). Big brackets, video
- *             tasks, premium image model.
- *
- * BYO keys (tournament_secrets.byo_keys) unlock premium features at zero
- * platform cost and allow ANY model of the providers the host has keys
- * for. Models are addressed by refs like "openai:gpt-image-2.5-flare" — see
- * lib/ai/models.ts.
+ *   premium → the full feature set: big brackets, video tasks, any model.
+ *             Only reachable with the host's own AI keys (BYO,
+ *             tournament_secrets.byo_keys), so it costs the platform
+ *             nothing. Models are addressed by refs like
+ *             "openai:gpt-image-2.5-flare" — see lib/ai/models.ts.
  */
 
 export type Plan = "free" | "premium";
@@ -62,13 +61,14 @@ export function limitsFor(plan: Plan): TierLimits {
 }
 
 /**
- * The plan whose limits actually apply. A tournament running on its own
- * AI keys (BYO) gets premium features regardless of what was paid —
- * generation costs land on the key owner's provider account, so there is
- * nothing for the platform to protect.
+ * The plan whose limits actually apply. Only a tournament running on its
+ * own AI keys (BYO) gets premium features — generation costs land on the
+ * key owner's provider account, so there is nothing for the platform to
+ * protect. The stored `plan` is ignored: every platform-funded game is a
+ * free game, whatever an older row says.
  */
-export function effectivePlan(plan: Plan, byoKey: boolean): Plan {
-  return byoKey ? "premium" : plan;
+export function effectivePlan(_plan: Plan, byoKey: boolean): Plan {
+  return byoKey ? "premium" : "free";
 }
 
 /** Player-count options a plan may pick (create form + server validation). */
@@ -93,8 +93,8 @@ export function videoModelFor(plan: Plan, override: string | null): string {
 
 // ---------------------------------------------------------------------
 // Cost estimation (US cents). Rough by design — used for the pre-flight
-// estimate shown to the host, the global platform backstop, and the paid
-// plan's per-tournament ceiling. Not billing. Per-model prices live in
+// estimate shown to the host and the global platform backstop. Not
+// billing. Per-model prices live in
 // the catalog (lib/ai/models.ts).
 // ---------------------------------------------------------------------
 
@@ -128,17 +128,6 @@ export function estimateTournamentCostCents(opts: {
   }
   return total;
 }
-
-/**
- * Paid plan: the most generation one flat-price tournament may cost the
- * platform (US cents). Keeps every paid event profitable — e.g. video in
- * every match of a 32-player bracket would cost ~$58 against a CHF 9 fee.
- * Enforced before start (never mid-game); hosts can trim video tasks or
- * bring their own key to go beyond it.
- */
-export const PREMIUM_MAX_COST_CENTS = Number(
-  process.env.PREMIUM_MAX_COST_CENTS ?? 800,
-);
 
 /**
  * Generations per match on the platform's key: the first, plus one retry

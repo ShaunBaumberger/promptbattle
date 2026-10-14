@@ -26,6 +26,6 @@ export function getOperator(): Operator {
 }
 
 /** Date the legal texts were last revised (ISO). */
-export const LEGAL_UPDATED = "2026-10-12";
+export const LEGAL_UPDATED = "2026-10-14";
 
 export type LegalLang = "de" | "en";

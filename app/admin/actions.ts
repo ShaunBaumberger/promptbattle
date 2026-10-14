@@ -27,8 +27,8 @@ export async function createTournamentAction(
   // The create form is intentionally minimal: name + venue. Everything
   // else (player count, round times, test/live mode) is configured in
   // the tournament's settings afterwards. Defaults below; every
-  // tournament starts on the free plan — premium is a per-event upgrade
-  // (Stripe) or a BYO key on the tournament page.
+  // tournament starts on the free plan — the host's own AI key on the
+  // tournament page unlocks the rest.
   const plan: Plan = "free";
   const playerCount = Math.min(8, limitsFor(plan).maxPlayers);
   const roundTime = 60;
