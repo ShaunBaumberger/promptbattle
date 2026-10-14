@@ -10,12 +10,13 @@ import {
   parseOpRef,
   platformKey,
 } from "@/lib/ai";
-import { parseModelRef, type Provider } from "@/lib/ai/models";
+import { modelCostCents, parseModelRef, type Provider } from "@/lib/ai/models";
 import {
   imageModelFor,
   videoModelFor,
   limitsFor,
   effectivePlan,
+  MAX_PLATFORM_GENERATIONS,
   type Plan,
 } from "@/lib/tiers";
 import { getByoKeys, type ByoKeys } from "@/lib/byo-key";
@@ -94,7 +95,7 @@ export async function generateMatchImagesAction(
     .update({ status: "generating" })
     .eq("id", matchId)
     .eq("status", "locked")
-    .select("id, prompt_a, prompt_b")
+    .select("id, prompt_a, prompt_b, generation_count")
     .maybeSingle();
 
   if (claimErr) {
@@ -107,7 +108,11 @@ export async function generateMatchImagesAction(
 
   revalidatePath(`/admin/${tournamentId}`);
 
-  if (skipGeneration || keyMissing) {
+  const overLimit = !skipGeneration && !byo && !(await countGeneration(
+    supabase, matchId, claimed.generation_count, 2 * modelCostCents(imageModel, "image"),
+  ));
+
+  if (skipGeneration || keyMissing || overLimit) {
     // Test-mode short-circuit — or no usable key for the model's provider
     // (e.g. rotated SECRETS_ENCRYPTION_KEY): reveal with no images rather
     // than billing the platform for a BYO game.
@@ -259,7 +264,7 @@ export async function generateMatchVideosAction(
     .update({ status: "generating" })
     .eq("id", matchId)
     .eq("status", "locked")
-    .select("id, prompt_a, prompt_b")
+    .select("id, prompt_a, prompt_b, generation_count")
     .maybeSingle();
 
   if (claimErr) {
@@ -269,12 +274,19 @@ export async function generateMatchVideosAction(
 
   revalidatePath(`/admin/${tournamentId}`);
 
+  const overLimit = !skipGeneration && !byo && !(await countGeneration(
+    supabase,
+    matchId,
+    claimed.generation_count,
+    2 * modelCostCents(imageModel, "image") + 2 * modelCostCents(videoModel, "video"),
+  ));
+
   const promptA = (claimed.prompt_a ?? "").trim();
   const promptB = (claimed.prompt_b ?? "").trim();
 
   // Test-Modus short-circuit — or a missing key for one of the models'
   // providers (never fall back to the platform key on a BYO game).
-  if (skipGeneration || keyMissing) {
+  if (skipGeneration || keyMissing || overLimit) {
     if (keyMissing) {
       console.error(`[video-gen ${matchId}] no API key for ${imageModel} / ${videoModel} — skipping generation`);
     }
@@ -510,4 +522,38 @@ async function markVideoUrl(
   const supabase = createServiceRoleClient();
   const column = slot === "a" ? "video_a_url" : "video_b_url";
   await supabase.from("matches").update({ [column]: url }).eq("id", matchId);
+}
+
+/**
+ * Count a generation on a platform-funded match. The first one was
+ * reserved at tournament start; a regeneration (after "Restart match")
+ * adds its cost to the global budget. Returns false when the match is
+ * already at the limit — the caller then reveals without generating.
+ */
+async function countGeneration(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  matchId: string,
+  previous: number | null,
+  costCents: number,
+): Promise<boolean> {
+  const count = previous ?? 0;
+  if (count >= MAX_PLATFORM_GENERATIONS) {
+    console.warn(`[gen ${matchId}] generation limit reached — revealing without generating`);
+    return false;
+  }
+  await supabase.from("matches").update({ generation_count: count + 1 }).eq("id", matchId);
+  if (count >= 1 && costCents > 0) {
+    const { data: usage } = await supabase
+      .from("platform_usage")
+      .select("cents_spent")
+      .eq("id", 1)
+      .maybeSingle();
+    if (usage) {
+      await supabase
+        .from("platform_usage")
+        .update({ cents_spent: usage.cents_spent + costCents })
+        .eq("id", 1);
+    }
+  }
+  return true;
 }

@@ -135,8 +135,16 @@ export function MatchPlay({ match, participantId, opponentName }: Props) {
           lastSentRef.current = value;
           updatePromptAction(match.id, participantId, value).catch(() => {});
         }
-        const fd = new FormData();
-        lockMatchAction(match.id, {}, fd).catch(() => {});
+        // The server only accepts a lock from a player once the timer is up
+        // by its own clock; retry briefly in case this phone's clock is ahead.
+        const tryLock = (attempt: number) => {
+          lockMatchAction(match.id, {}, new FormData())
+            .then((res) => {
+              if (res.error && attempt < 8) setTimeout(() => tryLock(attempt + 1), 1500);
+            })
+            .catch(() => {});
+        };
+        tryLock(0);
         setLocked(true);
       }
     };

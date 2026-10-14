@@ -6,6 +6,7 @@ import { getNextSlot } from "@/lib/bracket";
 import type { PlayerCount, Round } from "@/lib/types/database";
 import { getServerDictionary } from "@/lib/i18n/server";
 import { interpolate } from "@/lib/i18n/interpolate";
+import { notOwnerMessage, ownsMatch, ownsTournament } from "@/lib/supabase/ownership";
 
 export type VotingActionState = { error?: string; ok?: boolean };
 
@@ -19,6 +20,7 @@ export async function playVideoAction(
   tournamentId: string,
   slot: "A" | "B",
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownsTournament(tournamentId))) return { ok: false, error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from("tournaments")
@@ -32,6 +34,7 @@ export async function playVideoAction(
 export async function clearVideoPlayingAction(
   tournamentId: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  if (!(await ownsTournament(tournamentId))) return { ok: false, error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { error } = await supabase
     .from("tournaments")
@@ -48,6 +51,7 @@ export async function startVotingAction(
   _prev: VotingActionState,
   _formData: FormData,
 ): Promise<VotingActionState> {
+  if (!(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 
@@ -85,6 +89,7 @@ export async function endVotingAction(
   _prev: VotingActionState,
   _formData: FormData,
 ): Promise<VotingActionState> {
+  if (!(await ownsMatch(matchId))) return { error: await notOwnerMessage() };
   const supabase = createServiceRoleClient();
   const { dict } = await getServerDictionary();
 

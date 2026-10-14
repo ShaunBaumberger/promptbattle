@@ -284,6 +284,7 @@ export interface Dictionary {
     // settings
     settings: string;
     testModeBtn: string;
+    liveModeLockedHint: string;
     liveModeBtn: string;
     testModeActive: string;
     liveModeActive: string;
@@ -458,6 +459,8 @@ export interface Dictionary {
       /** "{max}" */
       quotaExhausted: string;
       budgetPaused: string;
+      liveModeLocked: string;
+      restartLimit: string;
       /** "{msg}" */
       paymentInit: string;
       upgradeSetupOnly: string;
